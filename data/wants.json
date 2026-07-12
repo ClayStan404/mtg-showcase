@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T17:49:27Z",
+  "generated_at": "2026-07-12T17:59:25Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -11,8 +11,8 @@
       "note": ""
     }
   },
-  "count": 4,
-  "total_quantity": 5,
+  "count": 6,
+  "total_quantity": 7,
   "buyers": [
     "示例买家"
   ],
@@ -91,6 +91,41 @@
       "source_file": "demo.txt"
     },
     {
+      "id": "示例买家-iko-185-en-nf-0",
+      "kind": "flex",
+      "must": false,
+      "buyer": "示例买家",
+      "buyer_id": "示例买家",
+      "city": "上海",
+      "contact": "微信 buyer_demo",
+      "quantity": 1,
+      "note": "任意版本",
+      "set": "iko",
+      "set_name": "Ikoria: Lair of Behemoths",
+      "number": "185",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "name_en": "Emergent Ultimatum",
+      "name_zh": "突发通牒",
+      "name_printed": "Emergent Ultimatum",
+      "type_line": "Sorcery",
+      "type_line_en": "Sorcery",
+      "types": [
+        "sorcery"
+      ],
+      "mana_cost": "{B}{B}{G}{G}{G}{U}{U}",
+      "cmc": 7.0,
+      "text": "Search your library for up to three monocolored cards with different names and exile them. An opponent chooses one of those cards. Shuffle that card into your library. You may cast the other cards without paying their mana costs. Exile Emergent Ultimatum.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/a/3a6a52ab-6d38-4429-9969-90064e615152.jpg?1782707129",
+        "normal": "https://cards.scryfall.io/normal/front/3/a/3a6a52ab-6d38-4429-9969-90064e615152.jpg?1782707129",
+        "large": "https://cards.scryfall.io/large/front/3/a/3a6a52ab-6d38-4429-9969-90064e615152.jpg?1782707129"
+      },
+      "scryfall_uri": "https://scryfall.com/card/iko/185/emergent-ultimatum?utm_source=api",
+      "source_file": "示例买家.txt"
+    },
+    {
       "id": "示例买家-mh3-224-en-nf-1",
       "kind": "exact",
       "must": true,
@@ -124,6 +159,41 @@
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/224/polluted-delta?utm_source=api",
       "source_file": "demo.txt"
+    },
+    {
+      "id": "示例买家-mh3-224-en-nf-1",
+      "kind": "exact",
+      "must": true,
+      "buyer": "示例买家",
+      "buyer_id": "示例买家",
+      "city": "上海",
+      "contact": "微信 buyer_demo",
+      "quantity": 1,
+      "note": "",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "224",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "name_en": "Polluted Delta",
+      "name_zh": "聚污三角洲",
+      "name_printed": "Polluted Delta",
+      "type_line": "Land",
+      "type_line_en": "Land",
+      "types": [
+        "land"
+      ],
+      "mana_cost": "",
+      "cmc": 0.0,
+      "text": "{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/6/e/6e288374-2b71-4ace-b1d2-a19fee6cb4af.jpg?1782691195",
+        "normal": "https://cards.scryfall.io/normal/front/6/e/6e288374-2b71-4ace-b1d2-a19fee6cb4af.jpg?1782691195",
+        "large": "https://cards.scryfall.io/large/front/6/e/6e288374-2b71-4ace-b1d2-a19fee6cb4af.jpg?1782691195"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/224/polluted-delta?utm_source=api",
+      "source_file": "示例买家.txt"
     },
     {
       "id": "示例买家-msc-211-zhs-f-0",
