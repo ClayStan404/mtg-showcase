@@ -10,16 +10,20 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="description" content="万智牌 Sales List" />
     <title>万智牌 Sales List</title>
-    <link rel="stylesheet" href="assets/style.css?v=12" />
+    <link rel="stylesheet" href="assets/style.css?v=13" />
   </head>
   <body>
     <header class="site-header wrap">
       <h1 id="site-title">万智牌 Sales List</h1>
       <p class="subtitle" id="site-subtitle">实体卡展示 · 站外联系成交</p>
+      <nav class="view-tabs" id="view-tabs" aria-label="在售与求购">
+        <button type="button" class="view-tab active" data-view="sell">在售</button>
+        <button type="button" class="view-tab" data-view="want">求购</button>
+      </nav>
       <div class="stats">
-        <span>种类 <strong id="total-kinds">0</strong></span>
-        <span>张数 <strong id="total-qty">0</strong></span>
-        <span>显示 <strong id="visible-count">0</strong></span>
+        <span id="stat-kinds-label">种类</span> <strong id="total-kinds">0</strong>
+        <span id="stat-qty-label">张数</span> <strong id="total-qty">0</strong>
+        <span>显示</span> <strong id="visible-count">0</strong>
       </div>
     </header>
 
@@ -121,18 +125,20 @@
           <p class="en-name" id="modal-en"></p>
           <div class="modal-tags" id="modal-tags"></div>
           <dl class="detail-grid">
-            <dt>出售人</dt>
+            <dt id="modal-person-label">出售人</dt>
             <dd id="modal-seller"></dd>
             <dt>城市</dt>
             <dd id="modal-city"></dd>
             <dt>联系</dt>
             <dd id="modal-contact"></dd>
-            <dt>系列</dt>
+            <dt id="modal-set-label">系列</dt>
             <dd id="modal-set"></dd>
-            <dt>编号</dt>
+            <dt id="modal-number-label">编号</dt>
             <dd id="modal-number"></dd>
             <dt>类型</dt>
             <dd id="modal-type"></dd>
+            <dt id="modal-note-label" hidden>备注</dt>
+            <dd id="modal-note" hidden></dd>
           </dl>
           <div class="oracle" id="modal-text"></div>
           <div class="modal-actions">
@@ -144,6 +150,7 @@
     </div>
 
     <script src="assets/cards-data.js?v=12"></script>
-    <script src="assets/app.js?v=12"></script>
+    <script src="assets/wants-data.js?v=13"></script>
+    <script src="assets/app.js?v=13"></script>
   </body>
 </html>

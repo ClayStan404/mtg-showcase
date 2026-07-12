@@ -3,13 +3,16 @@
 const CART_KEY = "mtg-wishlist-v1";
 
 const state = {
+  view: "sell", // sell | want
   cards: [],
+  wants: [],
   site: null,
   query: "",
   lang: "all",
   foil: "all",
-  seller: "all",
+  seller: "all", // sell: 出售人；want: 买家 id
   city: "all",
+  kind: "all", // want only: printing | any
   /** @type {Record<string, number>} cardId -> want qty */
   cart: {},
   cartOpen: false,
@@ -302,9 +305,22 @@ const filters = {
       { value: "nf", label: "仅非闪" },
     ],
   },
+  kind: {
+    key: "kind",
+    label: "类型",
+    allLabel: "全部类型",
+    options: [
+      { value: "printing", label: "指定印刷" },
+      { value: "any", label: "任意版本" },
+    ],
+  },
 };
 
-const FILTER_ORDER = ["seller", "city", "lang", "foil"];
+function filterOrder() {
+  return state.view === "want"
+    ? ["seller", "city", "kind"]
+    : ["seller", "city", "lang", "foil"];
+}
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -322,12 +338,32 @@ function secondaryName(card) {
   return "";
 }
 
+function activeList() {
+  return state.view === "want" ? state.wants : state.cards;
+}
+
+function personId(item) {
+  if (state.view === "want") return item.buyer_id || item.buyer || "";
+  return item.seller_id || item.seller || "";
+}
+
+function personName(item) {
+  return state.view === "want" ? item.buyer || "" : item.seller || "";
+}
+
 function matches(card) {
-  if (state.lang !== "all" && card.lang !== state.lang) return false;
-  if (state.foil === "foil" && !card.foil) return false;
-  if (state.foil === "nf" && card.foil) return false;
-  if (state.seller !== "all" && card.seller_id !== state.seller && card.seller !== state.seller) {
-    return false;
+  if (state.view === "want") {
+    if (state.kind !== "all" && card.kind !== state.kind) return false;
+    if (state.seller !== "all" && personId(card) !== state.seller && card.buyer !== state.seller) {
+      return false;
+    }
+  } else {
+    if (state.lang !== "all" && card.lang !== state.lang) return false;
+    if (state.foil === "foil" && !card.foil) return false;
+    if (state.foil === "nf" && card.foil) return false;
+    if (state.seller !== "all" && card.seller_id !== state.seller && card.seller !== state.seller) {
+      return false;
+    }
   }
   if (state.city !== "all" && card.city !== state.city) return false;
 
@@ -338,16 +374,21 @@ function matches(card) {
     card.name_en,
     card.name_zh,
     card.name_printed,
+    card.name_query,
     card.set,
     card.set_name,
     card.number,
     card.lang_label,
     card.type_line,
     card.text,
+    card.note,
     card.seller,
+    card.buyer,
     card.city,
     card.contact,
     card.foil ? "foil 闪" : "",
+    card.kind === "any" ? "任意 版本" : "",
+    card.kind === "printing" ? "指定 印刷" : "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -357,7 +398,8 @@ function matches(card) {
 }
 
 function sellerLine(card) {
-  const parts = [card.seller, card.city].filter(Boolean);
+  const name = personName(card);
+  const parts = [name, card.city].filter(Boolean);
   return parts.join(" · ");
 }
 
@@ -465,9 +507,11 @@ function cardImageSrc(card) {
 function renderGrid() {
   const grid = $("#grid");
   const empty = $("#empty");
-  const filtered = state.cards.filter(matches);
+  const filtered = activeList().filter(matches);
+  const isWant = state.view === "want";
 
   $("#visible-count").textContent = String(filtered.length);
+  empty.textContent = isWant ? "没有匹配的求购" : "没有匹配的卡牌";
 
   if (!filtered.length) {
     grid.innerHTML = "";
@@ -478,7 +522,12 @@ function renderGrid() {
 
   grid.innerHTML = filtered
     .map((c) => {
-      const added = inCart(c.id);
+      const added = !isWant && inCart(c.id);
+      const isAny = c.kind === "any";
+      const metaLeft = isAny
+        ? "任意版本"
+        : `${(c.set || "").toUpperCase()} #${c.number || ""}`;
+      const metaRight = isAny ? "不限印刷" : c.lang_label || c.lang || "";
       return `
     <div class="card" data-id="${escapeAttr(c.id)}">
       <div class="card-media">
@@ -492,28 +541,34 @@ function renderGrid() {
             />
           </div>
         </button>
-        <button
+        ${
+          isWant
+            ? ""
+            : `<button
           type="button"
           class="card-add${added ? " is-in" : ""}"
           data-id="${escapeAttr(c.id)}"
           aria-label="${added ? "已在清单" : "加入意向清单"}"
-        >${added ? "已加" : "加入"}</button>
+        >${added ? "已加" : "加入"}</button>`
+        }
       </div>
       <button type="button" class="card-hit card-hit-info" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
         <div class="card-body">
           <div class="card-title-row">
             <p class="card-name">${escapeHtml(displayName(c))}</p>
             <div class="card-flags">
-              ${c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
+              ${isAny ? '<span class="flag flag-any">任意</span>' : ""}
+              ${!isAny && c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
               ${c.quantity > 1 ? `<span class="flag flag-qty">×${c.quantity}</span>` : ""}
             </div>
           </div>
           ${secondaryName(c) ? `<p class="card-name-en">${escapeHtml(secondaryName(c))}</p>` : ""}
           <div class="card-meta">
-            <span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span>
-            <span>${escapeHtml(c.lang_label || c.lang)}</span>
+            <span>${escapeHtml(metaLeft)}</span>
+            <span>${escapeHtml(metaRight)}</span>
           </div>
           ${sellerLine(c) ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>` : ""}
+          ${c.note ? `<p class="card-note">${escapeHtml(c.note)}</p>` : ""}
         </div>
       </button>
     </div>`;
@@ -525,7 +580,9 @@ function openModal(card) {
   closeAllDropdowns();
   const modal = $("#modal");
   state.modalCardId = card.id;
-  // 手机详情用 large 清晰；桌面同样
+  const isWant = state.view === "want";
+  const isAny = card.kind === "any";
+
   $("#modal-img").src = card.image?.large || card.image?.normal || "";
   $("#modal-img").alt = displayName(card);
   $("#modal-title").textContent = displayName(card);
@@ -533,19 +590,47 @@ function openModal(card) {
   $("#modal-en").hidden = !secondaryName(card);
 
   $("#modal-tags").innerHTML = [
-    `<span class="tag">${escapeHtml(card.lang_label || card.lang)}</span>`,
-    card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
+    isWant
+      ? `<span class="tag">${isAny ? "任意版本" : "指定印刷"}</span>`
+      : `<span class="tag">${escapeHtml(card.lang_label || card.lang)}</span>`,
+    !isAny && card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
     `<span class="tag">×${card.quantity}</span>`,
     card.city ? `<span class="tag">${escapeHtml(card.city)}</span>` : "",
   ].join("");
 
-  $("#modal-seller").textContent = card.seller || "—";
+  const personLabel = $("#modal-person-label");
+  if (personLabel) personLabel.textContent = isWant ? "买家" : "出售人";
+  $("#modal-seller").textContent = (isWant ? card.buyer : card.seller) || "—";
   $("#modal-city").textContent = card.city || "—";
   $("#modal-contact").textContent = card.contact || "—";
-  $("#modal-set").textContent = `${card.set_name} (${(card.set || "").toUpperCase()})`;
-  $("#modal-number").textContent = card.number;
+
+  if (isAny) {
+    $("#modal-set-label").textContent = "版本";
+    $("#modal-set").textContent = "任意版本（不限系列/语言/闪）";
+    $("#modal-number-label").textContent = "检索名";
+    $("#modal-number").textContent = card.name_query || displayName(card);
+  } else {
+    $("#modal-set-label").textContent = "系列";
+    $("#modal-set").textContent = `${card.set_name || ""} (${(card.set || "").toUpperCase()})`;
+    $("#modal-number-label").textContent = "编号";
+    $("#modal-number").textContent = card.number || "—";
+  }
   $("#modal-type").textContent = card.type_line || "—";
-  $("#modal-text").textContent = card.text || "（无牌面文字）";
+  $("#modal-text").textContent = card.text || (isAny ? "（任意版本求购，无固定牌面）" : "（无牌面文字）");
+
+  const noteLabel = $("#modal-note-label");
+  const noteDd = $("#modal-note");
+  if (noteLabel && noteDd) {
+    if (card.note) {
+      noteLabel.hidden = false;
+      noteDd.hidden = false;
+      noteDd.textContent = card.note;
+    } else {
+      noteLabel.hidden = true;
+      noteDd.hidden = true;
+      noteDd.textContent = "";
+    }
+  }
 
   const link = $("#modal-scryfall");
   if (card.scryfall_uri) {
@@ -557,15 +642,19 @@ function openModal(card) {
 
   const modalAdd = $("#modal-add");
   if (modalAdd) {
-    const on = inCart(card.id);
-    modalAdd.classList.toggle("is-in", on);
-    modalAdd.textContent = on ? "已在清单中 · 再加一张" : "加入意向清单";
+    if (isWant) {
+      modalAdd.hidden = true;
+    } else {
+      modalAdd.hidden = false;
+      const on = inCart(card.id);
+      modalAdd.classList.toggle("is-in", on);
+      modalAdd.textContent = on ? "已在清单中 · 再加一张" : "加入意向清单";
+    }
   }
 
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
   setScrollLock(true);
-  // 抽屉打开时滚到顶部，避免上次浏览位置
   const panel = modal.querySelector(".modal-panel");
   if (panel) panel.scrollTop = 0;
   $("#modal-close").focus({ preventScroll: true });
@@ -668,7 +757,7 @@ function buildDropdownShell(filterId) {
 
 function mountFilters() {
   const host = $("#filters");
-  host.innerHTML = FILTER_ORDER.map(buildDropdownShell).join("");
+  host.innerHTML = filterOrder().map(buildDropdownShell).join("");
 
   host.addEventListener("click", (e) => {
     const trigger = e.target.closest(".dd-trigger");
@@ -727,26 +816,40 @@ function mountFilters() {
 }
 
 function populateFilters() {
-  const langs = [...new Set(state.cards.map((c) => c.lang).filter(Boolean))].sort();
+  const list = activeList();
+  const isWant = state.view === "want";
+
+  filters.seller.label = isWant ? "买家" : "出售人";
+  filters.seller.allLabel = isWant ? "全部买家" : "全部出售人";
 
   const sellerMap = new Map();
-  for (const c of state.cards) {
-    if (!c.seller) continue;
-    const id = c.seller_id || c.seller;
-    if (!sellerMap.has(id)) sellerMap.set(id, c.seller);
+  for (const c of list) {
+    const id = personId(c);
+    const name = personName(c);
+    if (!id && !name) continue;
+    const key = id || name;
+    if (!sellerMap.has(key)) sellerMap.set(key, name || key);
   }
   filters.seller.options = [...sellerMap.entries()]
     .map(([id, name]) => ({ value: id, label: name }))
     .sort((a, b) => a.label.localeCompare(b.label, "zh"));
 
-  filters.city.options = [...new Set(state.cards.map((c) => c.city).filter(Boolean))]
+  filters.city.options = [...new Set(list.map((c) => c.city).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "zh"))
     .map((c) => ({ value: c, label: c }));
 
-  const labelOf = (lang) => state.cards.find((c) => c.lang === lang)?.lang_label || lang;
-  filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
+  if (!isWant) {
+    const langs = [...new Set(list.map((c) => c.lang).filter(Boolean))].sort();
+    const labelOf = (lang) => list.find((c) => c.lang === lang)?.lang_label || lang;
+    filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
+  }
 
-  FILTER_ORDER.forEach(renderDropdown);
+  // rebuild filter shells for current view
+  const host = $("#filters");
+  if (host) {
+    host.innerHTML = filterOrder().map(buildDropdownShell).join("");
+  }
+  filterOrder().forEach(renderDropdown);
   updateFilterToggle();
 }
 
@@ -754,8 +857,12 @@ function activeFilterCount() {
   let n = 0;
   if (state.seller !== "all") n += 1;
   if (state.city !== "all") n += 1;
-  if (state.lang !== "all") n += 1;
-  if (state.foil !== "all") n += 1;
+  if (state.view === "want") {
+    if (state.kind !== "all") n += 1;
+  } else {
+    if (state.lang !== "all") n += 1;
+    if (state.foil !== "all") n += 1;
+  }
   return n;
 }
 
@@ -788,14 +895,54 @@ function setFiltersOpen(open) {
 
 function renderSiteMeta() {
   const site = state.site || {};
-  document.title = site.title || "万智牌 Sales List";
-  $("#site-title").textContent = site.title || "万智牌 Sales List";
-  $("#site-subtitle").textContent = site.subtitle || "";
+  const isWant = state.view === "want";
+  const baseTitle = site.title || "万智牌 Sales List";
+  document.title = isWant ? `${baseTitle} · 求购` : baseTitle;
+  $("#site-title").textContent = baseTitle;
+  $("#site-subtitle").textContent = isWant
+    ? "买家求购 · 卖家可按联系方式对接"
+    : site.subtitle || "";
 
-  $("#total-kinds").textContent = String(state.cards.length);
-  $("#total-qty").textContent = String(
-    state.cards.reduce((sum, c) => sum + (c.quantity || 0), 0)
-  );
+  const list = activeList();
+  $("#total-kinds").textContent = String(list.length);
+  $("#total-qty").textContent = String(list.reduce((sum, c) => sum + (c.quantity || 0), 0));
+  const kindsLabel = $("#stat-kinds-label");
+  const qtyLabel = $("#stat-qty-label");
+  if (kindsLabel) kindsLabel.textContent = isWant ? "条目" : "种类";
+  if (qtyLabel) qtyLabel.textContent = isWant ? "张数" : "张数";
+
+  const fab = $("#cart-fab");
+  if (fab) fab.hidden = isWant;
+
+  const search = $("#search");
+  if (search) {
+    search.placeholder = isWant
+      ? "搜索牌名 / 买家 / 备注…"
+      : "搜索牌名 / 系列 / 出售人…";
+  }
+}
+
+function setView(view) {
+  if (view !== "sell" && view !== "want") return;
+  state.view = view;
+  state.query = "";
+  state.seller = "all";
+  state.city = "all";
+  state.lang = "all";
+  state.foil = "all";
+  state.kind = "all";
+  state.filtersOpen = false;
+  const search = $("#search");
+  if (search) search.value = "";
+  document.querySelectorAll(".view-tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === view);
+  });
+  setFiltersOpen(false);
+  closeModal();
+  closeCart();
+  renderSiteMeta();
+  populateFilters();
+  renderGrid();
 }
 
 function escapeHtml(str) {
@@ -812,6 +959,12 @@ function escapeAttr(str) {
 
 function bindEvents() {
   state.cart = loadCart();
+
+  $("#view-tabs")?.addEventListener("click", (e) => {
+    const tab = e.target.closest(".view-tab");
+    if (!tab) return;
+    setView(tab.dataset.view);
+  });
 
   $("#search").addEventListener("input", (e) => {
     state.query = e.target.value;
@@ -968,14 +1121,7 @@ function showLoadError(msg) {
   el.textContent = msg;
 }
 
-async function loadData() {
-  // 1) 内嵌数据（cards-data.js），避免单独请求 JSON 被代理/DNS 拦掉
-  if (window.__MTG_DATA__ && Array.isArray(window.__MTG_DATA__.cards)) {
-    return window.__MTG_DATA__;
-  }
-
-  // 2) 回退 fetch（本地开发 / 未生成 cards-data.js 时）
-  const urls = [`data/cards.json?v=${Date.now()}`, "data/cards.json"];
+async function loadJsonFallback(urls, check) {
   let lastErr = null;
   for (const url of urls) {
     try {
@@ -985,8 +1131,8 @@ async function loadData() {
         continue;
       }
       const data = await res.json();
-      if (!data || !Array.isArray(data.cards)) {
-        lastErr = new Error("cards.json 格式无效");
+      if (!check(data)) {
+        lastErr = new Error(`${url} 格式无效`);
         continue;
       }
       return data;
@@ -994,15 +1140,46 @@ async function loadData() {
       lastErr = e;
     }
   }
-  throw lastErr || new Error("无法加载卡牌数据");
+  throw lastErr || new Error("无法加载数据");
+}
+
+async function loadData() {
+  // 在售
+  let sell;
+  if (window.__MTG_DATA__ && Array.isArray(window.__MTG_DATA__.cards)) {
+    sell = window.__MTG_DATA__;
+  } else {
+    sell = await loadJsonFallback(
+      [`data/cards.json?v=${Date.now()}`, "data/cards.json"],
+      (d) => d && Array.isArray(d.cards)
+    );
+  }
+
+  // 求购（可选，失败则空列表）
+  let wants = { wants: [] };
+  if (window.__MTG_WANTS__ && Array.isArray(window.__MTG_WANTS__.wants)) {
+    wants = window.__MTG_WANTS__;
+  } else {
+    try {
+      wants = await loadJsonFallback(
+        [`data/wants.json?v=${Date.now()}`, "data/wants.json"],
+        (d) => d && Array.isArray(d.wants)
+      );
+    } catch {
+      wants = { wants: [] };
+    }
+  }
+
+  return { sell, wants };
 }
 
 async function main() {
   mountFilters();
   bindEvents();
   const data = await loadData();
-  state.cards = data.cards || [];
-  state.site = data.site || {};
+  state.cards = data.sell.cards || [];
+  state.site = data.sell.site || data.wants.site || {};
+  state.wants = data.wants.wants || [];
   // 清理清单里已不存在的卡
   for (const id of Object.keys(state.cart)) {
     if (!state.cards.some((c) => c.id === id)) delete state.cart[id];

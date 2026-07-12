@@ -32,9 +32,15 @@
 
 ## 买家
 
+### 在售
 - 搜索、筛选：出售人 / 城市 / 语言 / 闪卡  
 - **意向清单**：加入卡牌 → 复制文本或截图模式 → 发给对应卖家  
-- 卖家联系方式见 **卡牌详情** 与 **清单分组**
+
+### 求购
+- 买家发布想买的牌，卖家浏览后联系买家  
+- 两种写法（见 `wants/`）：
+  1. **指定印刷**：`set number [lang] [foil]`（同卖牌）  
+  2. **任意版本**：`any <牌名> [数量] | 备注`  
 
 ---
 
@@ -52,11 +58,13 @@ python3 scripts/parse_wps_excel.py ~/下载/库存.xlsx --dry-run
 # 写入 inventory/*.txt
 python3 scripts/parse_wps_excel.py ~/下载/库存.xlsx
 
-# 拉取 Scryfall 元数据，生成站点数据
+# 在售数据
 python3 scripts/build_data.py
+# 求购数据（wants/*.txt）
+python3 scripts/build_wants.py
 
-git add inventory data/cards.json assets/cards-data.js
-git commit -m "Update inventory from WPS"
+git add inventory wants data assets/cards-data.js assets/wants-data.js
+git commit -m "Update inventory/wants"
 git push origin master
 ```
 

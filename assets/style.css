@@ -75,13 +75,55 @@ header.site-header {
   font-size: 0.95rem;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+}
+
+.view-tab {
+  min-height: 2.2rem;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.view-tab.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .stats {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem 1rem;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   color: var(--text-muted);
   font-size: 0.92rem;
+}
+
+.flag-any {
+  background: rgba(167, 139, 250, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+}
+
+.card-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #c9b27a;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .stats strong {
