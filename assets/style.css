@@ -141,61 +141,119 @@ header.site-header {
   align-items: stretch;
 }
 
-.filter-field {
+/* 自定义下拉：完全自绘，不依赖原生 option 颜色 */
+.dd {
+  position: relative;
+  min-width: 0;
+}
+
+.dd-trigger {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  background: var(--bg-elevated);
+  gap: 0.45rem;
+  min-height: 2.4rem;
+  max-width: min(18rem, 86vw);
+  padding: 0.35rem 0.75rem 0.35rem 0.85rem;
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.2rem 0.35rem 0.2rem 0.85rem;
-  min-height: 2.4rem;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
 }
 
-.filter-field:focus-within {
+.dd-trigger:hover {
+  border-color: #3d4b63;
+}
+
+.dd.open .dd-trigger,
+.dd-trigger:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
 }
 
-.filter-label {
+.dd-label {
   flex-shrink: 0;
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-muted);
-  user-select: none;
 }
 
-.filter-field select {
-  appearance: none;
-  border: 0;
-  outline: 0;
-  background: transparent
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239aa6bc' d='M1.1 1.2 6 6.1l4.9-4.9 1.1 1.1L6 8.3.01 2.3z'/%3E%3C/svg%3E")
-    no-repeat right 0.55rem center / 0.65rem;
-  /* 收起态：跟随深色主题 */
+.dd-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text);
+}
+
+.dd-caret {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg) translateY(-1px);
+  transition: transform 0.15s ease;
+}
+
+.dd.open .dd-caret {
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.dd-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 40;
+  min-width: 100%;
+  max-width: min(22rem, 92vw);
+  max-height: min(18rem, 50vh);
+  overflow: auto;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #1a2030;
+  box-shadow: var(--shadow);
+}
+
+.dd.open .dd-menu {
+  display: block;
+}
+
+.dd-option {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e8ecf4;
   font: inherit;
   font-size: 0.9rem;
-  padding: 0.4rem 1.6rem 0.4rem 0.35rem;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
   cursor: pointer;
-  min-width: 5.5rem;
-  max-width: 14rem;
 }
 
-/* 展开列表多为系统白底；强制深色字，避免继承收起态的浅色字 */
-.filter-field select option,
-.filter-field select optgroup {
-  background-color: #ffffff;
-  color: #111827;
+.dd-option:hover,
+.dd-option:focus-visible {
+  background: rgba(110, 168, 254, 0.16);
+  color: #ffffff;
+  outline: none;
 }
 
-.filter-field:has(#filter-set) select {
-  max-width: 16rem;
-}
-
-.filter-field select:hover {
-  color: #fff;
+.dd-option[aria-selected="true"] {
+  background: rgba(110, 168, 254, 0.28);
+  color: #ffffff;
+  font-weight: 600;
 }
 
 main {

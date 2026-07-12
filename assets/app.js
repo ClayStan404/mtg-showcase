@@ -11,6 +11,25 @@ const state = {
   city: "all",
 };
 
+/** @type {Record<string, { key: string, label: string, allLabel: string, options: {value:string,label:string}[] }>} */
+const filters = {
+  seller: { key: "seller", label: "出售人", allLabel: "全部出售人", options: [] },
+  city: { key: "city", label: "城市", allLabel: "全部城市", options: [] },
+  set: { key: "set", label: "系列", allLabel: "全部系列", options: [] },
+  lang: { key: "lang", label: "语言", allLabel: "全部语言", options: [] },
+  foil: {
+    key: "foil",
+    label: "表面",
+    allLabel: "全部",
+    options: [
+      { value: "foil", label: "仅闪卡" },
+      { value: "nf", label: "仅非闪" },
+    ],
+  },
+};
+
+const FILTER_ORDER = ["seller", "city", "set", "lang", "foil"];
+
 const $ = (sel, root = document) => root.querySelector(sel);
 
 function displayName(card) {
@@ -99,11 +118,7 @@ function renderGrid() {
           <span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span>
           <span>${escapeHtml(c.lang_label || c.lang)}</span>
         </div>
-        ${
-          sellerLine(c)
-            ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>`
-            : ""
-        }
+        ${sellerLine(c) ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>` : ""}
       </div>
     </button>`
     )
@@ -152,18 +167,100 @@ function closeModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
-function fillSelect(select, options, allLabel, valueKey = null) {
-  const makeValue = (item) => (valueKey ? item[valueKey] : item);
-  const makeLabel = (item) => (typeof item === "string" ? item : item.label);
-  select.innerHTML =
-    `<option value="all">${escapeHtml(allLabel)}</option>` +
-    options
-      .map((item) => {
-        const value = makeValue(item);
-        const label = makeLabel(item);
-        return `<option value="${escapeAttr(value)}">${escapeHtml(label)}</option>`;
-      })
-      .join("");
+function closeAllDropdowns(exceptId = null) {
+  document.querySelectorAll(".dd.open").forEach((el) => {
+    if (exceptId && el.id === exceptId) return;
+    el.classList.remove("open");
+    const btn = el.querySelector(".dd-trigger");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  });
+}
+
+function currentLabel(filterId) {
+  const conf = filters[filterId];
+  const value = state[conf.key];
+  if (value === "all") return conf.allLabel;
+  const hit = conf.options.find((o) => o.value === value);
+  return hit ? hit.label : conf.allLabel;
+}
+
+function renderDropdown(filterId) {
+  const conf = filters[filterId];
+  const root = document.getElementById(`dd-${filterId}`);
+  if (!root) return;
+
+  const value = state[conf.key];
+  const valueEl = root.querySelector(".dd-value");
+  if (valueEl) valueEl.textContent = currentLabel(filterId);
+
+  const menu = root.querySelector(".dd-menu");
+  if (!menu) return;
+
+  const items = [{ value: "all", label: conf.allLabel }, ...conf.options];
+  menu.innerHTML = items
+    .map(
+      (opt) => `
+    <li role="none">
+      <button
+        type="button"
+        class="dd-option"
+        role="option"
+        data-value="${escapeAttr(opt.value)}"
+        aria-selected="${opt.value === value ? "true" : "false"}"
+      >${escapeHtml(opt.label)}</button>
+    </li>`
+    )
+    .join("");
+}
+
+function buildDropdownShell(filterId) {
+  const conf = filters[filterId];
+  return `
+    <div class="dd" id="dd-${filterId}" data-filter="${filterId}">
+      <button
+        type="button"
+        class="dd-trigger"
+        aria-haspopup="listbox"
+        aria-expanded="false"
+        aria-label="${escapeAttr(conf.label)}"
+      >
+        <span class="dd-label">${escapeHtml(conf.label)}</span>
+        <span class="dd-value">${escapeHtml(conf.allLabel)}</span>
+        <span class="dd-caret" aria-hidden="true"></span>
+      </button>
+      <ul class="dd-menu" role="listbox" aria-label="${escapeAttr(conf.label)}"></ul>
+    </div>`;
+}
+
+function mountFilters() {
+  const host = $("#filters");
+  host.innerHTML = FILTER_ORDER.map(buildDropdownShell).join("");
+
+  host.addEventListener("click", (e) => {
+    const trigger = e.target.closest(".dd-trigger");
+    if (trigger) {
+      e.stopPropagation();
+      const dd = trigger.closest(".dd");
+      const willOpen = !dd.classList.contains("open");
+      closeAllDropdowns(willOpen ? dd.id : null);
+      dd.classList.toggle("open", willOpen);
+      trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      return;
+    }
+
+    const option = e.target.closest(".dd-option");
+    if (option) {
+      e.stopPropagation();
+      const dd = option.closest(".dd");
+      const filterId = dd.dataset.filter;
+      const conf = filters[filterId];
+      state[conf.key] = option.dataset.value;
+      dd.classList.remove("open");
+      dd.querySelector(".dd-trigger").setAttribute("aria-expanded", "false");
+      renderDropdown(filterId);
+      renderGrid();
+    }
+  });
 }
 
 function populateFilters() {
@@ -176,39 +273,23 @@ function populateFilters() {
     const id = c.seller_id || c.seller;
     if (!sellerMap.has(id)) sellerMap.set(id, c.seller);
   }
-  const sellers = [...sellerMap.entries()]
+  filters.seller.options = [...sellerMap.entries()]
     .map(([id, name]) => ({ value: id, label: name }))
     .sort((a, b) => a.label.localeCompare(b.label, "zh"));
 
-  const cities = [...new Set(state.cards.map((c) => c.city).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b, "zh")
-  );
+  filters.city.options = [...new Set(state.cards.map((c) => c.city).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "zh"))
+    .map((c) => ({ value: c, label: c }));
 
-  fillSelect(
-    $("#filter-set"),
-    sets.map((s) => {
-      const name = state.cards.find((c) => c.set === s)?.set_name || s;
-      return { value: s, label: `${s.toUpperCase()} · ${name}` };
-    }),
-    "全部系列",
-    "value"
-  );
+  filters.set.options = sets.map((s) => {
+    const name = state.cards.find((c) => c.set === s)?.set_name || s;
+    return { value: s, label: `${s.toUpperCase()} · ${name}` };
+  });
 
   const labelOf = (lang) => state.cards.find((c) => c.lang === lang)?.lang_label || lang;
-  fillSelect(
-    $("#filter-lang"),
-    langs.map((l) => ({ value: l, label: labelOf(l) })),
-    "全部语言",
-    "value"
-  );
+  filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
 
-  fillSelect($("#filter-seller"), sellers, "全部出售人", "value");
-  fillSelect(
-    $("#filter-city"),
-    cities.map((c) => ({ value: c, label: c })),
-    "全部城市",
-    "value"
-  );
+  FILTER_ORDER.forEach(renderDropdown);
 }
 
 function renderSiteMeta() {
@@ -256,24 +337,19 @@ function escapeAttr(str) {
   return escapeHtml(str).replaceAll("'", "&#39;");
 }
 
-function bindFilter(id, key) {
-  $(id).addEventListener("change", (e) => {
-    state[key] = e.target.value;
-    renderGrid();
-  });
-}
-
 function bindEvents() {
   $("#search").addEventListener("input", (e) => {
     state.query = e.target.value;
     renderGrid();
   });
 
-  bindFilter("#filter-lang", "lang");
-  bindFilter("#filter-set", "set");
-  bindFilter("#filter-foil", "foil");
-  bindFilter("#filter-seller", "seller");
-  bindFilter("#filter-city", "city");
+  document.addEventListener("click", () => closeAllDropdowns());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAllDropdowns();
+      closeModal();
+    }
+  });
 
   $("#grid").addEventListener("click", (e) => {
     const btn = e.target.closest(".card");
@@ -284,9 +360,6 @@ function bindEvents() {
 
   $("#modal-close").addEventListener("click", closeModal);
   $("#modal-backdrop").addEventListener("click", closeModal);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeModal();
-  });
 
   const toolbar = $("#toolbar");
   const observer = new IntersectionObserver(
@@ -299,8 +372,9 @@ function bindEvents() {
 }
 
 async function main() {
+  mountFilters();
   bindEvents();
-  const res = await fetch("data/cards.json", { cache: "no-store" });
+  const res = await fetch(`data/cards.json?v=${Date.now()}`, { cache: "no-store" });
   if (!res.ok) {
     $("#empty").hidden = false;
     $("#empty").textContent = "未能加载 data/cards.json，请先运行: python3 scripts/build_data.py";
