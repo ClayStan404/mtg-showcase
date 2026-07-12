@@ -98,6 +98,8 @@ header.site-header {
   background: rgba(15, 18, 24, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid transparent;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  will-change: transform;
 }
 
 /* 打开筛选时抬到遮罩之上（sticky 会形成层叠上下文） */
@@ -114,6 +116,56 @@ body.dd-open .toolbar {
   grid-template-columns: 1fr auto;
   gap: 0.75rem;
   align-items: center;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.search-row .search {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 桌面端不需要折叠按钮 */
+.filter-toggle {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.filter-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.filter-toggle-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.filter-toggle-dot[hidden] {
+  display: none !important;
 }
 
 .search {
@@ -1133,30 +1185,46 @@ footer {
   }
 
   .toolbar {
-    padding: 0.55rem 0 0.65rem;
+    padding: 0.5rem 0 0.55rem;
+  }
+
+  /* 下滑浏览时收起工具栏，上滑再显示 */
+  .toolbar.is-collapsed {
+    transform: translateY(calc(-100% - 2px));
+    pointer-events: none;
+    box-shadow: none;
   }
 
   .toolbar-inner {
     grid-template-columns: 1fr;
-    gap: 0.55rem;
+    gap: 0.45rem;
+  }
+
+  .filter-toggle {
+    display: inline-flex;
   }
 
   .search {
-    min-height: 2.85rem;
-    padding: 0.5rem 0.95rem;
+    min-height: 2.65rem;
+    padding: 0.45rem 0.85rem;
   }
 
-  /* 筛选横向滑动，不占满整屏高度 */
+  /* 默认折叠筛选；点「筛选」再展开 */
   .filters {
+    display: none;
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: visible;
     gap: 0.4rem;
-    padding: 0.1rem 0 0.25rem;
+    padding: 0.05rem 0 0.15rem;
     margin: 0 -0.15rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
+  }
+
+  .toolbar.filters-open .filters {
+    display: flex;
   }
 
   .filters::-webkit-scrollbar {
@@ -1169,13 +1237,13 @@ footer {
 
   .dd-trigger {
     max-width: none;
-    min-height: 2.55rem;
-    padding: 0.35rem 0.7rem;
-    font-size: 0.86rem;
+    min-height: 2.45rem;
+    padding: 0.32rem 0.65rem;
+    font-size: 0.84rem;
   }
 
   .dd-value {
-    max-width: 4.8rem;
+    max-width: 4.5rem;
   }
 
   /* 手机菜单走 .dd-menu.is-portal，避免被 .filters overflow 裁剪 */
@@ -1187,7 +1255,7 @@ footer {
   }
 
   main {
-    padding: 0.85rem 0 2rem;
+    padding: 0.7rem 0 2rem;
   }
 
   .grid {

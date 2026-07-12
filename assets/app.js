@@ -15,6 +15,7 @@ const state = {
   cartOpen: false,
   shotMode: false,
   modalCardId: null,
+  filtersOpen: false,
 };
 
 function loadCart() {
@@ -720,6 +721,7 @@ function mountFilters() {
     }
     renderDropdown(filterId);
     syncScrim();
+    updateFilterToggle();
     renderGrid();
   });
 }
@@ -745,6 +747,43 @@ function populateFilters() {
   filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
 
   FILTER_ORDER.forEach(renderDropdown);
+  updateFilterToggle();
+}
+
+function activeFilterCount() {
+  let n = 0;
+  if (state.seller !== "all") n += 1;
+  if (state.city !== "all") n += 1;
+  if (state.lang !== "all") n += 1;
+  if (state.foil !== "all") n += 1;
+  return n;
+}
+
+function updateFilterToggle() {
+  const btn = $("#filter-toggle");
+  const dot = $("#filter-toggle-dot");
+  if (!btn) return;
+  const n = activeFilterCount();
+  btn.classList.toggle("has-active", n > 0);
+  if (dot) {
+    dot.hidden = n <= 0;
+    dot.title = n > 0 ? `${n} 项筛选生效` : "";
+  }
+  btn.setAttribute("aria-label", n > 0 ? `筛选（${n} 项生效）` : "筛选");
+}
+
+function setFiltersOpen(open) {
+  state.filtersOpen = open;
+  const bar = $("#toolbar");
+  const btn = $("#filter-toggle");
+  if (bar) bar.classList.toggle("filters-open", open);
+  if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) {
+    // 展开筛选时确保工具栏可见
+    bar?.classList.remove("is-collapsed");
+  } else {
+    closeAllDropdowns();
+  }
 }
 
 function renderSiteMeta() {
@@ -799,12 +838,29 @@ function bindEvents() {
     state.query = e.target.value;
     renderGrid();
   });
+  $("#search").addEventListener("focus", () => {
+    $("#toolbar")?.classList.remove("is-collapsed");
+  });
+
+  $("#filter-toggle")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setFiltersOpen(!state.filtersOpen);
+  });
 
   document.addEventListener("click", (e) => {
     if (e.target.closest(".dd") || e.target.closest("#dd-scrim") || e.target.closest(".dd-menu")) {
       return;
     }
     closeAllDropdowns();
+    // 点筛选区外收起手机端筛选条（搜索框除外）
+    if (
+      isNarrow() &&
+      state.filtersOpen &&
+      !e.target.closest("#filters") &&
+      !e.target.closest("#filter-toggle")
+    ) {
+      setFiltersOpen(false);
+    }
   });
 
   const scrim = $("#dd-scrim");

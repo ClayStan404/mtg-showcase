@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="description" content="实体万智牌库存展示" />
     <title>万智牌库存</title>
-    <link rel="stylesheet" href="assets/style.css?v=10" />
+    <link rel="stylesheet" href="assets/style.css?v=11" />
   </head>
   <body>
     <header class="site-header wrap">
@@ -25,19 +25,31 @@
 
     <div class="toolbar" id="toolbar">
       <div class="toolbar-inner wrap">
-        <label class="search">
-          <span class="sr-only">搜索</span>
-          <input
-            id="search"
-            type="search"
-            enterkeyhint="search"
-            placeholder="搜索牌名 / 系列 / 出售人…"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-          />
-        </label>
+        <div class="search-row">
+          <label class="search">
+            <span class="sr-only">搜索</span>
+            <input
+              id="search"
+              type="search"
+              enterkeyhint="search"
+              placeholder="搜索牌名 / 系列 / 出售人…"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+          </label>
+          <button
+            type="button"
+            class="filter-toggle"
+            id="filter-toggle"
+            aria-expanded="false"
+            aria-controls="filters"
+          >
+            筛选
+            <span class="filter-toggle-dot" id="filter-toggle-dot" hidden></span>
+          </button>
+        </div>
         <div class="filters" id="filters">
           <!-- 自定义下拉由 app.js 填充 -->
         </div>
@@ -139,6 +151,6 @@
     </div>
 
     <script src="assets/cards-data.js?v=8"></script>
-    <script src="assets/app.js?v=10"></script>
+    <script src="assets/app.js?v=11"></script>
   </body>
 </html>
