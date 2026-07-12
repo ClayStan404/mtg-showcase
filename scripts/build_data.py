@@ -14,6 +14,16 @@ from typing import Any
 
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from inventory_format import (  # noqa: E402
+    LANG_LABEL,
+    ParseError,
+    card_line_to_fields,
+    lang_label,
+    scryfall_lang,
+    slugify,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY_DIR = ROOT / "inventory"
 DEFAULT_INVENTORY_FILE = ROOT / "inventory.txt"  # 兼容旧单文件
@@ -21,51 +31,11 @@ DEFAULT_OUTPUT = ROOT / "data" / "cards.json"
 SITE_CONFIG = ROOT / "site_config.json"
 CACHE_DIR = ROOT / ".cache" / "scryfall"
 
-# 与 MTGImgDownloader 一致：短码 → Scryfall lang
-LANG_MAP = {
-    "": "en",
-    "en": "en",
-    "z": "zhs",
-    "zhs": "zhs",
-    "zh": "zhs",
-    "j": "ja",
-    "ja": "ja",
-    "d": "de",
-    "de": "de",
-    "fr": "fr",
-    "k": "ko",
-    "ko": "ko",
-    "s": "es",
-    "es": "es",
-    "i": "it",
-    "it": "it",
-    "p": "pt",
-    "pt": "pt",
-    "r": "ru",
-    "ru": "ru",
-}
-
-LANG_LABEL = {
-    "en": "英文",
-    "zhs": "简中",
-    "ja": "日文",
-    "de": "德文",
-    "fr": "法文",
-    "ko": "韩文",
-    "es": "西文",
-    "it": "意文",
-    "pt": "葡文",
-    "ru": "俄文",
-}
-
-FOIL_TOKENS = {"foil", "f", "1", "闪", "闪卡"}
-QTY_RE = re.compile(r"^(?:(\d+)x|x(\d+))$", re.I)
 # # seller: 昵称  /  # city: 上海  /  # contact: ...
 META_RE = re.compile(
     r"^#\s*(seller|nickname|nick|city|contact|wechat)\s*[:=：]\s*(.+?)\s*$",
     re.I,
 )
-SLUG_RE = re.compile(r"[^a-zA-Z0-9\u4e00-\u9fff_-]+")
 
 REQUEST_GAP = 0.12
 USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
@@ -75,20 +45,14 @@ def load_site_config() -> dict[str, Any]:
     if SITE_CONFIG.exists():
         return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
     return {
-        "title": "万智牌库存展示",
-        "subtitle": "多人实体卡展示 · 仅供浏览与联系",
+        "title": "万智牌 Sales List",
+        "subtitle": "实体卡展示 · 站外联系成交",
         "contact": {
             "wechat": "",
             "email": "",
-            "note": "有意向请联系对应出售人（见卡牌详情）。",
+            "note": "",
         },
     }
-
-
-def slugify(value: str, fallback: str) -> str:
-    s = SLUG_RE.sub("-", (value or "").strip()).strip("-").lower()
-    return s or fallback
-
 
 def discover_inventory_files(inventory_dir: Path, legacy_file: Path) -> list[Path]:
     files: list[Path] = []
@@ -134,32 +98,15 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
                 continue
 
             parts = line.split()
-            qty = 1
-            m = QTY_RE.match(parts[0])
-            if m:
-                qty = int(m.group(1) or m.group(2))
-                parts = parts[1:]
-
-            if len(parts) < 2:
-                print(f"[warn] {path.name}:{line_num} 格式错误，跳过: {raw.rstrip()}", file=sys.stderr)
+            try:
+                set_code, number, lang, is_foil, qty = card_line_to_fields(parts)
+            except ParseError as e:
+                print(f"[warn] {path.name}:{line_num} {e}，跳过: {raw.rstrip()}", file=sys.stderr)
                 continue
 
-            set_code = parts[0].lower()
-            number = parts[1]
-            lang_code = ""
-            is_foil = False
-
-            for token in parts[2:]:
-                low = token.lower()
-                if low in FOIL_TOKENS:
-                    is_foil = True
-                else:
-                    lang_code = "" if low == "en" else low
-
-            scryfall_lang = LANG_MAP.get(lang_code, lang_code or "en")
             seller_name = seller or source
             seller_id = slugify(seller_name, source)
-            key = f"{seller_id}|{set_code}|{number}|{scryfall_lang}|{'foil' if is_foil else 'nf'}"
+            key = f"{seller_id}|{set_code}|{number}|{lang}|{'foil' if is_foil else 'nf'}"
 
             if key in merged:
                 merged[key]["quantity"] += qty
@@ -167,8 +114,8 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
                 merged[key] = {
                     "set": set_code,
                     "number": number,
-                    "lang": scryfall_lang,
-                    "lang_raw": lang_code,
+                    "lang": lang,
+                    "lang_raw": lang,
                     "foil": is_foil,
                     "quantity": qty,
                     "source_file": path.name,
@@ -228,15 +175,16 @@ class ScryfallClient:
         return CACHE_DIR / f"{set_code}_{safe_num}_{lang}.json"
 
     def fetch_card(self, set_code: str, number: str, lang: str) -> dict[str, Any] | None:
-        cache_path = self._cache_path(set_code, number, lang)
+        api_lang = scryfall_lang(lang)
+        cache_path = self._cache_path(set_code, number, api_lang)
         if self.use_disk_cache and cache_path.exists():
             try:
                 return json.loads(cache_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 pass
 
-        urls = [f"https://api.scryfall.com/cards/{set_code}/{number}/{lang}"]
-        if lang != "en":
+        urls = [f"https://api.scryfall.com/cards/{set_code}/{number}/{api_lang}"]
+        if api_lang != "en":
             urls.append(f"https://api.scryfall.com/cards/{set_code}/{number}")
 
         data = None
@@ -384,7 +332,7 @@ def enrich(
                         "set_name": set_code.upper(),
                         "number": number,
                         "lang": lang,
-                        "lang_label": LANG_LABEL.get(lang, lang),
+                        "lang_label": lang_label(lang),
                         "foil": entry["foil"],
                         "quantity": entry["quantity"],
                         "seller": entry["seller"],
@@ -434,8 +382,9 @@ def enrich(
                 "set": base["set"],
                 "set_name": base["set_name"],
                 "number": base["number"],
-                "lang": base["lang"],
-                "lang_label": LANG_LABEL.get(base["lang"], base["lang"]),
+                # 筛选/展示以库存为准（other 用英文图作回退）
+                "lang": entry["lang"],
+                "lang_label": lang_label(entry["lang"]),
                 "foil": entry["foil"],
                 "quantity": entry["quantity"],
                 "seller": entry["seller"],

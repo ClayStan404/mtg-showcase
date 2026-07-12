@@ -1,17 +1,13 @@
 # seller: 你的昵称
 # city: 你的城市
-# contact: 可选，如微信号（将展示在卡牌详情中）
+# contact: 联系方式
 #
-# 卡表格式（与 MTGImgDownloader 兼容）:
-#   [Nx] set number [lang] [foil]
+# 格式: [Nx] set number [lang] [foil]
+# 语言: 空=英  z=中  j=日  o=其他
+# 闪:   空/0=否  1=是   （也兼容 f/foil）
+# 数量: 空或省略=1；多张写 2x
+#
 # 例:
-#   iko 185
-#   2x mh3 224 z f
-#
-# 说明:
-#   - 文件名请用英文/数字，如 yourname.txt（不要用 _ 开头，_ 开头为模板）
-#   - 同一文件内相同 set+number+lang+foil 会合并数量
-#   - f / foil = 闪卡；z=简中 j=日文；省略语言=英文
-
-# Sol Ring
-# cmm 703
+# msc 211 z 1
+# 2x mh3 224
+# iko 185 j
