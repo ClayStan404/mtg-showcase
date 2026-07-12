@@ -60,7 +60,7 @@ gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
 - ✅ 不设付费墙 — 网站完全免费，无账户系统
 - ✅ 不重新发布或代理 Scryfall 原始数据 — 本项目在卡牌数据上叠加库存管理、搜索、多卖家展示等额外功能
 - ✅ **图片直接引用 Scryfall CDN URL（hotlink）**，不下载、不复制、不存储图片文件，不裁剪、不水印、不变形 — 原样展示
-  - Scryfall 官方明确允许热链接图片 CDN（`cards.scryfall.io`）
+  - Scryfall 官方明确允许热链接图片 CDN（`cards.scryfall.io`）— [来源](https://scryfall.com/blog/upcoming-api-changes-to-scryfall-image-uris-and-download-uris-224)
   - 图片 CDN 无速率限制（仅 `api.scryfall.com` 有）
   - 图片 URL 来自 API 返回的 `image_uris` 字段（非手动拼接），CDN 域名变更时重跑 `build_data.py` 即可刷新
 - ✅ 非 Scryfall 认可的关联方
