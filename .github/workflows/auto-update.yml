@@ -64,6 +64,8 @@ jobs:
           if [ -f assets/wants-data.js ]; then
             git add -A data/wants.json assets/wants-data.js
           fi
+          # bump_cache_buster 会更新 index.html 的 ?v=，需一起提交
+          git add index.html
 
           if git diff --staged --quiet; then
             echo "ℹ 无变更，跳过提交"

@@ -34,7 +34,7 @@ echo "▶ 2/3 拉取 Scryfall 元数据"
 
 # 3. 提交上线
 echo "▶ 3/3 提交上线"
-git add inventory/*.txt data/cards.json assets/cards-data.js
+git add inventory/*.txt data/cards.json assets/cards-data.js index.html
 
 # 源文件在仓库内则一并提交
 INPUT_ABS="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
