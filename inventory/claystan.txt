@@ -23,7 +23,7 @@ sta 8 j 1
 spm 32 e 0
 2x 2x2 175 e 1
 2x sta 124 j 0
-2x plst dd2-23 e 0
+2x plst DD2-23 e 0
 nem 30 e 0
 dmu 17 e 1
 lci 333 e 1
@@ -55,7 +55,7 @@ ncc 135 z 0
 mh3 26 z 0
 2x mh3 26 e 0
 mh3 391 z 1
-zem 57 e 0
+zen 57 e 0
 woe 87 z 0
 woe 87 e 1
 3x mh3 95 e 0

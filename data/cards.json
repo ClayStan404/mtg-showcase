@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T12:45:34Z",
+  "generated_at": "2026-07-12T12:49:26Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -1523,10 +1523,10 @@
       "scryfall_uri": "https://scryfall.com/card/pip/717/chaos-warp?utm_source=api"
     },
     {
-      "id": "claystan-plst-dd2-23-en-nf",
+      "id": "claystan-plst-DD2-23-en-nf",
       "set": "plst",
-      "set_name": "PLST",
-      "number": "dd2-23",
+      "set_name": "The List",
+      "number": "DD2-23",
       "lang": "en",
       "lang_label": "英文",
       "foil": false,
@@ -1536,21 +1536,23 @@
       "city": "",
       "contact": "",
       "source_file": "claystan.txt",
-      "name_en": "",
-      "name_zh": "",
-      "name_printed": "",
-      "type_line": "",
-      "type_line_en": "",
-      "types": [],
-      "mana_cost": "",
-      "cmc": 0,
-      "text": "",
+      "name_en": "Daze",
+      "name_zh": "目眩",
+      "name_printed": "Daze",
+      "type_line": "Instant",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{1}{U}",
+      "cmc": 2.0,
+      "text": "You may return an Island you control to its owner's hand rather than pay this spell's mana cost.\nCounter target spell unless its controller pays {1}.",
       "image": {
-        "small": "",
-        "normal": "",
-        "large": ""
+        "small": "https://cards.scryfall.io/small/front/5/8/58ebdee7-90b2-4b74-bb52-614b4042ceb7.jpg?1782745473",
+        "normal": "https://cards.scryfall.io/normal/front/5/8/58ebdee7-90b2-4b74-bb52-614b4042ceb7.jpg?1782745473",
+        "large": "https://cards.scryfall.io/large/front/5/8/58ebdee7-90b2-4b74-bb52-614b4042ceb7.jpg?1782745473"
       },
-      "error": "not_found"
+      "scryfall_uri": "https://scryfall.com/card/plst/DD2-23/daze?utm_source=api"
     },
     {
       "id": "claystan-rtr-194-zhs-f",
@@ -1969,9 +1971,9 @@
       "scryfall_uri": "https://scryfall.com/card/woe/87/zhs/%E6%95%85%E4%BA%8B%E7%BB%93%E5%B1%80-(the-end)?utm_source=api"
     },
     {
-      "id": "claystan-zem-57-en-nf",
-      "set": "zem",
-      "set_name": "ZEM",
+      "id": "claystan-zen-57-en-nf",
+      "set": "zen",
+      "set_name": "Zendikar",
       "number": "57",
       "lang": "en",
       "lang_label": "英文",
@@ -1982,21 +1984,23 @@
       "city": "",
       "contact": "",
       "source_file": "claystan.txt",
-      "name_en": "",
-      "name_zh": "",
-      "name_printed": "",
-      "type_line": "",
-      "type_line_en": "",
-      "types": [],
-      "mana_cost": "",
-      "cmc": 0,
-      "text": "",
+      "name_en": "Mindbreak Trap",
+      "name_zh": "歼智陷阱",
+      "name_printed": "Mindbreak Trap",
+      "type_line": "Instant — Trap",
+      "type_line_en": "Instant — Trap",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{2}{U}{U}",
+      "cmc": 4.0,
+      "text": "If an opponent cast three or more spells this turn, you may pay {0} rather than pay this spell's mana cost.\nExile any number of target spells.",
       "image": {
-        "small": "",
-        "normal": "",
-        "large": ""
+        "small": "https://cards.scryfall.io/small/front/4/f/4f51140b-6254-431a-8810-94307bfdfbbe.jpg?1782715664",
+        "normal": "https://cards.scryfall.io/normal/front/4/f/4f51140b-6254-431a-8810-94307bfdfbbe.jpg?1782715664",
+        "large": "https://cards.scryfall.io/large/front/4/f/4f51140b-6254-431a-8810-94307bfdfbbe.jpg?1782715664"
       },
-      "error": "not_found"
+      "scryfall_uri": "https://scryfall.com/card/zen/57/mindbreak-trap?utm_source=api"
     }
   ]
 }
