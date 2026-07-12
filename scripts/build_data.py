@@ -47,7 +47,7 @@ def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> N
     """用内容 md5 前 8 位更新 index.html 里 assets/<asset_filename>?v=... 的版本号。
 
     让自动部署的 cards-data.js / wants-data.js 内容变化即自动击穿浏览器缓存，
-    无需手动 bump index.html 里的 ?v=N。style.css / app.js 不由脚本生成，仍需手动 bump。
+    无需手动 bump index.html 里的 ?v=N。app.js / style.css 也由 build_data.py 统一 bump。
     """
     if not html_path.exists():
         return
@@ -441,7 +441,12 @@ def enrich(
             }
 
         if base is None:
-            card = client.fetch_card(set_code, number, lang)
+            try:
+                card = client.fetch_card(set_code, number, lang)
+            except Exception as exc:
+                # 捕获 JSONDecodeError 等非 HTTPError 异常，避免单卡崩溃整个构建
+                print(f"  ! 获取失败 {set_code} {number} {lang}: {exc}", file=sys.stderr)
+                card = None
             if not card:
                 print(f"  ! 未找到: {set_code} {number} {lang}", file=sys.stderr)
                 results.append(
@@ -627,6 +632,12 @@ def main() -> int:
     js_path.write_text(f"window.__MTG_DATA__={compact};\n", encoding="utf-8")
     bump_cache_buster(ROOT / "index.html", "cards-data.js", js_path.read_bytes())
     print(f"已写入 {js_path}")
+
+    # 同步 bump 静态资源（app.js / style.css）的内容 hash
+    for static_file in ("app.js", "style.css"):
+        p = ROOT / "assets" / static_file
+        if p.exists():
+            bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())
     return 0
 
 
