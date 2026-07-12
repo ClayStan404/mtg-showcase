@@ -67,3 +67,73 @@ ths 205 z 1
 2x2 430 e 1
 spg 31 e 0
 stx 203 j 0
+mh1 160 z 0
+tsr 52 e 0
+tsr 234 z 0
+mh2 97 e 0
+4x 2xm 109 e 0
+2xm 109 z 0
+tsr 334 z 0
+otj 91 z 1
+3x cmr 84 z 0
+cmr 84 e 0
+sch 39 e 0
+4x mkc 137 e 0
+sta 111 j 0
+vow 387 e 0
+soi 234 z 1
+mkm 308 z 1
+3x sta 69 j 0
+3x sta 119 j 0
+sta 56 j 1
+3x lcc 198 e 0
+otj 224 z 0
+4x otj 224 e 0
+2x otj 224 e 1
+2x2 218 e 0
+2x 2x2 378 e 0
+lci 342 z 0
+lci 342 e 0
+2x lci 342 z 1
+2x pip 331 z 1
+4x mh2 77 z 0
+2x2 130 e 1
+znr 67 z 0
+mh3 11 z 1
+2x2 129 e 1
+2xm 64 z 0
+spg 42 z 0
+ons 132 z 0
+plst 172 e 0
+mh2 322 e 0
+stx 97 j 1
+2x p30a 6 e 1
+2x ori 143 z 0
+mh3 154 z 0
+4x mh3 154 e 0
+mh3 154 e 1
+mh3 425 z 0
+cmm 55 j 0
+cmm 267 e 0
+grn 212 z 0
+grn 212 e 0
+pip 746 z 1
+2x2 73 z 1
+2x2 353 e 1
+sta 43 j 0
+2x2 280 j 0
+rtr 201 z 0
+bro 97 z 0
+bro 327 z 1
+2x sta 118 j 0
+2x mom 40 z 0
+mom 40 e 1
+2x pip 353 z 1
+dmu 413 e 0
+dmu 413 e 1
+mom 94 z 1
+khm 295 z 0
+iko 185 j 1
+dsc 41 e 0
+cmm 508 z 1
+frf 55 e 0
