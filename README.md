@@ -1,8 +1,12 @@
 # MTG 库存展示站
 
-基于 **GitHub Pages** 的静态万智牌实体库存展示：本地用与 [MTGImgDownloader](../MTGImgDownloader) 相同的清单格式记录卡牌，构建脚本从 Scryfall（及 mtgch 中文名）拉取信息，生成可检索的网页。
+基于 **GitHub Pages** 的静态万智牌实体库存展示：本地用与 [MTGImgDownloader](https://github.com/ClayStan404/MTGImgDownloader) 相同的清单格式记录卡牌，构建脚本从 Scryfall（及 mtgch 中文名）拉取信息，生成可检索的网页。
 
-**只做展示 + 联系方式，不做站内交易。**
+- 仓库：https://github.com/ClayStan404/mtg-showcase  
+- 站点：https://claystan404.github.io/mtg-showcase/  
+- 默认分支：`master`
+
+**只做展示 + 联系方式，不做站内交易。** 当前 `inventory.txt` 为约 100 种演示卡，可替换为真实库存后重新 build。
 
 ## 你需要维护的只有两份东西
 
