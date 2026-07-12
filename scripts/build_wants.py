@@ -111,7 +111,9 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
             )
 
     meta_errors = validate_meta(
-        {"buyer": buyer, "city": city, "contact": contact}, path.name
+        {"buyer": buyer, "city": city, "contact": contact},
+        path.name,
+        required=("buyer", "city", "contact"),
     )
     if meta_errors:
         raise ParseError("; ".join(meta_errors))
