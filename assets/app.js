@@ -709,8 +709,13 @@ function openModal(card) {
   const must = isWant && (card.must === true || card.kind === "exact");
   const flex = isWant && (card.must === false || card.kind === "flex");
 
-  $("#modal-img").src = card.image?.large || card.image?.normal || PLACEHOLDER_IMG;
-  $("#modal-img").alt = displayName(card);
+  const modalImg = $("#modal-img");
+  if (modalImg) {
+    // 重置 onerror 可能设置的 visibility:hidden，否则切换卡牌后图片永远不显示
+    modalImg.style.visibility = "";
+    modalImg.src = card.image?.large || card.image?.normal || PLACEHOLDER_IMG;
+    modalImg.alt = displayName(card);
+  }
   $("#modal-title").textContent = displayName(card);
   $("#modal-en").textContent = secondaryName(card);
   $("#modal-en").hidden = !secondaryName(card);
