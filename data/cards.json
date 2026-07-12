@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T16:25:40Z",
+  "generated_at": "2026-07-12T16:30:12Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -3190,6 +3190,38 @@
       "scryfall_uri": "https://scryfall.com/card/m11/30/silence?utm_source=api"
     },
     {
+      "id": "claystan-m13-63-zhs-nf",
+      "set": "m13",
+      "set_name": "Magic 2013",
+      "number": "63",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Omniscience",
+      "name_zh": "全知全能",
+      "name_printed": "全知全能",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{7}{U}{U}{U}",
+      "cmc": 10.0,
+      "text": "你可从你手上施放非地牌，且不需支付其法术力费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/0/400d23c7-ecf0-4b0f-b9f6-6fca90b0a412.jpg?1782982761",
+        "normal": "https://cards.scryfall.io/normal/front/4/0/400d23c7-ecf0-4b0f-b9f6-6fca90b0a412.jpg?1782982761",
+        "large": "https://cards.scryfall.io/large/front/4/0/400d23c7-ecf0-4b0f-b9f6-6fca90b0a412.jpg?1782982761"
+      },
+      "scryfall_uri": "https://scryfall.com/card/m13/63/zhs/%E5%85%A8%E7%9F%A5%E5%85%A8%E8%83%BD-(omniscience)?utm_source=api"
+    },
+    {
       "id": "claystan-m19-67-zhs-f",
       "set": "m19",
       "set_name": "Core Set 2019",
@@ -3604,38 +3636,6 @@
         "large": "https://cards.scryfall.io/large/front/7/1/71a98efb-9b0a-496b-ac21-8d70527ea544.jpg?1782691353"
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/62/flare-of-denial?utm_source=api"
-    },
-    {
-      "id": "claystan-mh3-63-zhs-nf",
-      "set": "mh3",
-      "set_name": "Modern Horizons 3",
-      "number": "63",
-      "lang": "zhs",
-      "lang_label": "简中",
-      "foil": false,
-      "quantity": 1,
-      "seller": "claystan",
-      "seller_id": "claystan",
-      "city": "武汉",
-      "contact": "QQ 417592443",
-      "source_file": "claystan.txt",
-      "name_en": "Harbinger of the Seas",
-      "name_zh": "海疆先兆师",
-      "name_printed": "海疆先兆师",
-      "type_line": "生物 — 人鱼／法术师",
-      "type_line_en": "Creature — Merfolk Wizard",
-      "types": [
-        "creature"
-      ],
-      "mana_cost": "{1}{U}{U}",
-      "cmc": 3.0,
-      "text": "非基本地都是海岛。",
-      "image": {
-        "small": "https://cards.scryfall.io/small/front/f/d/fdb46ce8-728d-4777-b427-98e130d4f8bf.jpg?1782793928",
-        "normal": "https://cards.scryfall.io/normal/front/f/d/fdb46ce8-728d-4777-b427-98e130d4f8bf.jpg?1782793928",
-        "large": "https://cards.scryfall.io/large/front/f/d/fdb46ce8-728d-4777-b427-98e130d4f8bf.jpg?1782793928"
-      },
-      "scryfall_uri": "https://scryfall.com/card/mh3/63/zhs/%E6%B5%B7%E7%96%86%E5%85%88%E5%85%86%E5%B8%88-(harbinger-of-the-seas)?utm_source=api"
     },
     {
       "id": "claystan-mh3-71-zhs-nf",
