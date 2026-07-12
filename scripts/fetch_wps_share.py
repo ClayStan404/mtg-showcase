@@ -25,33 +25,43 @@ from pathlib import Path
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_COOKIE_FILE = ROOT / "wps_cookies.txt"
+# Cookie 文件查找顺序：项目根目录 → 用户主目录
+COOKIE_PATHS = [
+    ROOT / "wps_cookies.txt",
+    Path.home() / "wps_cookies.txt",
+]
 DEFAULT_SHARE_ID = "cgyl3WizNfp7"
 DEFAULT_OUTPUT = ROOT / "wps_download_test.xlsx"
 DOWNLOAD_API = "https://www.kdocs.cn/api/v3/office/file/{share_id}/download?format=xlsx"
 SHARE_PAGE = "https://www.kdocs.cn/l/{share_id}"
 
 
-def load_cookies(cookie_file: Path) -> str:
-    # Priority: env var WPS_COOKIES > file
+def load_cookies(cookie_file: Path | None = None) -> str:
+    # Priority: --cookie-file arg > project dir > home dir > env var (fallback)
+    search_paths = []
+    if cookie_file:
+        search_paths.append(cookie_file)
+    search_paths.extend(COOKIE_PATHS)
+
+    for p in search_paths:
+        if p.exists():
+            cookie = p.read_text(encoding="utf-8").strip()
+            if cookie:
+                return cookie
+
+    # Last resort: env var
     env_cookie = os.environ.get("WPS_COOKIES", "").strip()
     if env_cookie:
         return env_cookie
 
-    if not cookie_file.exists():
-        print(f"❌ Cookie 未找到（环境变量 WPS_COOKIES 未设置，文件也不存在: {cookie_file}）")
-        print("\n本地获取 Cookie 步骤：")
-        print("1. 浏览器打开 https://www.kdocs.cn 并登录")
-        print("2. F12 → Network → 刷新页面")
-        print("3. 点任意请求 → Request Headers → 找 Cookie")
-        print("4. 复制完整 Cookie 值，保存到 wps_cookies.txt")
-        print("\nGitHub Actions: 将 Cookie 值设为 Repository Secret WPS_COOKIES")
-        sys.exit(1)
-    cookie = cookie_file.read_text(encoding="utf-8").strip()
-    if not cookie:
-        print(f"❌ Cookie 文件为空: {cookie_file}")
-        sys.exit(1)
-    return cookie
+    tried = ", ".join(str(p) for p in search_paths)
+    print(f"❌ Cookie 未找到（尝试过: {tried}）")
+    print("\n获取 Cookie 步骤：")
+    print("1. 浏览器打开 https://www.kdocs.cn 并登录")
+    print("2. F12 → Network → 刷新页面")
+    print("3. 点任意请求 → Request Headers → 找 Cookie")
+    print(f"4. 复制完整值，保存到 ~/wps_cookies.txt")
+    sys.exit(1)
 
 
 def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
@@ -121,13 +131,13 @@ def main():
     parser = argparse.ArgumentParser(description="Download xlsx from WPS share link")
     parser.add_argument("--share-id", default=os.environ.get("WPS_SHARE_ID", DEFAULT_SHARE_ID),
                         help="WPS share link ID")
-    parser.add_argument("--cookie-file", default=str(DEFAULT_COOKIE_FILE),
-                        help="Cookie file path (ignored if WPS_COOKIES env var is set)")
+    parser.add_argument("--cookie-file", default=None,
+                        help="Cookie file path (default: search wps_cookies.txt in project dir, then ~/)")
     parser.add_argument("--output", default=os.environ.get("WPS_OUTPUT", str(DEFAULT_OUTPUT)),
                         help="Output file path")
     args = parser.parse_args()
 
-    cookie = load_cookies(Path(args.cookie_file))
+    cookie = load_cookies(Path(args.cookie_file) if args.cookie_file else None)
     print(f"已加载 Cookie ({len(cookie)} chars)")
 
     success = download_xlsx(args.share_id, cookie, Path(args.output))
