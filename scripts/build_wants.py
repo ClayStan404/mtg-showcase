@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Parse wants/*.txt → assets/wants-data.js (+ data/wants.json)
 
-求购两种行：
-  1) 指定印刷：[Nx] set number [lang] [foil]   （同 inventory）
-  2) 任意版本：any <牌名> [数量] [| 备注]
+统一求购行（合并「指定 / 可替」）:
+  [Nx] set number [lang] [foil] [must] [| 备注]
+
+  lang: e/z/j/o（空=e）
+  foil: 0/1（空=0）
+  must: 0=其他版本也可以，1=必须此印刷（空=0）
 """
 
 from __future__ import annotations
@@ -15,24 +18,15 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
-
-import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from inventory_format import (  # noqa: E402
     ParseError,
-    card_line_to_fields,
     lang_label,
-    scryfall_lang,
     slugify,
+    want_line_to_fields,
 )
-
-# reuse Scryfall client from build_data
 from build_data import (  # noqa: E402
-    CACHE_DIR,
-    REQUEST_GAP,
-    USER_AGENT,
     ScryfallClient,
     load_site_config,
     pick_images,
@@ -46,10 +40,6 @@ OUT_JS = ROOT / "assets" / "wants-data.js"
 
 META_RE = re.compile(
     r"^#\s*(buyer|seller|nickname|nick|city|contact|wechat)\s*[:=：]\s*(.+?)\s*$",
-    re.I,
-)
-ANY_RE = re.compile(
-    r"^any\s+(.+?)(?:\s+(\d+))?\s*(?:\|\s*(.*))?$",
     re.I,
 )
 
@@ -79,56 +69,41 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
                         contact = val
                 continue
 
-            buyer_name = buyer or source
-            buyer_id = slugify(buyer_name, source)
-            base_meta = {
-                "buyer": buyer_name,
-                "buyer_id": buyer_id,
-                "city": city,
-                "contact": contact,
-                "source_file": path.name,
-                "source_line": line_num,
-            }
-
-            # any-version
+            # 兼容旧 any 行：提示后跳过
             if line.lower().startswith("any ") or line.lower().startswith("any\t"):
-                m = ANY_RE.match(line)
-                if not m:
-                    print(f"[warn] {path.name}:{line_num} any 格式错误，跳过: {line}", file=sys.stderr)
-                    continue
-                name_q = m.group(1).strip()
-                qty = int(m.group(2) or "1")
-                note = (m.group(3) or "").strip()
-                if not name_q:
-                    print(f"[warn] {path.name}:{line_num} any 缺牌名", file=sys.stderr)
-                    continue
-                entries.append(
-                    {
-                        **base_meta,
-                        "kind": "any",
-                        "name_query": name_q,
-                        "quantity": max(1, qty),
-                        "note": note,
-                    }
+                print(
+                    f"[warn] {path.name}:{line_num} 已弃用 any 行，请改为 "
+                    f"「系列 编号 语言 闪 0」表示可替版本，跳过: {line}",
+                    file=sys.stderr,
                 )
                 continue
 
-            # specific printing
             try:
-                set_code, number, lang, foil, qty = card_line_to_fields(line.split())
+                set_code, number, lang, foil, qty, must, note = want_line_to_fields(line)
             except ParseError as e:
                 print(f"[warn] {path.name}:{line_num} {e}，跳过: {line}", file=sys.stderr)
                 continue
+
+            buyer_name = buyer or source
+            buyer_id = slugify(buyer_name, source)
+            # kind: exact=必须此版，flex=可替
+            kind = "exact" if must else "flex"
             entries.append(
                 {
-                    **base_meta,
-                    "kind": "printing",
+                    "kind": kind,
+                    "must": must,
                     "set": set_code,
                     "number": number,
                     "lang": lang,
                     "foil": foil,
                     "quantity": qty,
-                    "note": "",
+                    "note": note,
+                    "buyer": buyer_name,
+                    "buyer_id": buyer_id,
+                    "city": city,
+                    "contact": contact,
+                    "source_file": path.name,
+                    "source_line": line_num,
                 }
             )
 
@@ -149,128 +124,84 @@ def parse_all_wants(wants_dir: Path) -> list[dict[str, Any]]:
     return all_e
 
 
-def fetch_named(client: ScryfallClient, query: str) -> dict[str, Any] | None:
-    """Fuzzy named lookup for any-version wants."""
-    url = f"https://api.scryfall.com/cards/named?fuzzy={quote(query)}"
-    try:
-        return client.get(url).json()
-    except Exception as e:
-        print(f"  ! named 未找到: {query} ({e})", file=sys.stderr)
-        return None
-
-
 def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     total = len(entries)
     for i, e in enumerate(entries, 1):
-        kind = e["kind"]
-        print(f"[{i}/{total}] {e['buyer']} · {kind} · {e.get('set') or e.get('name_query')}", flush=True)
-
-        if kind == "printing":
-            card = client.fetch_card(e["set"], e["number"], e["lang"])
-            if not card:
-                out.append(
-                    {
-                        "id": f"{e['buyer_id']}-p-{e['set']}-{e['number']}-{e['lang']}-{'f' if e['foil'] else 'nf'}",
-                        "kind": "printing",
-                        "buyer": e["buyer"],
-                        "buyer_id": e["buyer_id"],
-                        "city": e["city"],
-                        "contact": e["contact"],
-                        "quantity": e["quantity"],
-                        "note": e.get("note") or "",
-                        "set": e["set"],
-                        "set_name": e["set"].upper(),
-                        "number": e["number"],
-                        "lang": e["lang"],
-                        "lang_label": lang_label(e["lang"]),
-                        "foil": e["foil"],
-                        "name_en": "",
-                        "name_zh": "",
-                        "name_printed": "",
-                        "type_line": "",
-                        "text": "",
-                        "image": {"small": "", "normal": "", "large": ""},
-                        "error": "not_found",
-                        "source_file": e["source_file"],
-                    }
-                )
-                continue
-            name_en = card.get("name") or ""
-            name_printed = card.get("printed_name") or name_en
-            if e["lang"] == "zhs":
-                name_zh = name_printed or name_en
-            else:
-                name_zh = client.fetch_zh_name(e["set"], e["number"])
-            text, type_line = pick_text(card)
+        print(
+            f"[{i}/{total}] {e['buyer']} · {e['set']} {e['number']} "
+            f"{'必须' if e['must'] else '可替'}",
+            flush=True,
+        )
+        card = client.fetch_card(e["set"], e["number"], e["lang"])
+        wid = (
+            f"{e['buyer_id']}-{e['set']}-{e['number']}-{e['lang']}-"
+            f"{'f' if e['foil'] else 'nf'}-{'1' if e['must'] else '0'}"
+        )
+        if not card:
             out.append(
                 {
-                    "id": f"{e['buyer_id']}-p-{e['set']}-{e['number']}-{e['lang']}-{'f' if e['foil'] else 'nf'}",
-                    "kind": "printing",
+                    "id": wid,
+                    "kind": e["kind"],
+                    "must": e["must"],
                     "buyer": e["buyer"],
                     "buyer_id": e["buyer_id"],
                     "city": e["city"],
                     "contact": e["contact"],
                     "quantity": e["quantity"],
                     "note": e.get("note") or "",
-                    "set": card.get("set") or e["set"],
-                    "set_name": card.get("set_name") or e["set"].upper(),
-                    "number": card.get("collector_number") or e["number"],
+                    "set": e["set"],
+                    "set_name": e["set"].upper(),
+                    "number": e["number"],
                     "lang": e["lang"],
                     "lang_label": lang_label(e["lang"]),
                     "foil": e["foil"],
-                    "name_en": name_en,
-                    "name_zh": name_zh,
-                    "name_printed": name_printed,
-                    "type_line": type_line,
-                    "text": text,
-                    "image": pick_images(card),
-                    "scryfall_uri": card.get("scryfall_uri") or "",
+                    "name_en": "",
+                    "name_zh": "",
+                    "name_printed": "",
+                    "type_line": "",
+                    "text": "",
+                    "image": {"small": "", "normal": "", "large": ""},
+                    "error": "not_found",
                     "source_file": e["source_file"],
                 }
             )
+            continue
+
+        name_en = card.get("name") or ""
+        name_printed = card.get("printed_name") or name_en
+        if e["lang"] == "zhs":
+            name_zh = name_printed or name_en
         else:
-            # any version
-            card = fetch_named(client, e["name_query"])
-            name_en = (card or {}).get("name") or e["name_query"]
-            name_printed = (card or {}).get("printed_name") or name_en
-            name_zh = ""
-            if card:
-                # try chinese via set/number if available
-                st = card.get("set") or ""
-                num = card.get("collector_number") or ""
-                if st and num:
-                    name_zh = client.fetch_zh_name(st, num)
-            text, type_line = pick_text(card) if card else ("", "")
-            slug = slugify(e["name_query"], "card")
-            out.append(
-                {
-                    "id": f"{e['buyer_id']}-a-{slug}",
-                    "kind": "any",
-                    "buyer": e["buyer"],
-                    "buyer_id": e["buyer_id"],
-                    "city": e["city"],
-                    "contact": e["contact"],
-                    "quantity": e["quantity"],
-                    "note": e.get("note") or "",
-                    "name_query": e["name_query"],
-                    "name_en": name_en,
-                    "name_zh": name_zh,
-                    "name_printed": name_printed,
-                    "set": (card or {}).get("set") or "",
-                    "set_name": (card or {}).get("set_name") or "任意版本",
-                    "number": (card or {}).get("collector_number") or "",
-                    "lang": "any",
-                    "lang_label": "任意",
-                    "foil": False,
-                    "type_line": type_line,
-                    "text": text,
-                    "image": pick_images(card or {}),
-                    "scryfall_uri": (card or {}).get("scryfall_uri") or "",
-                    "source_file": e["source_file"],
-                    "error": None if card else "not_found",
-                }
-            )
+            name_zh = client.fetch_zh_name(e["set"], e["number"])
+        text, type_line = pick_text(card)
+        out.append(
+            {
+                "id": wid,
+                "kind": e["kind"],
+                "must": e["must"],
+                "buyer": e["buyer"],
+                "buyer_id": e["buyer_id"],
+                "city": e["city"],
+                "contact": e["contact"],
+                "quantity": e["quantity"],
+                "note": e.get("note") or "",
+                "set": card.get("set") or e["set"],
+                "set_name": card.get("set_name") or e["set"].upper(),
+                "number": card.get("collector_number") or e["number"],
+                "lang": e["lang"],
+                "lang_label": lang_label(e["lang"]),
+                "foil": e["foil"],
+                "name_en": name_en,
+                "name_zh": name_zh,
+                "name_printed": name_printed,
+                "type_line": type_line,
+                "text": text,
+                "image": pick_images(card),
+                "scryfall_uri": card.get("scryfall_uri") or "",
+                "source_file": e["source_file"],
+            }
+        )
 
     out.sort(key=lambda c: (c.get("city") or "", c.get("buyer") or "", c.get("name_en") or ""))
     return out

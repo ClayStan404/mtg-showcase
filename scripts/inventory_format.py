@@ -128,10 +128,23 @@ def scryfall_lang(lang: str) -> str:
     return SCRYFALL_LANG.get(lang, "en")
 
 
+def normalize_strict(raw: Any, *, strict_mode: bool = True) -> bool:
+    """求购：是否必须此印刷。空/0=其他版本也可，1=必须此版本。"""
+    s = cell_str(raw).lower()
+    if s in ("", "0", "no", "n", "否", "可替", "任意"):
+        return False
+    if s in ("1", "yes", "y", "是", "指定", "必须"):
+        return True
+    if not strict_mode:
+        return False
+    raise ParseError(f"版本要求无效「{raw}」（空/0=可替，1=必须此版）")
+
+
 def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
-    """解析空格分隔卡行（兼容 inventory txt）。
+    """解析卖牌库存行。
 
     格式: [Nx] set number [lang] [foil]
+    lang/foil 可省略；foil 与 lang 用集合识别（兼容旧写法）。
     """
     if not parts:
         raise ParseError("空行")
@@ -150,20 +163,14 @@ def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
     for token in parts[2:]:
         low = token.lower()
         if low in FOIL_TRUE or low in FOIL_FALSE:
-            # 1/0/f/foil 等
-            if low in FOIL_TRUE or low in {"0", "nf"}:
-                foil_raw = low
-            else:
-                foil_raw = low
+            foil_raw = low
         elif low in LANG_INPUT_MAP:
             lang_raw = low
         else:
-            # 旧格式：非 foil 记号当语言
             lang_raw = low
 
     lang = normalize_lang(lang_raw)
     foil = normalize_foil(foil_raw) if foil_raw != "" else False
-    # 若 token 里只有 foil 类
     if not foil:
         for token in parts[2:]:
             if cell_str(token).lower() in FOIL_TRUE:
@@ -171,3 +178,39 @@ def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
                 break
 
     return set_code, number, lang, foil, qty
+
+
+def want_line_to_fields(line: str) -> tuple[str, str, str, bool, int, bool, str]:
+    """解析求购行（指定印刷 + 是否必须此版）。
+
+    格式: [Nx] set number [lang] [foil] [must]
+          [| 备注]
+    - lang: e/z/j/o，空=e
+    - foil: 0/1，空=0
+    - must: 0=其他版本也可，1=必须此印刷，空=0
+    """
+    note = ""
+    raw = line.strip()
+    if "|" in raw:
+        raw, note = raw.split("|", 1)
+        note = note.strip()
+    parts = raw.split()
+    if not parts:
+        raise ParseError("空行")
+
+    qty = 1
+    if QTY_RE.match(parts[0]):
+        qty = normalize_qty(parts[0])
+        parts = parts[1:]
+    if len(parts) < 2:
+        raise ParseError("至少需要 系列 + 编号")
+    if len(parts) > 5:
+        raise ParseError("字段过多，格式: 系列 编号 [语言] [闪] [必须此版]")
+
+    set_code = parts[0].lower()
+    number = parts[1]
+    # 位置固定：lang, foil, must
+    lang = normalize_lang(parts[2] if len(parts) > 2 else "")
+    foil = normalize_foil(parts[3] if len(parts) > 3 else "")
+    must = normalize_strict(parts[4] if len(parts) > 4 else "")
+    return set_code, number, lang, foil, qty, must, note

@@ -307,11 +307,11 @@ const filters = {
   },
   kind: {
     key: "kind",
-    label: "类型",
-    allLabel: "全部类型",
+    label: "版本",
+    allLabel: "全部",
     options: [
-      { value: "printing", label: "指定印刷" },
-      { value: "any", label: "任意版本" },
+      { value: "exact", label: "必须此版" },
+      { value: "flex", label: "可替其他版" },
     ],
   },
 };
@@ -387,8 +387,8 @@ function matches(card) {
     card.city,
     card.contact,
     card.foil ? "foil 闪" : "",
-    card.kind === "any" ? "任意 版本" : "",
-    card.kind === "printing" ? "指定 印刷" : "",
+    card.kind === "exact" || card.must ? "必须 指定 此版" : "",
+    card.kind === "flex" || card.must === false ? "可替 任意 其他版" : "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -523,11 +523,10 @@ function renderGrid() {
   grid.innerHTML = filtered
     .map((c) => {
       const added = !isWant && inCart(c.id);
-      const isAny = c.kind === "any";
-      const metaLeft = isAny
-        ? "任意版本"
-        : `${(c.set || "").toUpperCase()} #${c.number || ""}`;
-      const metaRight = isAny ? "不限印刷" : c.lang_label || c.lang || "";
+      const must = isWant && (c.must === true || c.kind === "exact");
+      const flex = isWant && (c.must === false || c.kind === "flex");
+      const metaLeft = `${(c.set || "").toUpperCase()} #${c.number || ""}`;
+      const metaRight = c.lang_label || c.lang || "";
       return `
     <div class="card" data-id="${escapeAttr(c.id)}">
       <div class="card-media">
@@ -557,8 +556,9 @@ function renderGrid() {
           <div class="card-title-row">
             <p class="card-name">${escapeHtml(displayName(c))}</p>
             <div class="card-flags">
-              ${isAny ? '<span class="flag flag-any">任意</span>' : ""}
-              ${!isAny && c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
+              ${must ? '<span class="flag flag-exact">必须</span>' : ""}
+              ${flex ? '<span class="flag flag-any">可替</span>' : ""}
+              ${c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
               ${c.quantity > 1 ? `<span class="flag flag-qty">×${c.quantity}</span>` : ""}
             </div>
           </div>
@@ -581,7 +581,8 @@ function openModal(card) {
   const modal = $("#modal");
   state.modalCardId = card.id;
   const isWant = state.view === "want";
-  const isAny = card.kind === "any";
+  const must = isWant && (card.must === true || card.kind === "exact");
+  const flex = isWant && (card.must === false || card.kind === "flex");
 
   $("#modal-img").src = card.image?.large || card.image?.normal || "";
   $("#modal-img").alt = displayName(card);
@@ -591,9 +592,9 @@ function openModal(card) {
 
   $("#modal-tags").innerHTML = [
     isWant
-      ? `<span class="tag">${isAny ? "任意版本" : "指定印刷"}</span>`
+      ? `<span class="tag">${must ? "必须此版" : "可替其他版"}</span>`
       : `<span class="tag">${escapeHtml(card.lang_label || card.lang)}</span>`,
-    !isAny && card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
+    card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
     `<span class="tag">×${card.quantity}</span>`,
     card.city ? `<span class="tag">${escapeHtml(card.city)}</span>` : "",
   ].join("");
@@ -604,20 +605,18 @@ function openModal(card) {
   $("#modal-city").textContent = card.city || "—";
   $("#modal-contact").textContent = card.contact || "—";
 
-  if (isAny) {
-    $("#modal-set-label").textContent = "版本";
-    $("#modal-set").textContent = "任意版本（不限系列/语言/闪）";
-    $("#modal-number-label").textContent = "检索名";
-    $("#modal-number").textContent = card.name_query || displayName(card);
-  } else {
-    $("#modal-set-label").textContent = "系列";
-    $("#modal-set").textContent = `${card.set_name || ""} (${(card.set || "").toUpperCase()})`;
-    $("#modal-number-label").textContent = "编号";
-    $("#modal-number").textContent = card.number || "—";
-  }
+  $("#modal-set-label").textContent = "系列";
+  $("#modal-set").textContent = `${card.set_name || ""} (${(card.set || "").toUpperCase()})`;
+  $("#modal-number-label").textContent = "编号";
+  $("#modal-number").textContent = card.number || "—";
   $("#modal-type").textContent = card.type_line || "—";
-  $("#modal-text").textContent = card.text || (isAny ? "（任意版本求购，无固定牌面）" : "（无牌面文字）");
-
+  let face = card.text || "（无牌面文字）";
+  if (isWant && flex) {
+    face = `【可替】参考此印刷，其他系列/语言/闪也可。\n\n${face}`;
+  } else if (isWant && must) {
+    face = `【必须】只要此印刷（系列+编号+语言+闪）。\n\n${face}`;
+  }
+  $("#modal-text").textContent = face;
   const noteLabel = $("#modal-note-label");
   const noteDd = $("#modal-note");
   if (noteLabel && noteDd) {
