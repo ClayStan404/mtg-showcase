@@ -1,166 +1,69 @@
-# seller: ClayStan
-# city: 武汉
-# contact: 见站内联系区
+# seller: claystan
+# city: 
+# contact: 
 #
-# 由 WPS 导出解析生成；语言 空/z/j/o  闪 0/1  数量默认1
+# 由 parse_excel_order_txt.py 从 claystan.txt 生成
+# 库存格式: [Nx] 系列 编号 语言 闪   （语言 e/z/j/o，闪 0/1）
 
-# Sol Ring
-2x msc 211 z f
-# Command Tower
-msc 233
-# Arcane Signet
-msc 191
-# Exotic Orchard
-msc 241
-# Reliquary Tower
-soc 398
-# Swords to Plowshares
-msc 143
-# Swiftfoot Boots
-msc 216
-# Lightning Greaves
-msc 202
-# Path of Ancestry
-msc 254
-# Path to Exile
-msc 141
-# Counterspell
-dsc 114
-# Fellwar Stone
-soc 347 z
-# Evolving Wilds
-msc 240
-# Rogue's Passage
-soc 400 f
-# Cultivate
-msc 172
-# Thought Vessel
-msc 222
-# Blasphemous Act
-msc 163
-# Farseek
-2x msc 173
-# Beast Within
-msc 169
-# Bojuka Bog
-soc 363 j
-# Rampant Growth
-tdc 265
-# Terramorphic Expanse
-msc 273
-# Myriad Landscape
-eoc 169 z
-# Nature's Lore
-msc 177
-# Chaos Warp
-msc 164
-# Heroic Intervention
-cmm 295
-# Mind Stone
-soc 352 f
-# Birds of Paradise
-msc 170
-# Dark Ritual
-msc 793
-# An Offer You Can't Refuse
-fdn 160
-# Polluted Delta
-mh3 224
-# Kodama's Reach
-ecc 113
-# Solemn Simulacrum
-msc 215
-# Flooded Strand
-mh3 220 z
-# Skullclamp
-2x msc 210
-# Misty Rainforest
-mh2 250
-# Three Visits
-msc 181
-# Bloodstained Mire
-mh3 216
-# Rhystic Study
-j22 114 j
-# Windswept Heath
-mh3 235 f
-# Wooded Foothills
-mh3 236
-# Commander's Sphere
-ecc 139
-# Verdant Catacombs
-mh2 260
-# Scalding Tarn
-mh2 254
-# Fabled Passage
-msc 242 z
-# Marsh Flats
-mh2 248
-# Watery Grave
-eoe 261
-# Cyclonic Rift
-rvr 40
-# Negate
-tmt 47
-# Arcane Denial
-msc 147
-# Arid Mesa
-mh2 244
-# Reanimate
-2x dsc 155
-# Generous Gift
-msc 133 f
-# Llanowar Elves
-fdn 227
-# Demonic Tutor
-cmm 150
-# Godless Shrine
-eoe 254 z
-# Breeding Pool
-eoe 251
-# Smothering Tithe
-cmm 57 j
-# Hallowed Fountain
-ecl 265
-# Steam Vents
-ecl 267
-# Ancient Tomb
-uma 236
-# Toxic Deluge
-msc 161
-# Stomping Ground
-eoe 258
-# Blood Crypt
-ecl 262
-# Overgrown Tomb
-ecl 266
-# Swan Song
-eoc 46 f
-# Brainstorm
-tle 155 z
-# Urborg, Tomb of Yawgmoth
-tsr 287
-# Temple of the False God
-2x soc 416
-# Sacred Foundry
-eoe 256
-# Esper Sentinel
-mh2 12
-# Yavimaya, Cradle of Growth
-mh2 261
-# Deflecting Swat
-cmm 214
-# Boseiju, Who Endures
-neo 266
-# Fierce Guardianship
-cmm 94
-# Sulfur Falls
-msc 269
-# Temple Garden
-ecl 268 j
-# Clifftop Retreat
-msc 231 z
-# Chromatic Lantern
-msc 195 f
-# Cinder Glade
-msc 230
+2x 2x2 94 e 0
+2x 2x2 356 z 0
+neo 111 e 0
+neo 457 z 0
+6x neo 111 z 1
+neo 111 j 1
+2x mh3 71 z 0
+mh1 255 z 0
+mh3 496 z 1
+10x h2r 13 e 1
+m11 30 e 0
+dmr 430 z 1
+2xm 338 e 1
+pip 701 z 1
+sta 8 j 1
+spm 32 e 0
+2x 2x2 175 e 1
+2x sta 124 j 0
+2x plst dd2-23 e 0
+nem 30 e 0
+dmu 17 e 1
+lci 333 e 1
+pip 184 z 1
+sta 62 j 0
+rtr 194 z 1
+stx 244 j 1
+ktk 173 z 0
+slp 43 e 0
+eoe 51 e 1
+mh3 190 z 0
+3x mh3 190 e 0
+mh3 459 e 0
+mh3 190 e 1
+ltr 371 e 0
+2x lcc 279 e 0
+stx 214 j 1
+2x mh3 62 e 0
+2x 2x2 239 e 0
+cmm 308 j 0
+2x cmm 701 z 0
+3x mh1 92 z 0
+2x mh1 92 e 0
+mh3 76 e 0
+ltr 406 z 1
+pip 717 z 1
+ncc 135 z 0
+2x2 170 e 1
+mh3 26 z 0
+2x mh3 26 e 0
+mh3 391 z 1
+zem 57 e 0
+woe 87 z 0
+woe 87 e 1
+3x mh3 95 e 0
+mh3 95 e 1
+mh3 331 z 0
+ths 205 z 1
+2x2 347 e 0
+2x2 347 e 1
+2x2 430 e 1
+spg 31 e 0
+stx 203 j 0
