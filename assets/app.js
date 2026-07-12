@@ -248,8 +248,16 @@ function renderCartList() {
   let html = "";
   for (const [seller, group] of groups) {
     const city = group[0]?.card.city || "";
+    const contact = (group[0]?.card.contact || "").trim();
     html += `<section class="cart-group">
-      <h3 class="cart-group-title">${escapeHtml(seller)}${city ? ` · ${escapeHtml(city)}` : ""}</h3>`;
+      <header class="cart-group-head">
+        <h3 class="cart-group-title">${escapeHtml(seller)}${city ? ` · ${escapeHtml(city)}` : ""}</h3>
+        ${
+          contact
+            ? `<p class="cart-group-contact"><span class="cart-contact-label">联系</span>${escapeHtml(contact)}</p>`
+            : `<p class="cart-group-contact muted">暂无联系方式，可对照站内页脚或卡牌详情</p>`
+        }
+      </header>`;
     for (const { card, want } of group) {
       const img = card.image?.small || card.image?.normal || "";
       html += `
@@ -472,21 +480,33 @@ function renderGrid() {
       const added = inCart(c.id);
       return `
     <div class="card" data-id="${escapeAttr(c.id)}">
-      <button type="button" class="card-hit" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
-        <div class="card-img-wrap">
-          <img
-            src="${escapeAttr(cardImageSrc(c))}"
-            alt="${escapeAttr(displayName(c))}"
-            loading="lazy"
-            decoding="async"
-          />
-          <div class="badges">
-            ${c.foil ? '<span class="badge foil">FOIL</span>' : ""}
-            ${c.quantity > 1 ? `<span class="badge qty">×${c.quantity}</span>` : ""}
+      <div class="card-media">
+        <button type="button" class="card-hit" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))} 图片">
+          <div class="card-img-wrap">
+            <img
+              src="${escapeAttr(cardImageSrc(c))}"
+              alt="${escapeAttr(displayName(c))}"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
-        </div>
+        </button>
+        <button
+          type="button"
+          class="card-add${added ? " is-in" : ""}"
+          data-id="${escapeAttr(c.id)}"
+          aria-label="${added ? "已在清单" : "加入意向清单"}"
+        >${added ? "已加" : "加入"}</button>
+      </div>
+      <button type="button" class="card-hit card-hit-info" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
         <div class="card-body">
-          <p class="card-name">${escapeHtml(displayName(c))}</p>
+          <div class="card-title-row">
+            <p class="card-name">${escapeHtml(displayName(c))}</p>
+            <div class="card-flags">
+              ${c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
+              ${c.quantity > 1 ? `<span class="flag flag-qty">×${c.quantity}</span>` : ""}
+            </div>
+          </div>
           ${secondaryName(c) ? `<p class="card-name-en">${escapeHtml(secondaryName(c))}</p>` : ""}
           <div class="card-meta">
             <span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span>
@@ -495,12 +515,6 @@ function renderGrid() {
           ${sellerLine(c) ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>` : ""}
         </div>
       </button>
-      <button
-        type="button"
-        class="card-add${added ? " is-in" : ""}"
-        data-id="${escapeAttr(c.id)}"
-        aria-label="${added ? "已在清单" : "加入意向清单"}"
-      >${added ? "已加" : "加入"}</button>
     </div>`;
     })
     .join("");
