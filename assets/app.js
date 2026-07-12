@@ -94,18 +94,46 @@ function setScrollLock(locked) {
   document.body.classList.toggle("scroll-lock", locked);
 }
 
+function restorePortaledMenus() {
+  document.querySelectorAll(".dd-menu.is-portal").forEach((menu) => {
+    const homeId = menu.dataset.home;
+    const home = homeId ? document.getElementById(homeId) : null;
+    menu.classList.remove("is-portal");
+    delete menu.dataset.home;
+    if (home) home.appendChild(menu);
+  });
+}
+
+/** 窄屏把菜单挂到 body，避免 sticky/overflow 层叠把选项盖住 */
+function portalMenuIfNeeded(dd, open) {
+  const menu = dd.querySelector(".dd-menu");
+  if (!menu) return;
+
+  if (open && isNarrow()) {
+    menu.dataset.home = dd.id;
+    menu.classList.add("is-portal");
+    document.body.appendChild(menu);
+  } else if (menu.classList.contains("is-portal")) {
+    menu.classList.remove("is-portal");
+    delete menu.dataset.home;
+    dd.appendChild(menu);
+  }
+}
+
 function syncScrim() {
   const open = document.querySelector(".dd.open");
   const scrim = $("#dd-scrim");
-  if (!scrim) return;
-  if (open && isNarrow()) {
-    scrim.hidden = false;
-  } else {
-    scrim.hidden = true;
+  const narrowOpen = Boolean(open && isNarrow());
+
+  document.body.classList.toggle("dd-open", narrowOpen);
+
+  if (scrim) {
+    scrim.hidden = !narrowOpen;
   }
+
   // 窄屏打开下拉时锁滚动；详情弹层另算
   if (!$("#modal")?.classList.contains("open")) {
-    setScrollLock(Boolean(open && isNarrow()));
+    setScrollLock(narrowOpen);
   }
 }
 
@@ -217,6 +245,16 @@ function closeAllDropdowns(exceptId = null) {
     el.classList.remove("open");
     const btn = el.querySelector(".dd-trigger");
     if (btn) btn.setAttribute("aria-expanded", "false");
+    portalMenuIfNeeded(el, false);
+  });
+  // 清理可能残留在 body 上的菜单（除当前仍打开的）
+  document.querySelectorAll(".dd-menu.is-portal").forEach((menu) => {
+    const homeId = menu.dataset.home;
+    if (exceptId && homeId === exceptId) return;
+    const home = homeId ? document.getElementById(homeId) : null;
+    menu.classList.remove("is-portal");
+    delete menu.dataset.home;
+    if (home) home.appendChild(menu);
   });
   syncScrim();
 }
@@ -229,6 +267,16 @@ function currentLabel(filterId) {
   return hit ? hit.label : conf.allLabel;
 }
 
+function findMenu(filterId) {
+  const root = document.getElementById(`dd-${filterId}`);
+  // 可能已 portal 到 body
+  return (
+    document.querySelector(`.dd-menu.is-portal[data-home="dd-${filterId}"]`) ||
+    root?.querySelector(".dd-menu") ||
+    null
+  );
+}
+
 function renderDropdown(filterId) {
   const conf = filters[filterId];
   const root = document.getElementById(`dd-${filterId}`);
@@ -238,7 +286,7 @@ function renderDropdown(filterId) {
   const valueEl = root.querySelector(".dd-value");
   if (valueEl) valueEl.textContent = currentLabel(filterId);
 
-  const menu = root.querySelector(".dd-menu");
+  const menu = findMenu(filterId);
   if (!menu) return;
 
   const items = [{ value: "all", label: conf.allLabel }, ...conf.options];
@@ -290,23 +338,43 @@ function mountFilters() {
       closeAllDropdowns(willOpen ? dd.id : null);
       dd.classList.toggle("open", willOpen);
       trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      portalMenuIfNeeded(dd, willOpen);
+      // 打开后刷新选项 DOM（菜单可能已挂到 body）
+      if (willOpen) renderDropdown(dd.dataset.filter);
       syncScrim();
       return;
     }
+  });
 
+  // 选项可能在 body 上的 portal 菜单里，委托到 document
+  document.addEventListener("click", (e) => {
     const option = e.target.closest(".dd-option");
-    if (option) {
-      e.stopPropagation();
-      const dd = option.closest(".dd");
-      const filterId = dd.dataset.filter;
-      const conf = filters[filterId];
-      state[conf.key] = option.dataset.value;
-      dd.classList.remove("open");
-      dd.querySelector(".dd-trigger").setAttribute("aria-expanded", "false");
-      renderDropdown(filterId);
-      syncScrim();
-      renderGrid();
+    if (!option) return;
+    const menu = option.closest(".dd-menu");
+    if (!menu) return;
+    e.stopPropagation();
+
+    const homeId = menu.dataset.home || menu.closest(".dd")?.id;
+    const dd = homeId ? document.getElementById(homeId) : menu.closest(".dd");
+    if (!dd) return;
+
+    const filterId = dd.dataset.filter;
+    const conf = filters[filterId];
+    state[conf.key] = option.dataset.value;
+
+    dd.classList.remove("open");
+    dd.querySelector(".dd-trigger")?.setAttribute("aria-expanded", "false");
+    portalMenuIfNeeded(dd, false);
+    // 若菜单还在 portal，先还原再 render
+    if (menu.classList.contains("is-portal") && menu.dataset.home) {
+      const home = document.getElementById(menu.dataset.home);
+      menu.classList.remove("is-portal");
+      delete menu.dataset.home;
+      if (home) home.appendChild(menu);
     }
+    renderDropdown(filterId);
+    syncScrim();
+    renderGrid();
   });
 }
 

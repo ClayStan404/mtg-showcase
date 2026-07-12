@@ -100,6 +100,11 @@ header.site-header {
   border-bottom: 1px solid transparent;
 }
 
+/* 打开筛选时抬到遮罩之上（sticky 会形成层叠上下文） */
+body.dd-open .toolbar {
+  z-index: 50;
+}
+
 .toolbar.is-stuck {
   border-bottom-color: var(--border);
 }
@@ -152,13 +157,36 @@ header.site-header {
 .dd-scrim {
   position: fixed;
   inset: 0;
-  z-index: 35;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+  z-index: 40;
+  /* 不用 backdrop-filter，避免整页发糊且盖住菜单 */
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .dd-scrim[hidden] {
   display: none !important;
+}
+
+/* 挂到 body 的底部抽屉菜单（手机） */
+.dd-menu.is-portal {
+  display: block;
+  position: fixed;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: max(0.6rem, env(safe-area-inset-bottom, 0px));
+  top: auto;
+  z-index: 60;
+  min-width: 0;
+  max-width: none;
+  max-height: min(52dvh, 420px);
+  overflow: auto;
+  margin: 0;
+  padding: 0.45rem;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #1a2030;
+  box-shadow: var(--shadow);
+  -webkit-overflow-scrolling: touch;
 }
 
 /* 自定义下拉：完全自绘，不依赖原生 option 颜色 */
@@ -681,20 +709,7 @@ footer {
     max-width: 4.8rem;
   }
 
-  /* 下拉改为底部抽屉，大触控区 */
-  .dd.open .dd-menu {
-    position: fixed;
-    left: 0.6rem;
-    right: 0.6rem;
-    bottom: max(0.6rem, env(safe-area-inset-bottom, 0px));
-    top: auto;
-    z-index: 45;
-    min-width: 0;
-    max-width: none;
-    max-height: min(52dvh, 420px);
-    border-radius: 16px;
-    padding: 0.45rem;
-  }
+  /* 手机菜单走 .dd-menu.is-portal，避免被 .filters overflow 裁剪 */
 
   .dd-option {
     font-size: 1rem;
