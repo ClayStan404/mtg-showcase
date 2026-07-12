@@ -2,8 +2,7 @@
 # city: 武汉
 # contact: 见站内联系区
 #
-# 卡表格式: [Nx] set number [lang] [foil]
-# 通过 PR 新增/修改本文件即可参与展示
+# 由 WPS 导出解析生成；语言 空/z/j/o  闪 0/1  数量默认1
 
 # Sol Ring
 2x msc 211 z f

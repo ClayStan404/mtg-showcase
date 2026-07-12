@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 .DS_Store
 .cache/
-# cards-data.js 由 build 生成，但需提交到仓库供 GitHub Pages 使用
 
-# WPS/Office lock files
+# WPS / Office lock files
 **/.~*
