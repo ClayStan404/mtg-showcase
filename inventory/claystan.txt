@@ -1,6 +1,6 @@
-# seller: 演示主理
-# city: 上海
-# contact: 站内联系区见页脚
+# seller: ClayStan
+# city: 武汉
+# contact: 见站内联系区
 #
 # 卡表格式: [Nx] set number [lang] [foil]
 # 通过 PR 新增/修改本文件即可参与展示
