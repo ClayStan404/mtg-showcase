@@ -168,7 +168,7 @@ ltr 5 e 1
 one 376 z 1
 2x bro 30 z 1
 lci 188 z 1
-2x 2x2 038 e 0
+2x 2x2 38 e 0
 2x mh3 102 e 0
 2x mh3 411 z 0
 3x mh3 411 e 0
@@ -218,7 +218,7 @@ dmu 387 e 1
 mh3 4 z 1
 woe 281 z 0
 bro 59 z 1
-m3 63 z 0
+mh3 63 z 0
 wot 24 z 0
 2x wot 24 z 1
 2x otj 271 e 0
@@ -227,7 +227,7 @@ otj 306 z 0
 2x2 296 z 1
 2x dmu 373 e 0
 2x2 333 e 1
-dnc 348 e 0
+snc 348 e 0
 neo 303 z 0
 otj 223 z 0
 2x otj 223 e 0

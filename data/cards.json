@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T16:15:56Z",
+  "generated_at": "2026-07-12T16:17:59Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -85,10 +85,10 @@
       "scryfall_uri": "https://scryfall.com/card/2x2/8/zhs/%E7%A5%9E%E6%81%A9%E5%A4%A9%E9%99%8D-(divine-visitation)?utm_source=api"
     },
     {
-      "id": "claystan-2x2-038-en-nf",
+      "id": "claystan-2x2-38-en-nf",
       "set": "2x2",
-      "set_name": "2X2",
-      "number": "038",
+      "set_name": "Double Masters 2022",
+      "number": "38",
       "lang": "en",
       "lang_label": "英文",
       "foil": false,
@@ -98,21 +98,23 @@
       "city": "武汉",
       "contact": "QQ 417592443",
       "source_file": "claystan.txt",
-      "name_en": "",
-      "name_zh": "",
-      "name_printed": "",
-      "type_line": "",
-      "type_line_en": "",
-      "types": [],
-      "mana_cost": "",
-      "cmc": 0,
-      "text": "",
+      "name_en": "As Foretold",
+      "name_zh": "预示成真",
+      "name_printed": "As Foretold",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{U}",
+      "cmc": 3.0,
+      "text": "At the beginning of your upkeep, put a time counter on this enchantment.\nOnce each turn, you may pay {0} rather than pay the mana cost for a spell you cast with mana value X or less, where X is the number of time counters on this enchantment.",
       "image": {
-        "small": "",
-        "normal": "",
-        "large": ""
+        "small": "https://cards.scryfall.io/small/front/c/4/c468b523-84fc-4657-adef-acc1eec6ef2e.jpg?1782737943",
+        "normal": "https://cards.scryfall.io/normal/front/c/4/c468b523-84fc-4657-adef-acc1eec6ef2e.jpg?1782737943",
+        "large": "https://cards.scryfall.io/large/front/c/4/c468b523-84fc-4657-adef-acc1eec6ef2e.jpg?1782737943"
       },
-      "error": "not_found"
+      "scryfall_uri": "https://scryfall.com/card/2x2/38/as-foretold?utm_source=api"
     },
     {
       "id": "claystan-2x2-73-zhs-f",
@@ -2035,36 +2037,6 @@
       "scryfall_uri": "https://scryfall.com/card/dmu/413/herd-migration?utm_source=api"
     },
     {
-      "id": "claystan-dnc-348-en-nf",
-      "set": "dnc",
-      "set_name": "DNC",
-      "number": "348",
-      "lang": "en",
-      "lang_label": "英文",
-      "foil": false,
-      "quantity": 1,
-      "seller": "claystan",
-      "seller_id": "claystan",
-      "city": "武汉",
-      "contact": "QQ 417592443",
-      "source_file": "claystan.txt",
-      "name_en": "",
-      "name_zh": "",
-      "name_printed": "",
-      "type_line": "",
-      "type_line_en": "",
-      "types": [],
-      "mana_cost": "",
-      "cmc": 0,
-      "text": "",
-      "image": {
-        "small": "",
-        "normal": "",
-        "large": ""
-      },
-      "error": "not_found"
-    },
-    {
       "id": "claystan-dom-207-en-nf",
       "set": "dom",
       "set_name": "Dominaria",
@@ -3250,36 +3222,6 @@
       "scryfall_uri": "https://scryfall.com/card/m19/67/zhs/%E8%80%90%E5%BF%83%E5%A4%8D%E5%8E%9F-(patient-rebuilding)?utm_source=api"
     },
     {
-      "id": "claystan-m3-63-zhs-nf",
-      "set": "m3",
-      "set_name": "M3",
-      "number": "63",
-      "lang": "zhs",
-      "lang_label": "简中",
-      "foil": false,
-      "quantity": 1,
-      "seller": "claystan",
-      "seller_id": "claystan",
-      "city": "武汉",
-      "contact": "QQ 417592443",
-      "source_file": "claystan.txt",
-      "name_en": "",
-      "name_zh": "",
-      "name_printed": "",
-      "type_line": "",
-      "type_line_en": "",
-      "types": [],
-      "mana_cost": "",
-      "cmc": 0,
-      "text": "",
-      "image": {
-        "small": "",
-        "normal": "",
-        "large": ""
-      },
-      "error": "not_found"
-    },
-    {
       "id": "claystan-mh1-92-en-nf",
       "set": "mh1",
       "set_name": "Modern Horizons",
@@ -3662,6 +3604,38 @@
         "large": "https://cards.scryfall.io/large/front/7/1/71a98efb-9b0a-496b-ac21-8d70527ea544.jpg?1782691353"
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/62/flare-of-denial?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-63-zhs-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "63",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Harbinger of the Seas",
+      "name_zh": "海疆先兆师",
+      "name_printed": "海疆先兆师",
+      "type_line": "生物 — 人鱼／法术师",
+      "type_line_en": "Creature — Merfolk Wizard",
+      "types": [
+        "creature"
+      ],
+      "mana_cost": "{1}{U}{U}",
+      "cmc": 3.0,
+      "text": "非基本地都是海岛。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/d/fdb46ce8-728d-4777-b427-98e130d4f8bf.jpg?1782793928",
+        "normal": "https://cards.scryfall.io/normal/front/f/d/fdb46ce8-728d-4777-b427-98e130d4f8bf.jpg?1782793928",
+        "large": "https://cards.scryfall.io/large/front/f/d/fdb46ce8-728d-4777-b427-98e130d4f8bf.jpg?1782793928"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/63/zhs/%E6%B5%B7%E7%96%86%E5%85%88%E5%85%86%E5%B8%88-(harbinger-of-the-seas)?utm_source=api"
     },
     {
       "id": "claystan-mh3-71-zhs-nf",
@@ -6094,6 +6068,38 @@
         "large": "https://cards.scryfall.io/large/front/8/d/8d477ed5-64e2-46cf-adbd-3607743117ca.jpg?1782725058"
       },
       "scryfall_uri": "https://scryfall.com/card/slp/43/shoot-the-sheriff?utm_source=api"
+    },
+    {
+      "id": "claystan-snc-348-en-nf",
+      "set": "snc",
+      "set_name": "Streets of New Capenna",
+      "number": "348",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Ob Nixilis, the Adversary",
+      "name_zh": "魔头欧尼希兹",
+      "name_printed": "Ob Nixilis, the Adversary",
+      "type_line": "Legendary Planeswalker — Nixilis",
+      "type_line_en": "Legendary Planeswalker — Nixilis",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{1}{B}{R}",
+      "cmc": 3.0,
+      "text": "Casualty X. The copy isn't legendary and has starting loyalty X. (As you cast this spell, you may sacrifice a creature with power X. When you do, copy this spell. The copy becomes a token.)\n+1: Each opponent loses 2 life unless they discard a card. If you control a Demon or Devil, you gain 2 life.\n−2: Create a 1/1 red Devil creature token with \"When this token dies, it deals 1 damage to any target.\"\n−7: Target player draws seven cards and loses 7 life.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/8/a/8a8a7966-97cf-47f8-ab85-4f95335425a7.jpg?1782701446",
+        "normal": "https://cards.scryfall.io/normal/front/8/a/8a8a7966-97cf-47f8-ab85-4f95335425a7.jpg?1782701446",
+        "large": "https://cards.scryfall.io/large/front/8/a/8a8a7966-97cf-47f8-ab85-4f95335425a7.jpg?1782701446"
+      },
+      "scryfall_uri": "https://scryfall.com/card/snc/348/ob-nixilis-the-adversary?utm_source=api"
     },
     {
       "id": "claystan-soi-234-zhs-f",
