@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse inventory.txt → enrich via Scryfall (+ mtgch for 中文名) → data/cards.json"""
+"""Parse inventory/*.txt → enrich via Scryfall (+ mtgch) → data/cards.json"""
 
 from __future__ import annotations
 
@@ -15,9 +15,11 @@ from typing import Any
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INVENTORY = ROOT / "inventory.txt"
+DEFAULT_INVENTORY_DIR = ROOT / "inventory"
+DEFAULT_INVENTORY_FILE = ROOT / "inventory.txt"  # 兼容旧单文件
 DEFAULT_OUTPUT = ROOT / "data" / "cards.json"
 SITE_CONFIG = ROOT / "site_config.json"
+CACHE_DIR = ROOT / ".cache" / "scryfall"
 
 # 与 MTGImgDownloader 一致：短码 → Scryfall lang
 LANG_MAP = {
@@ -30,7 +32,6 @@ LANG_MAP = {
     "ja": "ja",
     "d": "de",
     "de": "de",
-    "f": "fr",  # 仅当单独出现且不在 foil 集合时；解析时 foil 优先
     "fr": "fr",
     "k": "ko",
     "ko": "ko",
@@ -59,8 +60,13 @@ LANG_LABEL = {
 
 FOIL_TOKENS = {"foil", "f", "1", "闪", "闪卡"}
 QTY_RE = re.compile(r"^(?:(\d+)x|x(\d+))$", re.I)
+# # seller: 昵称  /  # city: 上海  /  # contact: ...
+META_RE = re.compile(
+    r"^#\s*(seller|nickname|nick|city|contact|wechat)\s*[:=：]\s*(.+?)\s*$",
+    re.I,
+)
+SLUG_RE = re.compile(r"[^a-zA-Z0-9\u4e00-\u9fff_-]+")
 
-# Scryfall: ≤10 req/s；保守一点
 REQUEST_GAP = 0.12
 USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
 
@@ -69,40 +75,73 @@ def load_site_config() -> dict[str, Any]:
     if SITE_CONFIG.exists():
         return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
     return {
-        "title": "我的万智牌库存",
-        "subtitle": "实体卡展示 · 仅供浏览与联系",
+        "title": "万智牌库存展示",
+        "subtitle": "多人实体卡展示 · 仅供浏览与联系",
         "contact": {
             "wechat": "",
             "email": "",
-            "note": "有意向请通过下方方式联系，说明系列缩写 + 编号即可。",
+            "note": "有意向请联系对应出售人（见卡牌详情）。",
         },
     }
 
 
-def parse_inventory(path: Path) -> list[dict[str, Any]]:
-    """解析库存文件。相同 key 合并数量。"""
-    if not path.exists():
-        raise FileNotFoundError(f"找不到库存文件: {path}")
+def slugify(value: str, fallback: str) -> str:
+    s = SLUG_RE.sub("-", (value or "").strip()).strip("-").lower()
+    return s or fallback
+
+
+def discover_inventory_files(inventory_dir: Path, legacy_file: Path) -> list[Path]:
+    files: list[Path] = []
+    if inventory_dir.is_dir():
+        files = sorted(
+            p
+            for p in inventory_dir.glob("*.txt")
+            if p.is_file() and not p.name.startswith("_")
+        )
+    if files:
+        return files
+    if legacy_file.is_file():
+        return [legacy_file]
+    return []
+
+
+def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
+    """解析单个库存文件。文件头 # seller: / # city: 作用于全文。"""
+    seller = ""
+    city = ""
+    contact = ""
+    source = path.stem if path.name != "inventory.txt" else "default"
 
     merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
     with path.open(encoding="utf-8") as fh:
         for line_num, raw in enumerate(fh, 1):
             line = raw.strip()
-            if not line or line.startswith("#"):
+            if not line:
+                continue
+
+            if line.startswith("#"):
+                m = META_RE.match(line)
+                if m:
+                    key = m.group(1).lower()
+                    val = m.group(2).strip()
+                    if key in ("seller", "nickname", "nick"):
+                        seller = val
+                    elif key == "city":
+                        city = val
+                    elif key in ("contact", "wechat"):
+                        contact = val
                 continue
 
             parts = line.split()
             qty = 1
-
-            # 可选数量前缀：2x / x3
             m = QTY_RE.match(parts[0])
             if m:
                 qty = int(m.group(1) or m.group(2))
                 parts = parts[1:]
 
             if len(parts) < 2:
-                print(f"[warn] 第{line_num}行格式错误，跳过: {raw.rstrip()}", file=sys.stderr)
+                print(f"[warn] {path.name}:{line_num} 格式错误，跳过: {raw.rstrip()}", file=sys.stderr)
                 continue
 
             set_code = parts[0].lower()
@@ -115,11 +154,12 @@ def parse_inventory(path: Path) -> list[dict[str, Any]]:
                 if low in FOIL_TOKENS:
                     is_foil = True
                 else:
-                    # 语言短码；f 已在 foil 集合里，不会落到这里表示法文
                     lang_code = "" if low == "en" else low
 
             scryfall_lang = LANG_MAP.get(lang_code, lang_code or "en")
-            key = f"{set_code}|{number}|{scryfall_lang}|{'foil' if is_foil else 'nf'}"
+            seller_name = seller or source
+            seller_id = slugify(seller_name, source)
+            key = f"{seller_id}|{set_code}|{number}|{scryfall_lang}|{'foil' if is_foil else 'nf'}"
 
             if key in merged:
                 merged[key]["quantity"] += qty
@@ -131,17 +171,45 @@ def parse_inventory(path: Path) -> list[dict[str, Any]]:
                     "lang_raw": lang_code,
                     "foil": is_foil,
                     "quantity": qty,
+                    "source_file": path.name,
                     "source_line": line_num,
+                    "seller": seller_name,
+                    "seller_id": seller_id,
+                    "city": city,
+                    "contact": contact,
                 }
+
+    if not seller:
+        print(f"[warn] {path.name} 未设置 # seller: ，将使用文件名「{source}」", file=sys.stderr)
+    if not city:
+        print(f"[warn] {path.name} 未设置 # city:", file=sys.stderr)
 
     return list(merged.values())
 
 
+def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[str, Any]]:
+    files = discover_inventory_files(inventory_dir, legacy_file)
+    if not files:
+        raise FileNotFoundError(
+            f"未找到库存文件。请在 {inventory_dir}/ 下添加 *.txt，或提供 {legacy_file.name}"
+        )
+
+    all_entries: list[dict[str, Any]] = []
+    for path in files:
+        entries = parse_inventory_file(path)
+        print(f"  · {path.name}: {len(entries)} 种")
+        all_entries.extend(entries)
+    return all_entries
+
+
 class ScryfallClient:
-    def __init__(self) -> None:
+    def __init__(self, use_disk_cache: bool = True) -> None:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
         self._last = 0.0
+        self.use_disk_cache = use_disk_cache
+        if use_disk_cache:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     def _throttle(self) -> None:
         elapsed = time.monotonic() - self._last
@@ -155,42 +223,73 @@ class ScryfallClient:
         resp.raise_for_status()
         return resp
 
-    def post(self, url: str, **kwargs: Any) -> requests.Response:
-        self._throttle()
-        resp = self.session.post(url, timeout=60, **kwargs)
-        resp.raise_for_status()
-        return resp
+    def _cache_path(self, set_code: str, number: str, lang: str) -> Path:
+        safe_num = re.sub(r"[^\w.-]", "_", number)
+        return CACHE_DIR / f"{set_code}_{safe_num}_{lang}.json"
 
     def fetch_card(self, set_code: str, number: str, lang: str) -> dict[str, Any] | None:
-        """优先指定语言；失败回退英文印刷。"""
-        urls = [
-            f"https://api.scryfall.com/cards/{set_code}/{number}/{lang}",
-        ]
+        cache_path = self._cache_path(set_code, number, lang)
+        if self.use_disk_cache and cache_path.exists():
+            try:
+                return json.loads(cache_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                pass
+
+        urls = [f"https://api.scryfall.com/cards/{set_code}/{number}/{lang}"]
         if lang != "en":
             urls.append(f"https://api.scryfall.com/cards/{set_code}/{number}")
 
+        data = None
         for url in urls:
             try:
-                return self.get(url).json()
+                data = self.get(url).json()
+                break
             except requests.HTTPError as e:
                 if e.response is not None and e.response.status_code == 404:
                     continue
                 raise
-        return None
+
+        if data is not None and self.use_disk_cache:
+            cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        return data
 
     def fetch_zh_name(self, set_code: str, number: str) -> str:
-        """mtgch 补充中文名（英文印刷时 printed_name 为空）。"""
+        cache_path = CACHE_DIR / f"zhname_{set_code}_{re.sub(r'[^\w.-]', '_', number)}.txt"
+        if self.use_disk_cache and cache_path.exists():
+            return cache_path.read_text(encoding="utf-8").strip()
+
         url = f"https://mtgch.com/api/v1/card/{set_code}/{number}/"
         try:
             data = self.get(url).json()
-            return (
+            name = (
                 data.get("zhs_name")
                 or data.get("atomic_official_name")
                 or data.get("atomic_translated_name")
                 or ""
             )
         except Exception:
-            return ""
+            name = ""
+
+        if self.use_disk_cache and name:
+            cache_path.write_text(name, encoding="utf-8")
+        return name
+
+
+def load_previous_enrichment(output_path: Path) -> dict[str, dict[str, Any]]:
+    """用已有 cards.json 按 set|number|lang 复用元数据（加速重建）。"""
+    if not output_path.exists():
+        return {}
+    try:
+        data = json.loads(output_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    cache: dict[str, dict[str, Any]] = {}
+    for c in data.get("cards") or []:
+        if c.get("error"):
+            continue
+        key = f"{(c.get('set') or '').lower()}|{c.get('number')}|{c.get('lang')}"
+        cache[key] = c
+    return cache
 
 
 def pick_images(card: dict[str, Any]) -> dict[str, str]:
@@ -213,7 +312,6 @@ def pick_images(card: dict[str, Any]) -> dict[str, str]:
 
 
 def pick_text(card: dict[str, Any]) -> tuple[str, str]:
-    """返回 (牌面文字, 类型行)，优先印刷文本。"""
     if card.get("card_faces"):
         texts = []
         types = []
@@ -231,7 +329,19 @@ def pick_text(card: dict[str, Any]) -> tuple[str, str]:
     return text, type_line
 
 
-def enrich(entries: list[dict[str, Any]], client: ScryfallClient) -> list[dict[str, Any]]:
+def card_id(entry: dict[str, Any]) -> str:
+    return (
+        f"{entry['seller_id']}-"
+        f"{entry['set']}-{entry['number']}-{entry['lang']}-"
+        f"{'f' if entry['foil'] else 'nf'}"
+    )
+
+
+def enrich(
+    entries: list[dict[str, Any]],
+    client: ScryfallClient,
+    prev: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     total = len(entries)
 
@@ -239,69 +349,120 @@ def enrich(entries: list[dict[str, Any]], client: ScryfallClient) -> list[dict[s
         set_code = entry["set"]
         number = entry["number"]
         lang = entry["lang"]
-        print(f"[{i}/{total}] {set_code} {number} {lang}{' foil' if entry['foil'] else ''}", flush=True)
+        prev_key = f"{set_code}|{number}|{lang}"
+        print(
+            f"[{i}/{total}] {entry['seller']} · {set_code} {number} {lang}"
+            f"{' foil' if entry['foil'] else ''}",
+            flush=True,
+        )
 
-        card = client.fetch_card(set_code, number, lang)
-        if not card:
-            print(f"  ! 未找到: {set_code} {number} {lang}", file=sys.stderr)
-            results.append(
-                {
-                    "id": f"{set_code}-{number}-{lang}-{'f' if entry['foil'] else 'nf'}",
-                    "set": set_code,
-                    "set_name": set_code.upper(),
-                    "number": number,
-                    "lang": lang,
-                    "lang_label": LANG_LABEL.get(lang, lang),
-                    "foil": entry["foil"],
-                    "quantity": entry["quantity"],
-                    "name_en": "",
-                    "name_zh": "",
-                    "name_printed": "",
-                    "type_line": "",
-                    "text": "",
-                    "image": pick_images({}),
-                    "error": "not_found",
-                }
-            )
-            continue
+        base: dict[str, Any] | None = None
+        cached = prev.get(prev_key)
+        if cached and not cached.get("error"):
+            base = {
+                "name_en": cached.get("name_en", ""),
+                "name_zh": cached.get("name_zh", ""),
+                "name_printed": cached.get("name_printed", ""),
+                "type_line": cached.get("type_line", ""),
+                "text": cached.get("text", ""),
+                "image": cached.get("image") or pick_images({}),
+                "scryfall_uri": cached.get("scryfall_uri", ""),
+                "set": cached.get("set") or set_code,
+                "set_name": cached.get("set_name") or set_code.upper(),
+                "number": cached.get("number") or number,
+                "lang": cached.get("lang") or lang,
+            }
 
-        name_en = card.get("name") or ""
-        name_printed = card.get("printed_name") or ""
-        # 双面牌
-        if not name_printed and card.get("card_faces"):
-            name_printed = card["card_faces"][0].get("printed_name") or ""
+        if base is None:
+            card = client.fetch_card(set_code, number, lang)
+            if not card:
+                print(f"  ! 未找到: {set_code} {number} {lang}", file=sys.stderr)
+                results.append(
+                    {
+                        "id": card_id(entry),
+                        "set": set_code,
+                        "set_name": set_code.upper(),
+                        "number": number,
+                        "lang": lang,
+                        "lang_label": LANG_LABEL.get(lang, lang),
+                        "foil": entry["foil"],
+                        "quantity": entry["quantity"],
+                        "seller": entry["seller"],
+                        "seller_id": entry["seller_id"],
+                        "city": entry["city"],
+                        "contact": entry["contact"],
+                        "source_file": entry["source_file"],
+                        "name_en": "",
+                        "name_zh": "",
+                        "name_printed": "",
+                        "type_line": "",
+                        "text": "",
+                        "image": pick_images({}),
+                        "error": "not_found",
+                    }
+                )
+                continue
 
-        name_zh = ""
-        if lang == "zhs":
-            name_zh = name_printed or name_en
-        else:
-            name_zh = client.fetch_zh_name(set_code, number)
+            name_en = card.get("name") or ""
+            name_printed = card.get("printed_name") or ""
+            if not name_printed and card.get("card_faces"):
+                name_printed = card["card_faces"][0].get("printed_name") or ""
 
-        text, type_line = pick_text(card)
-        images = pick_images(card)
+            if lang == "zhs":
+                name_zh = name_printed or name_en
+            else:
+                name_zh = client.fetch_zh_name(set_code, number)
 
-        results.append(
-            {
-                "id": f"{set_code}-{number}-{lang}-{'f' if entry['foil'] else 'nf'}",
-                "set": card.get("set") or set_code,
-                "set_name": card.get("set_name") or set_code.upper(),
-                "number": card.get("collector_number") or number,
-                "lang": card.get("lang") or lang,
-                "lang_label": LANG_LABEL.get(card.get("lang") or lang, lang),
-                "foil": entry["foil"],
-                "quantity": entry["quantity"],
+            text, type_line = pick_text(card)
+            base = {
                 "name_en": name_en,
                 "name_zh": name_zh,
                 "name_printed": name_printed or name_en,
                 "type_line": type_line,
                 "text": text,
-                "image": images,
+                "image": pick_images(card),
                 "scryfall_uri": card.get("scryfall_uri") or "",
+                "set": card.get("set") or set_code,
+                "set_name": card.get("set_name") or set_code.upper(),
+                "number": card.get("collector_number") or number,
+                "lang": card.get("lang") or lang,
+            }
+
+        results.append(
+            {
+                "id": card_id(entry),
+                "set": base["set"],
+                "set_name": base["set_name"],
+                "number": base["number"],
+                "lang": base["lang"],
+                "lang_label": LANG_LABEL.get(base["lang"], base["lang"]),
+                "foil": entry["foil"],
+                "quantity": entry["quantity"],
+                "seller": entry["seller"],
+                "seller_id": entry["seller_id"],
+                "city": entry["city"],
+                "contact": entry["contact"],
+                "source_file": entry["source_file"],
+                "name_en": base["name_en"],
+                "name_zh": base["name_zh"],
+                "name_printed": base["name_printed"],
+                "type_line": base["type_line"],
+                "text": base["text"],
+                "image": base["image"],
+                "scryfall_uri": base["scryfall_uri"],
             }
         )
 
-    # 稳定排序：系列 + 编号 + 语言
-    results.sort(key=lambda c: (c["set"], _num_key(c["number"]), c["lang"], not c["foil"]))
+    results.sort(
+        key=lambda c: (
+            c.get("city") or "",
+            c.get("seller") or "",
+            c["set"],
+            _num_key(c["number"]),
+            c["lang"],
+            not c["foil"],
+        )
+    )
     return results
 
 
@@ -312,30 +473,70 @@ def _num_key(num: str) -> tuple:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="从 inventory 生成网站用 cards.json")
-    parser.add_argument("-i", "--inventory", type=Path, default=DEFAULT_INVENTORY)
+    parser.add_argument(
+        "-i",
+        "--inventory-dir",
+        type=Path,
+        default=DEFAULT_INVENTORY_DIR,
+        help="库存目录（默认 inventory/，读取其中 *.txt）",
+    )
+    parser.add_argument(
+        "--legacy-file",
+        type=Path,
+        default=DEFAULT_INVENTORY_FILE,
+        help="兼容旧的单文件 inventory.txt",
+    )
     parser.add_argument("-o", "--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--no-cache", action="store_true", help="禁用 Scryfall 磁盘缓存")
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="只解析库存、不请求网络（用于 PR 校验）",
+    )
     args = parser.parse_args()
 
-    entries = parse_inventory(args.inventory)
+    print("读取库存…")
+    try:
+        entries = parse_all_inventories(args.inventory_dir, args.legacy_file)
+    except FileNotFoundError as e:
+        print(e, file=sys.stderr)
+        return 1
+
     if not entries:
         print("没有有效库存行", file=sys.stderr)
         return 1
 
-    print(f"解析到 {len(entries)} 种卡（已合并重复）")
-    client = ScryfallClient()
-    cards = enrich(entries, client)
+    print(f"合计 {len(entries)} 种（已按出售人+印刷合并重复）")
+
+    if args.validate_only:
+        sellers = sorted({e["seller"] for e in entries})
+        cities = sorted({e["city"] for e in entries if e["city"]})
+        print(f"校验通过 · 出售人 {len(sellers)} · 城市 {len(cities)}")
+        return 0
+
+    prev = load_previous_enrichment(args.output)
+    client = ScryfallClient(use_disk_cache=not args.no_cache)
+    cards = enrich(entries, client, prev)
+
+    sellers = sorted({c["seller"] for c in cards if c.get("seller")})
+    cities = sorted({c["city"] for c in cards if c.get("city")})
 
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "site": load_site_config(),
         "count": len(cards),
         "total_quantity": sum(c.get("quantity", 0) for c in cards),
+        "sellers": sellers,
+        "cities": cities,
         "cards": cards,
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"已写入 {args.output} （{payload['count']} 种 / 共 {payload['total_quantity']} 张）")
+    print(
+        f"已写入 {args.output} （{payload['count']} 种 / 共 {payload['total_quantity']} 张 · "
+        f"{len(sellers)} 位出售人 · {len(cities)} 个城市）"
+    )
     return 0
 
 

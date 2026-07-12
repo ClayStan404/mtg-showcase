@@ -7,6 +7,8 @@ const state = {
   lang: "all",
   foil: "all",
   set: "all",
+  seller: "all",
+  city: "all",
 };
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -30,6 +32,10 @@ function matches(card) {
   if (state.foil === "foil" && !card.foil) return false;
   if (state.foil === "nf" && card.foil) return false;
   if (state.set !== "all" && card.set !== state.set) return false;
+  if (state.seller !== "all" && card.seller_id !== state.seller && card.seller !== state.seller) {
+    return false;
+  }
+  if (state.city !== "all" && card.city !== state.city) return false;
 
   const q = state.query.trim().toLowerCase();
   if (!q) return true;
@@ -44,6 +50,9 @@ function matches(card) {
     card.lang_label,
     card.type_line,
     card.text,
+    card.seller,
+    card.city,
+    card.contact,
     card.foil ? "foil 闪" : "",
   ]
     .filter(Boolean)
@@ -51,6 +60,11 @@ function matches(card) {
     .toLowerCase();
 
   return q.split(/\s+/).every((token) => hay.includes(token));
+}
+
+function sellerLine(card) {
+  const parts = [card.seller, card.city].filter(Boolean);
+  return parts.join(" · ");
 }
 
 function renderGrid() {
@@ -85,6 +99,11 @@ function renderGrid() {
           <span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span>
           <span>${escapeHtml(c.lang_label || c.lang)}</span>
         </div>
+        ${
+          sellerLine(c)
+            ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>`
+            : ""
+        }
       </div>
     </button>`
     )
@@ -103,8 +122,12 @@ function openModal(card) {
     `<span class="tag">${escapeHtml(card.lang_label || card.lang)}</span>`,
     card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
     `<span class="tag">×${card.quantity}</span>`,
+    card.city ? `<span class="tag">${escapeHtml(card.city)}</span>` : "",
   ].join("");
 
+  $("#modal-seller").textContent = card.seller || "—";
+  $("#modal-city").textContent = card.city || "—";
+  $("#modal-contact").textContent = card.contact || "—";
   $("#modal-set").textContent = `${card.set_name} (${(card.set || "").toUpperCase()})`;
   $("#modal-number").textContent = card.number;
   $("#modal-type").textContent = card.type_line || "—";
@@ -129,25 +152,63 @@ function closeModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
+function fillSelect(select, options, allLabel, valueKey = null) {
+  const makeValue = (item) => (valueKey ? item[valueKey] : item);
+  const makeLabel = (item) => (typeof item === "string" ? item : item.label);
+  select.innerHTML =
+    `<option value="all">${escapeHtml(allLabel)}</option>` +
+    options
+      .map((item) => {
+        const value = makeValue(item);
+        const label = makeLabel(item);
+        return `<option value="${escapeAttr(value)}">${escapeHtml(label)}</option>`;
+      })
+      .join("");
+}
+
 function populateFilters() {
   const sets = [...new Set(state.cards.map((c) => c.set).filter(Boolean))].sort();
   const langs = [...new Set(state.cards.map((c) => c.lang).filter(Boolean))].sort();
 
-  const setSelect = $("#filter-set");
-  setSelect.innerHTML =
-    `<option value="all">全部系列</option>` +
-    sets
-      .map((s) => {
-        const name = state.cards.find((c) => c.set === s)?.set_name || s;
-        return `<option value="${escapeAttr(s)}">${escapeHtml(s.toUpperCase())} · ${escapeHtml(name)}</option>`;
-      })
-      .join("");
+  const sellerMap = new Map();
+  for (const c of state.cards) {
+    if (!c.seller) continue;
+    const id = c.seller_id || c.seller;
+    if (!sellerMap.has(id)) sellerMap.set(id, c.seller);
+  }
+  const sellers = [...sellerMap.entries()]
+    .map(([id, name]) => ({ value: id, label: name }))
+    .sort((a, b) => a.label.localeCompare(b.label, "zh"));
 
-  const langSelect = $("#filter-lang");
+  const cities = [...new Set(state.cards.map((c) => c.city).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "zh")
+  );
+
+  fillSelect(
+    $("#filter-set"),
+    sets.map((s) => {
+      const name = state.cards.find((c) => c.set === s)?.set_name || s;
+      return { value: s, label: `${s.toUpperCase()} · ${name}` };
+    }),
+    "全部系列",
+    "value"
+  );
+
   const labelOf = (lang) => state.cards.find((c) => c.lang === lang)?.lang_label || lang;
-  langSelect.innerHTML =
-    `<option value="all">全部语言</option>` +
-    langs.map((l) => `<option value="${escapeAttr(l)}">${escapeHtml(labelOf(l))}</option>`).join("");
+  fillSelect(
+    $("#filter-lang"),
+    langs.map((l) => ({ value: l, label: labelOf(l) })),
+    "全部语言",
+    "value"
+  );
+
+  fillSelect($("#filter-seller"), sellers, "全部出售人", "value");
+  fillSelect(
+    $("#filter-city"),
+    cities.map((c) => ({ value: c, label: c })),
+    "全部城市",
+    "value"
+  );
 }
 
 function renderSiteMeta() {
@@ -195,26 +256,24 @@ function escapeAttr(str) {
   return escapeHtml(str).replaceAll("'", "&#39;");
 }
 
+function bindFilter(id, key) {
+  $(id).addEventListener("change", (e) => {
+    state[key] = e.target.value;
+    renderGrid();
+  });
+}
+
 function bindEvents() {
   $("#search").addEventListener("input", (e) => {
     state.query = e.target.value;
     renderGrid();
   });
 
-  $("#filter-lang").addEventListener("change", (e) => {
-    state.lang = e.target.value;
-    renderGrid();
-  });
-
-  $("#filter-set").addEventListener("change", (e) => {
-    state.set = e.target.value;
-    renderGrid();
-  });
-
-  $("#filter-foil").addEventListener("change", (e) => {
-    state.foil = e.target.value;
-    renderGrid();
-  });
+  bindFilter("#filter-lang", "lang");
+  bindFilter("#filter-set", "set");
+  bindFilter("#filter-foil", "foil");
+  bindFilter("#filter-seller", "seller");
+  bindFilter("#filter-city", "city");
 
   $("#grid").addEventListener("click", (e) => {
     const btn = e.target.closest(".card");

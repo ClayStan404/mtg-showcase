@@ -305,6 +305,15 @@ main {
   color: var(--text-muted);
 }
 
+.card-seller {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Modal */
 .modal {
   position: fixed;

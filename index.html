@@ -25,11 +25,19 @@
           <input
             id="search"
             type="search"
-            placeholder="搜索：中/英牌名、系列、编号、牌面文字…"
+            placeholder="搜索：牌名、系列、编号、出售人、城市…"
             autocomplete="off"
           />
         </label>
         <div class="filters">
+          <label class="filter-field">
+            <span class="filter-label">出售人</span>
+            <select id="filter-seller" aria-label="出售人"></select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">城市</span>
+            <select id="filter-city" aria-label="城市"></select>
+          </label>
           <label class="filter-field">
             <span class="filter-label">系列</span>
             <select id="filter-set" aria-label="系列"></select>
@@ -78,6 +86,12 @@
           <p class="en-name" id="modal-en"></p>
           <div class="modal-tags" id="modal-tags"></div>
           <dl class="detail-grid">
+            <dt>出售人</dt>
+            <dd id="modal-seller"></dd>
+            <dt>城市</dt>
+            <dd id="modal-city"></dd>
+            <dt>联系</dt>
+            <dd id="modal-contact"></dd>
             <dt>系列</dt>
             <dd id="modal-set"></dd>
             <dt>编号</dt>

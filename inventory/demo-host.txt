@@ -1,6 +1,9 @@
-# 演示用库存（100 种）— 后续替换为真实清单后重新运行 build 即可
-# 格式: [Nx] set number [lang] [foil]
-# lang: z=简中 j=日文  省略=英文; foil: f/foil
+# seller: 演示主理
+# city: 上海
+# contact: 站内联系区见页脚
+#
+# 卡表格式: [Nx] set number [lang] [foil]
+# 通过 PR 新增/修改本文件即可参与展示
 
 # Sol Ring
 2x msc 211 z f
@@ -162,43 +165,3 @@ msc 231 z
 msc 195 f
 # Cinder Glade
 msc 230
-# Sunken Hollow
-msc 271
-# Dragonskull Summit
-msc 238
-# Otawara, Soaring City
-neo 271
-# Feed the Swarm
-tle 257
-# The One Ring
-ltr 246
-# Talisman of Dominance
-2x msc 219
-# Garruk's Uprising
-ecc 109
-# Isolated Chapel
-soc 382
-# Smoldering Marsh
-msc 266 z
-# Faithless Looting
-soc 244
-# Glacial Fortress
-msc 248
-# Mystic Remora
-dmr 59 f
-# City of Brass
-tmc 62
-# Hinterland Harbor
-msc 250
-# Phyrexian Arena
-fdn 180
-# Vandalblast
-msc 168 j
-# Jeska's Will
-mkc 156
-# Frantic Search
-tle 159
-# Canopy Vista
-msc 227
-# Prairie Stream
-msc 257 z
