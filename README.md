@@ -12,8 +12,6 @@
 
 GitHub Actions 每小时自动同步：self-hosted runner 从 WPS 分享链接下载最新 xlsx → 解析 → Scryfall 富化 → 部署到 claystan.cc。
 
-详见 [QWEN.md](QWEN.md)。
-
 ---
 
 ## 致谢
