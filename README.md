@@ -15,7 +15,8 @@
 
 不需要 GitHub 账号。
 
-1. 打开管理员给你的 **金山 WPS 云文档**（一人一张表）  
+1. 打开库存云文档（一人一张表）：  
+   **[WPS库存协作模板](https://www.kdocs.cn/l/cgyl3WizNfp7)**（金山文档）  
 2. 填：昵称 / 城市 / 联系 + 卡牌行  
 3. 保存即可；**每天固定时间**汇总后更新网站  
 
@@ -29,7 +30,7 @@
 
 卖光请 **删行**。同卡合并一行用数量。
 
-Excel 模板（导入 WPS）：[`templates/WPS库存协作模板.xlsx`](./templates/WPS库存协作模板.xlsx)
+本地备份模板：[`templates/WPS库存协作模板.xlsx`](./templates/WPS库存协作模板.xlsx)
 
 ---
 
