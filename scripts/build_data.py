@@ -193,10 +193,26 @@ class ScryfallClient:
         self._last = time.monotonic()
 
     def get(self, url: str, **kwargs: Any) -> requests.Response:
-        self._throttle()
-        resp = self.session.get(url, timeout=30, **kwargs)
-        resp.raise_for_status()
-        return resp
+        for attempt in range(3):
+            self._throttle()
+            try:
+                resp = self.session.get(url, timeout=30, **kwargs)
+                resp.raise_for_status()
+                return resp
+            except (requests.ConnectionError, requests.Timeout) as e:
+                if attempt == 2:
+                    raise
+                wait = 2 ** attempt
+                print(f"  ⚠ 网络错误，{wait}s 后重试: {e}", file=sys.stderr)
+                time.sleep(wait)
+            except requests.HTTPError as e:
+                status = e.response.status_code if e.response is not None else 0
+                if status == 404 or attempt == 2:
+                    raise
+                wait = 2 ** attempt
+                print(f"  ⚠ HTTP {status}，{wait}s 后重试", file=sys.stderr)
+                time.sleep(wait)
+        raise requests.HTTPError("unreachable")
 
     def _cache_path(self, set_code: str, number: str, lang: str) -> Path:
         safe_num = re.sub(r"[^\w.-]", "_", number)
@@ -223,7 +239,8 @@ class ScryfallClient:
             except requests.HTTPError as e:
                 if e.response is not None and e.response.status_code == 404:
                     continue
-                raise
+                print(f"  ⚠ 无法获取 {set_code} {number} {lang}: {e}", file=sys.stderr)
+                return None
 
         # 仅当返回数据的 lang 与请求 lang 一致时才缓存到 api_lang 路径。
         # 回退场景（如 ja 卡无日文印刷 -> 404 -> 取 en）下 data.lang != api_lang，
