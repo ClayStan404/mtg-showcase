@@ -3,7 +3,7 @@
 基于 **GitHub Pages** 的静态万智牌实体库存展示。支持**多人通过 PR 提交自己的卡牌**，可按出售人昵称、城市、系列、语言、闪卡筛选。
 
 - 仓库：https://github.com/ClayStan404/mtg-showcase  
-- 站点：**https://mtg.claystan.cc/**（Cloudflare DNS → GitHub Pages）  
+- 站点：**https://claystan.cc/**（Cloudflare DNS → GitHub Pages）  
 - 备用：https://claystan404.github.io/mtg-showcase/  
 - 默认分支：`master`  
 - 贡献指南：[CONTRIBUTING.md](./CONTRIBUTING.md)
