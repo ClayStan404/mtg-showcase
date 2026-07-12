@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T16:17:59Z",
+  "generated_at": "2026-07-12T16:19:43Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -245,12 +245,12 @@
       "scryfall_uri": "https://scryfall.com/card/2x2/130/warriors-oath?utm_source=api"
     },
     {
-      "id": "claystan-2x2-151-en-nf",
+      "id": "claystan-2x2-151-zhs-nf",
       "set": "2x2",
       "set_name": "Double Masters 2022",
       "number": "151",
-      "lang": "en",
-      "lang_label": "英文",
+      "lang": "zhs",
+      "lang_label": "简中",
       "foil": false,
       "quantity": 1,
       "seller": "claystan",
@@ -260,21 +260,21 @@
       "source_file": "claystan.txt",
       "name_en": "Hardened Scales",
       "name_zh": "坚固鳞甲",
-      "name_printed": "Hardened Scales",
-      "type_line": "Enchantment",
+      "name_printed": "坚固鳞甲",
+      "type_line": "结界",
       "type_line_en": "Enchantment",
       "types": [
         "enchantment"
       ],
       "mana_cost": "{G}",
       "cmc": 1.0,
-      "text": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.",
+      "text": "如果将在某个由你操控的生物上放置一个或数个+1/+1指示物，则改为在其上放置该数量加一的+1/+1指示物。",
       "image": {
-        "small": "https://cards.scryfall.io/small/front/f/d/fdf31b01-0836-4366-948d-879999832abe.jpg?1782737867",
-        "normal": "https://cards.scryfall.io/normal/front/f/d/fdf31b01-0836-4366-948d-879999832abe.jpg?1782737867",
-        "large": "https://cards.scryfall.io/large/front/f/d/fdf31b01-0836-4366-948d-879999832abe.jpg?1782737867"
+        "small": "https://cards.scryfall.io/small/front/6/d/6dfe2b1d-6985-40ea-84ad-8129f0fe8937.jpg?1782847609",
+        "normal": "https://cards.scryfall.io/normal/front/6/d/6dfe2b1d-6985-40ea-84ad-8129f0fe8937.jpg?1782847609",
+        "large": "https://cards.scryfall.io/large/front/6/d/6dfe2b1d-6985-40ea-84ad-8129f0fe8937.jpg?1782847609"
       },
-      "scryfall_uri": "https://scryfall.com/card/2x2/151/hardened-scales?utm_source=api"
+      "scryfall_uri": "https://scryfall.com/card/2x2/151/zhs/%E5%9D%9A%E5%9B%BA%E9%B3%9E%E7%94%B2-(hardened-scales)?utm_source=api"
     },
     {
       "id": "claystan-2x2-170-en-f",

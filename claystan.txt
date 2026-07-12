@@ -141,7 +141,7 @@ frf 55 e 0 1
 cmm 37 z 0 2 
 wot 9 z 0 1 
 cmm 464 e 1 1 
-2x2 151 e 0 1 
+2x2 151 z 0 1 
 wot 55 z 0 2 
 wot 55 e 0 1 
 2x2 462 e 1 1 
