@@ -1191,9 +1191,15 @@ function bindEvents() {
   let scrollTicking = false;
   window.addEventListener(
     "scroll",
-    () => {
-      // 页面滚动时收起下拉
-      if (document.querySelector(".dd.open")) closeAllDropdowns();
+    (e) => {
+      // capture 会收到所有可滚动元素的 scroll；菜单内部滑动不能关下拉
+      if (document.querySelector(".dd.open")) {
+        const t = e.target;
+        const inMenu =
+          t instanceof Element &&
+          (t.classList.contains("dd-menu") || t.closest(".dd-menu"));
+        if (!inMenu) closeAllDropdowns();
+      }
 
       if (!isNarrow() || state.cartOpen || $("#modal")?.classList.contains("open")) return;
       if (scrollTicking) return;

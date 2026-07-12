@@ -279,6 +279,7 @@ body.dd-open .toolbar {
   max-width: min(18rem, calc(100vw - 1rem));
   max-height: min(50vh, 360px);
   overflow: auto;
+  overscroll-behavior: contain;
   margin: 0;
   padding: 0.35rem;
   list-style: none;
@@ -287,6 +288,7 @@ body.dd-open .toolbar {
   background: #1a2030;
   box-shadow: var(--shadow);
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 /* 自定义下拉：完全自绘，不依赖原生 option 颜色 */
@@ -365,6 +367,7 @@ body.dd-open .toolbar {
   max-width: min(22rem, 92vw);
   max-height: min(18rem, 50vh);
   overflow: auto;
+  overscroll-behavior: contain;
   margin: 0;
   padding: 0.35rem;
   list-style: none;
@@ -372,6 +375,8 @@ body.dd-open .toolbar {
   border-radius: 12px;
   background: #1a2030;
   box-shadow: var(--shadow);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .dd.open .dd-menu {
@@ -391,7 +396,9 @@ body.dd-open .toolbar {
   padding: 0.7rem 0.85rem;
   min-height: 2.75rem;
   cursor: pointer;
-  touch-action: manipulation;
+  /* 允许在选项上纵向滑动，由父级 .dd-menu 承接滚动 */
+  touch-action: pan-y;
+  white-space: nowrap;
 }
 
 .dd-option:hover,
