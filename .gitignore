@@ -10,6 +10,9 @@ appid_and_key
 # WPS token cache (inside .cache/ but be explicit)
 wps_download_test.xlsx
 wps_cookies.txt
+claystan.xlsx
+wps_inventory.xlsx
+wps_wants.xlsx
 
 # WPS / Office lock files
 **/.~*
