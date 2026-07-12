@@ -66,7 +66,8 @@ Scryfall 的卡牌数据和图片数据库在 [Wizards of the Coast Fan Content 
 
 相关文档：
 
-- [Scryfall API 文档与使用规则](https://scryfall.com/docs/api)
+- [Scryfall API 文档与使用规则](https://scryfall.com/docs/api)（图片规则见 "USE OF SCRYFALL DATA AND IMAGES" 章节）
+- [Scryfall 图片格式与 image_uris 说明](https://scryfall.com/docs/api/images)
 - [Scryfall 服务条款](https://scryfall.com/terms)
 - [Wizards of the Coast Fan Content Policy](https://company.wizards.com/en/legal/fan-content-policy)
 
