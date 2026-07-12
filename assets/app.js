@@ -713,8 +713,21 @@ function openModal(card) {
   if (modalImg) {
     // 重置 onerror 可能设置的 visibility:hidden，否则切换卡牌后图片永远不显示
     modalImg.style.visibility = "";
-    modalImg.src = card.image?.large || card.image?.normal || PLACEHOLDER_IMG;
     modalImg.alt = displayName(card);
+    const realSrc = card.image?.large || card.image?.normal || "";
+    // 先用透明占位替换旧图，预加载新图完成后再设 src，
+    // 避免切换卡牌时短暂显示上一张卡图
+    modalImg.src = PLACEHOLDER_IMG;
+    if (realSrc) {
+      const preload = new Image();
+      preload.onload = () => {
+        if (state.modalCardId === card.id) modalImg.src = realSrc;
+      };
+      preload.onerror = () => {
+        if (state.modalCardId === card.id) modalImg.style.visibility = "hidden";
+      };
+      preload.src = realSrc;
+    }
   }
   $("#modal-title").textContent = displayName(card);
   $("#modal-en").textContent = secondaryName(card);
