@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="description" content="实体万智牌库存展示" />
     <title>万智牌库存</title>
-    <link rel="stylesheet" href="assets/style.css?v=8" />
+    <link rel="stylesheet" href="assets/style.css?v=9" />
   </head>
   <body>
     <header class="site-header wrap">
@@ -61,6 +61,48 @@
       <p>卡图来自 Scryfall，仅作展示参考 · 静态托管于 GitHub Pages</p>
     </footer>
 
+    <!-- 浮动清单按钮 -->
+    <button type="button" class="cart-fab" id="cart-fab" aria-label="打开意向清单">
+      <span class="cart-fab-icon" aria-hidden="true">清单</span>
+      <span class="cart-fab-count" id="cart-fab-count" hidden>0</span>
+    </button>
+
+    <!-- 意向清单面板 -->
+    <div class="cart" id="cart" aria-hidden="true">
+      <div class="cart-backdrop" id="cart-backdrop"></div>
+      <div class="cart-panel" id="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+        <div class="cart-handle" aria-hidden="true"></div>
+        <header class="cart-header">
+          <div>
+            <h2 id="cart-title">意向清单</h2>
+            <p class="cart-sub">方便截图或复制后发给卖家 · 非在线交易</p>
+          </div>
+          <button type="button" class="modal-close" id="cart-close" aria-label="关闭清单">×</button>
+        </header>
+
+        <div class="cart-toolbar">
+          <button type="button" class="btn btn-ghost" id="cart-copy">复制清单文本</button>
+          <button type="button" class="btn btn-ghost" id="cart-shot-mode">截图模式</button>
+          <button type="button" class="btn btn-danger-ghost" id="cart-clear">清空</button>
+        </div>
+        <p class="cart-tip" id="cart-tip">提示：点「截图模式」后背景变简洁，整页截图发给卖家更清晰。</p>
+
+        <div class="cart-body" id="cart-body">
+          <p class="cart-empty" id="cart-empty">还没有卡牌，去列表里点「加入」吧。</p>
+          <div class="cart-list" id="cart-list"></div>
+        </div>
+
+        <footer class="cart-footer" id="cart-footer" hidden>
+          <div class="cart-summary">
+            共 <strong id="cart-kinds">0</strong> 种 ·
+            <strong id="cart-units">0</strong> 张
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" hidden role="status"></div>
+
     <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
       <div class="modal-backdrop" id="modal-backdrop"></div>
       <div class="modal-panel">
@@ -88,14 +130,15 @@
             <dd id="modal-type"></dd>
           </dl>
           <div class="oracle" id="modal-text"></div>
-          <p class="modal-links">
-            <a id="modal-scryfall" href="#" target="_blank" rel="noopener">在 Scryfall 查看</a>
-          </p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-primary" id="modal-add">加入意向清单</button>
+            <a id="modal-scryfall" class="btn btn-ghost" href="#" target="_blank" rel="noopener">Scryfall</a>
+          </div>
         </div>
       </div>
     </div>
 
     <script src="assets/cards-data.js?v=8"></script>
-    <script src="assets/app.js?v=8"></script>
+    <script src="assets/app.js?v=9"></script>
   </body>
 </html>

@@ -1,5 +1,7 @@
 /* global fetch, document, window */
 
+const CART_KEY = "mtg-wishlist-v1";
+
 const state = {
   cards: [],
   site: null,
@@ -8,7 +10,274 @@ const state = {
   foil: "all",
   seller: "all",
   city: "all",
+  /** @type {Record<string, number>} cardId -> want qty */
+  cart: {},
+  cartOpen: false,
+  shotMode: false,
+  modalCardId: null,
 };
+
+function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    return data && typeof data === "object" ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCart() {
+  try {
+    localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function cartCount() {
+  return Object.values(state.cart).reduce((s, n) => s + (n || 0), 0);
+}
+
+function cartKinds() {
+  return Object.keys(state.cart).filter((id) => state.cart[id] > 0).length;
+}
+
+function inCart(id) {
+  return (state.cart[id] || 0) > 0;
+}
+
+function maxWant(card) {
+  return Math.max(1, Number(card.quantity) || 1);
+}
+
+function addToCart(cardId, delta = 1) {
+  const card = state.cards.find((c) => c.id === cardId);
+  if (!card) return;
+  const max = maxWant(card);
+  const cur = state.cart[cardId] || 0;
+  const next = Math.min(max, cur + delta);
+  if (next <= 0) {
+    delete state.cart[cardId];
+  } else {
+    state.cart[cardId] = next;
+  }
+  saveCart();
+  updateCartChrome();
+  renderCartList();
+  // 刷新当前可见卡片按钮状态
+  const esc =
+    window.CSS && typeof CSS.escape === "function"
+      ? CSS.escape(cardId)
+      : String(cardId).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  document.querySelectorAll(`.card-add[data-id="${esc}"]`).forEach((btn) => {
+    const on = inCart(cardId);
+    btn.classList.toggle("is-in", on);
+    btn.textContent = on ? "已加" : "加入";
+  });
+  const modalAdd = $("#modal-add");
+  if (modalAdd && state.modalCardId === cardId) {
+    modalAdd.classList.toggle("is-in", inCart(cardId));
+    modalAdd.textContent = inCart(cardId) ? "已在清单中 · 再加一张" : "加入意向清单";
+  }
+}
+
+function setCartQty(cardId, qty) {
+  const card = state.cards.find((c) => c.id === cardId);
+  if (!card) return;
+  const max = maxWant(card);
+  const next = Math.max(0, Math.min(max, qty));
+  if (next <= 0) delete state.cart[cardId];
+  else state.cart[cardId] = next;
+  saveCart();
+  updateCartChrome();
+  renderCartList();
+  renderGrid();
+}
+
+function clearCart() {
+  state.cart = {};
+  saveCart();
+  updateCartChrome();
+  renderCartList();
+  renderGrid();
+  showToast("清单已清空");
+}
+
+function updateCartChrome() {
+  const n = cartCount();
+  const badge = $("#cart-fab-count");
+  if (badge) {
+    badge.hidden = n <= 0;
+    badge.textContent = String(n);
+  }
+  const kinds = $("#cart-kinds");
+  const units = $("#cart-units");
+  if (kinds) kinds.textContent = String(cartKinds());
+  if (units) units.textContent = String(n);
+  const footer = $("#cart-footer");
+  if (footer) footer.hidden = n <= 0;
+}
+
+function showToast(msg) {
+  const el = $("#toast");
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = msg;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => {
+    el.hidden = true;
+  }, 1800);
+}
+
+function openCart() {
+  closeAllDropdowns();
+  closeModal();
+  const cart = $("#cart");
+  cart.classList.add("open");
+  cart.setAttribute("aria-hidden", "false");
+  state.cartOpen = true;
+  setScrollLock(true);
+  renderCartList();
+  updateCartChrome();
+}
+
+function closeCart() {
+  const cart = $("#cart");
+  cart.classList.remove("open");
+  cart.classList.remove("shot-mode");
+  cart.setAttribute("aria-hidden", "true");
+  state.cartOpen = false;
+  state.shotMode = false;
+  const btn = $("#cart-shot-mode");
+  if (btn) btn.textContent = "截图模式";
+  setScrollLock(false);
+}
+
+function toggleShotMode() {
+  state.shotMode = !state.shotMode;
+  $("#cart").classList.toggle("shot-mode", state.shotMode);
+  const btn = $("#cart-shot-mode");
+  if (btn) btn.textContent = state.shotMode ? "退出截图模式" : "截图模式";
+  if (state.shotMode) showToast("可直接截取清单区域发给卖家");
+}
+
+function cartLines() {
+  const ids = Object.keys(state.cart).filter((id) => state.cart[id] > 0);
+  const items = ids
+    .map((id) => {
+      const card = state.cards.find((c) => c.id === id);
+      if (!card) return null;
+      return { card, want: state.cart[id] };
+    })
+    .filter(Boolean);
+
+  // 按出售人分组
+  const groups = new Map();
+  for (const it of items) {
+    const key = it.card.seller || "未知出售人";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
+  }
+  return { items, groups };
+}
+
+function buildCartText() {
+  const { groups, items } = cartLines();
+  if (!items.length) return "";
+  const lines = ["【万智牌意向清单】", `共 ${cartKinds()} 种 / ${cartCount()} 张`, ""];
+  for (const [seller, list] of groups) {
+    const city = list[0]?.card.city || "";
+    const contact = list[0]?.card.contact || "";
+    lines.push(`■ ${seller}${city ? `（${city}）` : ""}`);
+    if (contact) lines.push(`  联系：${contact}`);
+    for (const { card, want } of list) {
+      const name = displayName(card);
+      const set = `${(card.set || "").toUpperCase()} #${card.number}`;
+      const lang = card.lang_label || card.lang || "";
+      const foil = card.foil ? " 闪" : "";
+      lines.push(`  - ${name} · ${set} · ${lang}${foil} · ×${want}`);
+    }
+    lines.push("");
+  }
+  lines.push("（来自 claystan.cc 展示站，仅作沟通参考）");
+  return lines.join("\n");
+}
+
+async function copyCartText() {
+  const text = buildCartText();
+  if (!text) {
+    showToast("清单是空的");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("清单文本已复制");
+  } catch {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      showToast("清单文本已复制");
+    } catch {
+      showToast("复制失败，请手动选择文本");
+    }
+    ta.remove();
+  }
+}
+
+function renderCartList() {
+  const empty = $("#cart-empty");
+  const list = $("#cart-list");
+  if (!list) return;
+  const { groups, items } = cartLines();
+  if (!items.length) {
+    if (empty) empty.hidden = false;
+    list.innerHTML = "";
+    updateCartChrome();
+    return;
+  }
+  if (empty) empty.hidden = true;
+
+  let html = "";
+  for (const [seller, group] of groups) {
+    const city = group[0]?.card.city || "";
+    html += `<section class="cart-group">
+      <h3 class="cart-group-title">${escapeHtml(seller)}${city ? ` · ${escapeHtml(city)}` : ""}</h3>`;
+    for (const { card, want } of group) {
+      const img = card.image?.small || card.image?.normal || "";
+      html += `
+        <article class="cart-item" data-id="${escapeAttr(card.id)}">
+          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" />
+          <div class="cart-item-main">
+            <p class="cart-item-name">${escapeHtml(displayName(card))}</p>
+            <p class="cart-item-meta">
+              ${escapeHtml((card.set || "").toUpperCase())} #${escapeHtml(card.number)}
+              · ${escapeHtml(card.lang_label || card.lang || "")}
+              ${card.foil ? " · 闪" : ""}
+            </p>
+          </div>
+          <div class="cart-item-actions">
+            <div class="cart-qty">
+              <button type="button" data-act="dec" data-id="${escapeAttr(card.id)}" aria-label="减少">−</button>
+              <span>${want}</span>
+              <button type="button" data-act="inc" data-id="${escapeAttr(card.id)}" aria-label="增加">+</button>
+            </div>
+            <button type="button" class="btn btn-danger-ghost btn-sm" data-act="rm" data-id="${escapeAttr(card.id)}">移除</button>
+          </div>
+        </article>`;
+    }
+    html += `</section>`;
+  }
+  list.innerHTML = html;
+  updateCartChrome();
+}
 
 /** @type {Record<string, { key: string, label: string, allLabel: string, options: {value:string,label:string}[] }>} */
 const filters = {
@@ -199,38 +468,48 @@ function renderGrid() {
   empty.hidden = true;
 
   grid.innerHTML = filtered
-    .map(
-      (c) => `
-    <button type="button" class="card" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
-      <div class="card-img-wrap">
-        <img
-          src="${escapeAttr(cardImageSrc(c))}"
-          alt="${escapeAttr(displayName(c))}"
-          loading="lazy"
-          decoding="async"
-        />
-        <div class="badges">
-          ${c.foil ? '<span class="badge foil">FOIL</span>' : ""}
-          ${c.quantity > 1 ? `<span class="badge qty">×${c.quantity}</span>` : ""}
+    .map((c) => {
+      const added = inCart(c.id);
+      return `
+    <div class="card" data-id="${escapeAttr(c.id)}">
+      <button type="button" class="card-hit" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
+        <div class="card-img-wrap">
+          <img
+            src="${escapeAttr(cardImageSrc(c))}"
+            alt="${escapeAttr(displayName(c))}"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="badges">
+            ${c.foil ? '<span class="badge foil">FOIL</span>' : ""}
+            ${c.quantity > 1 ? `<span class="badge qty">×${c.quantity}</span>` : ""}
+          </div>
         </div>
-      </div>
-      <div class="card-body">
-        <p class="card-name">${escapeHtml(displayName(c))}</p>
-        ${secondaryName(c) ? `<p class="card-name-en">${escapeHtml(secondaryName(c))}</p>` : ""}
-        <div class="card-meta">
-          <span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span>
-          <span>${escapeHtml(c.lang_label || c.lang)}</span>
+        <div class="card-body">
+          <p class="card-name">${escapeHtml(displayName(c))}</p>
+          ${secondaryName(c) ? `<p class="card-name-en">${escapeHtml(secondaryName(c))}</p>` : ""}
+          <div class="card-meta">
+            <span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span>
+            <span>${escapeHtml(c.lang_label || c.lang)}</span>
+          </div>
+          ${sellerLine(c) ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>` : ""}
         </div>
-        ${sellerLine(c) ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>` : ""}
-      </div>
-    </button>`
-    )
+      </button>
+      <button
+        type="button"
+        class="card-add${added ? " is-in" : ""}"
+        data-id="${escapeAttr(c.id)}"
+        aria-label="${added ? "已在清单" : "加入意向清单"}"
+      >${added ? "已加" : "加入"}</button>
+    </div>`;
+    })
     .join("");
 }
 
 function openModal(card) {
   closeAllDropdowns();
   const modal = $("#modal");
+  state.modalCardId = card.id;
   // 手机详情用 large 清晰；桌面同样
   $("#modal-img").src = card.image?.large || card.image?.normal || "";
   $("#modal-img").alt = displayName(card);
@@ -261,6 +540,13 @@ function openModal(card) {
     link.hidden = true;
   }
 
+  const modalAdd = $("#modal-add");
+  if (modalAdd) {
+    const on = inCart(card.id);
+    modalAdd.classList.toggle("is-in", on);
+    modalAdd.textContent = on ? "已在清单中 · 再加一张" : "加入意向清单";
+  }
+
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
   setScrollLock(true);
@@ -274,7 +560,8 @@ function closeModal() {
   const modal = $("#modal");
   modal.classList.remove("open");
   modal.setAttribute("aria-hidden", "true");
-  setScrollLock(false);
+  state.modalCardId = null;
+  if (!state.cartOpen) setScrollLock(false);
   syncScrim();
 }
 
@@ -492,13 +779,17 @@ function escapeAttr(str) {
 }
 
 function bindEvents() {
+  state.cart = loadCart();
+
   $("#search").addEventListener("input", (e) => {
     state.query = e.target.value;
     renderGrid();
   });
 
   document.addEventListener("click", (e) => {
-    if (e.target.closest(".dd") || e.target.closest("#dd-scrim")) return;
+    if (e.target.closest(".dd") || e.target.closest("#dd-scrim") || e.target.closest(".dd-menu")) {
+      return;
+    }
     closeAllDropdowns();
   });
 
@@ -510,19 +801,55 @@ function bindEvents() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAllDropdowns();
-      closeModal();
+      if (state.cartOpen) closeCart();
+      else closeModal();
     }
   });
 
   $("#grid").addEventListener("click", (e) => {
-    const btn = e.target.closest(".card");
-    if (!btn) return;
-    const card = state.cards.find((c) => c.id === btn.dataset.id);
+    const addBtn = e.target.closest(".card-add");
+    if (addBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = addBtn.dataset.id;
+      addToCart(id, 1);
+      showToast(inCart(id) ? "已加入意向清单" : "已更新清单");
+      return;
+    }
+    const hit = e.target.closest(".card-hit");
+    if (!hit) return;
+    const card = state.cards.find((c) => c.id === hit.dataset.id);
     if (card) openModal(card);
   });
 
   $("#modal-close").addEventListener("click", closeModal);
   $("#modal-backdrop").addEventListener("click", closeModal);
+  $("#modal-add")?.addEventListener("click", () => {
+    if (!state.modalCardId) return;
+    addToCart(state.modalCardId, 1);
+    showToast("已加入意向清单");
+  });
+
+  $("#cart-fab")?.addEventListener("click", openCart);
+  $("#cart-close")?.addEventListener("click", closeCart);
+  $("#cart-backdrop")?.addEventListener("click", closeCart);
+  $("#cart-copy")?.addEventListener("click", copyCartText);
+  $("#cart-clear")?.addEventListener("click", () => {
+    if (!cartCount()) return;
+    if (confirm("确定清空意向清单？")) clearCart();
+  });
+  $("#cart-shot-mode")?.addEventListener("click", toggleShotMode);
+
+  $("#cart-list")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const act = btn.dataset.act;
+    const cur = state.cart[id] || 0;
+    if (act === "inc") setCartQty(id, cur + 1);
+    else if (act === "dec") setCartQty(id, cur - 1);
+    else if (act === "rm") setCartQty(id, 0);
+  });
 
   const toolbar = $("#toolbar");
   const observer = new IntersectionObserver(
@@ -551,6 +878,8 @@ function bindEvents() {
     },
     { passive: true, capture: true }
   );
+
+  updateCartChrome();
 }
 
 function showLoadError(msg) {
@@ -595,9 +924,15 @@ async function main() {
   const data = await loadData();
   state.cards = data.cards || [];
   state.site = data.site || {};
+  // 清理清单里已不存在的卡
+  for (const id of Object.keys(state.cart)) {
+    if (!state.cards.some((c) => c.id === id)) delete state.cart[id];
+  }
+  saveCart();
   renderSiteMeta();
   populateFilters();
   renderGrid();
+  updateCartChrome();
 }
 
 main().catch((err) => {
