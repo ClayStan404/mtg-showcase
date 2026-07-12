@@ -5,7 +5,7 @@
   - 跳过工作表：说明、模板、名称以「模板」开头
   - 昵称/城市/联系：A4/A5/A6 标签，B 列值（或前几行「昵称」键值）
   - 卡表：表头行含「系列」「编号」，其下为数据
-  - 语言：空=英 z=中 j=日 o=其他
+  - 语言：e=英 z=中 j=日 o=其他（空默认 e）
   - 闪：空/0=否 1=是
   - 数量：空=1
 """
@@ -185,20 +185,17 @@ def cards_to_txt(meta: dict[str, str], cards: list[dict[str, Any]]) -> str:
         f"# city: {meta.get('city') or ''}",
         f"# contact: {meta.get('contact') or ''}",
         "#",
-        "# 由 parse_wps_excel.py 生成 — 语言 空/z/j/o  闪 0/1  数量默认1",
+        "# 由 parse_wps_excel.py 生成 — 语言 e/z/j/o（空默认e） 闪 0/1  数量默认1",
         "",
     ]
     for c in cards:
         # 内部 txt：与 build_data 兼容
-        # lang: en 省略, zhs→z, ja→j, other→o
-        lang_token = {"en": "", "zhs": "z", "ja": "j", "other": "o"}.get(c["lang"], "")
-        foil_token = "1" if c["foil"] else ""
+        # lang: en→e, zhs→z, ja→j, other→o
+        lang_token = {"en": "e", "zhs": "z", "ja": "j", "other": "o"}.get(c["lang"], "e")
+        foil_token = "1" if c["foil"] else "0"
         qty = c["quantity"]
         prefix = f"{qty}x " if qty != 1 else ""
-        extras = " ".join(x for x in (lang_token, foil_token) if x)
-        line = f"{prefix}{c['set']} {c['number']}"
-        if extras:
-            line += f" {extras}"
+        line = f"{prefix}{c['set']} {c['number']} {lang_token} {foil_token}"
         lines.append(line)
     lines.append("")
     return "\n".join(lines)

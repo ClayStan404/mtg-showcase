@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""统一库存字段约定：语言 z/j/o/空，闪 0/1/空，数量 空=1。"""
+"""统一库存字段约定：语言 e/z/j/o（空默认 e），闪 0/1/空，数量 空=1。"""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ import re
 from typing import Any
 
 # 表格 / 用户输入 → 内部 lang 码（展示与 Scryfall）
-# o(其他)：展示「其他」，拉图时回退英文印刷
+# e=英文；空也默认英文。o(其他)：展示「其他」，拉图时回退英文印刷
 LANG_INPUT_MAP = {
     "": "en",
+    "e": "en",
     "en": "en",
     "eng": "en",
     "english": "en",
@@ -85,7 +86,7 @@ def normalize_lang(raw: Any, *, strict: bool = True) -> str:
         return LANG_INPUT_MAP[s]
     if not strict:
         return "en"
-    raise ParseError(f"语言无效「{raw}」（仅支持：空=英 / z=中 / j=日 / o=其他）")
+    raise ParseError(f"语言无效「{raw}」（仅支持：e=英 / z=中 / j=日 / o=其他；空默认 e）")
 
 
 def normalize_foil(raw: Any, *, strict: bool = True) -> bool:
@@ -154,8 +155,8 @@ def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
                 foil_raw = low
             else:
                 foil_raw = low
-        elif low in LANG_INPUT_MAP or low in ("en",):
-            lang_raw = "" if low == "en" else low
+        elif low in LANG_INPUT_MAP:
+            lang_raw = low
         else:
             # 旧格式：非 foil 记号当语言
             lang_raw = low
