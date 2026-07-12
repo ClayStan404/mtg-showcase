@@ -30,13 +30,22 @@
           />
         </label>
         <div class="filters">
-          <label class="sr-only" for="filter-set">系列</label>
-          <select id="filter-set"></select>
-          <label class="sr-only" for="filter-lang">语言</label>
-          <select id="filter-lang"></select>
-          <button type="button" class="chip active" data-foil="all">全部</button>
-          <button type="button" class="chip foil" data-foil="foil">仅闪</button>
-          <button type="button" class="chip" data-foil="nf">非闪</button>
+          <label class="filter-field">
+            <span class="filter-label">系列</span>
+            <select id="filter-set" aria-label="系列"></select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">语言</span>
+            <select id="filter-lang" aria-label="语言"></select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">表面</span>
+            <select id="filter-foil" aria-label="表面">
+              <option value="all">全部</option>
+              <option value="foil">仅闪卡</option>
+              <option value="nf">仅非闪</option>
+            </select>
+          </label>
         </div>
       </div>
     </div>

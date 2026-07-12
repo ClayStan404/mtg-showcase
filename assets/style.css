@@ -138,36 +138,56 @@ header.site-header {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: stretch;
 }
 
-select,
-button.chip {
-  appearance: none;
-  border: 1px solid var(--border);
+.filter-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   background: var(--bg-elevated);
-  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.5rem 0.9rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.85rem;
+  min-height: 2.4rem;
+}
+
+.filter-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.filter-label {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.filter-field select {
+  appearance: none;
+  border: 0;
+  outline: 0;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239aa6bc' d='M1.1 1.2 6 6.1l4.9-4.9 1.1 1.1L6 8.3.01 2.3z'/%3E%3C/svg%3E")
+    no-repeat right 0.55rem center / 0.65rem;
+  color: var(--text);
   font: inherit;
   font-size: 0.9rem;
+  padding: 0.4rem 1.6rem 0.4rem 0.35rem;
   cursor: pointer;
+  min-width: 5.5rem;
+  max-width: 14rem;
 }
 
-select:hover,
-button.chip:hover {
-  border-color: #3d4b63;
+.filter-field:has(#filter-set) select {
+  max-width: 16rem;
 }
 
-button.chip.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-button.chip.foil.active {
-  background: var(--foil-soft);
-  border-color: var(--foil);
-  color: var(--foil);
+.filter-field select:hover {
+  color: #fff;
 }
 
 main {

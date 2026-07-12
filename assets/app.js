@@ -211,14 +211,9 @@ function bindEvents() {
     renderGrid();
   });
 
-  document.querySelectorAll("[data-foil]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.foil = btn.dataset.foil;
-      document.querySelectorAll("[data-foil]").forEach((b) => {
-        b.classList.toggle("active", b.dataset.foil === state.foil);
-      });
-      renderGrid();
-    });
+  $("#filter-foil").addEventListener("change", (e) => {
+    state.foil = e.target.value;
+    renderGrid();
   });
 
   $("#grid").addEventListener("click", (e) => {
