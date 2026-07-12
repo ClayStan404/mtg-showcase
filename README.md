@@ -43,6 +43,14 @@ Scryfall 的卡牌数据和图片数据库在 [Wizards of the Coast Fan Content 
 
 MTG 卡牌图像和相关信息版权归 Wizards of the Coast, LLC 所有。
 
+### mtgch
+
+本项目使用 [mtgch](https://mtgch.com/) 的卡牌 API 获取**非中文卡牌的中文名称**（`https://mtgch.com/api/v1/card/{set}/{number}/`）。
+
+- 仅用于查询英文 / 日文等非中文印刷卡牌的中文名，供中文用户检索与展示
+- 中文卡牌（`zhs`）的中文名直接来自 Scryfall 的 `printed_name`，不调用 mtgch
+- 请求结果缓存在本地（`.cache/`），失败时静默跳过，不影响构建
+
 ---
 
 ## License
