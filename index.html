@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="实体万智牌库存展示" />
+    <title>万智牌库存</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <header class="site-header wrap">
+      <h1 id="site-title">万智牌库存</h1>
+      <p class="subtitle" id="site-subtitle">实体卡展示 · 仅供浏览与联系</p>
+      <div class="stats">
+        <span>种类 <strong id="total-kinds">0</strong></span>
+        <span>张数 <strong id="total-qty">0</strong></span>
+        <span>当前显示 <strong id="visible-count">0</strong></span>
+      </div>
+    </header>
+
+    <div class="toolbar" id="toolbar">
+      <div class="toolbar-inner wrap">
+        <label class="search">
+          <span class="sr-only">搜索</span>
+          <input
+            id="search"
+            type="search"
+            placeholder="搜索：中/英牌名、系列、编号、牌面文字…"
+            autocomplete="off"
+          />
+        </label>
+        <div class="filters">
+          <label class="sr-only" for="filter-set">系列</label>
+          <select id="filter-set"></select>
+          <label class="sr-only" for="filter-lang">语言</label>
+          <select id="filter-lang"></select>
+          <button type="button" class="chip active" data-foil="all">全部</button>
+          <button type="button" class="chip foil" data-foil="foil">仅闪</button>
+          <button type="button" class="chip" data-foil="nf">非闪</button>
+        </div>
+      </div>
+    </div>
+
+    <main class="wrap">
+      <p id="empty" class="empty" hidden>没有匹配的卡牌</p>
+      <div id="grid" class="grid"></div>
+    </main>
+
+    <section class="contact wrap" id="contact">
+      <h2>联系方式</h2>
+      <p id="contact-note"></p>
+      <p id="contact-wechat">微信：<span class="value" id="contact-wechat-value"></span></p>
+      <p id="contact-email">邮箱：<a class="value" id="contact-email-value" href="#"></a></p>
+    </section>
+
+    <footer class="wrap">
+      <p>卡图来自 Scryfall，仅作展示参考 · 静态托管于 GitHub Pages</p>
+    </footer>
+
+    <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="modal-backdrop" id="modal-backdrop"></div>
+      <div class="modal-panel">
+        <button type="button" class="modal-close" id="modal-close" aria-label="关闭">×</button>
+        <div class="modal-art">
+          <img id="modal-img" src="" alt="" />
+        </div>
+        <div class="modal-content">
+          <h2 id="modal-title"></h2>
+          <p class="en-name" id="modal-en"></p>
+          <div class="modal-tags" id="modal-tags"></div>
+          <dl class="detail-grid">
+            <dt>系列</dt>
+            <dd id="modal-set"></dd>
+            <dt>编号</dt>
+            <dd id="modal-number"></dd>
+            <dt>类型</dt>
+            <dd id="modal-type"></dd>
+          </dl>
+          <div class="oracle" id="modal-text"></div>
+          <p style="margin-top: 1rem">
+            <a id="modal-scryfall" href="#" target="_blank" rel="noopener">在 Scryfall 查看</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/app.js"></script>
+  </body>
+</html>

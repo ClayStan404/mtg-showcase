@@ -1,0 +1,204 @@
+# 演示用库存（100 种）— 后续替换为真实清单后重新运行 build 即可
+# 格式: [Nx] set number [lang] [foil]
+# lang: z=简中 j=日文  省略=英文; foil: f/foil
+
+# Sol Ring
+2x msc 211 z f
+# Command Tower
+msc 233
+# Arcane Signet
+msc 191
+# Exotic Orchard
+msc 241
+# Reliquary Tower
+soc 398
+# Swords to Plowshares
+msc 143
+# Swiftfoot Boots
+msc 216
+# Lightning Greaves
+msc 202
+# Path of Ancestry
+msc 254
+# Path to Exile
+msc 141
+# Counterspell
+dsc 114
+# Fellwar Stone
+soc 347 z
+# Evolving Wilds
+msc 240
+# Rogue's Passage
+soc 400 f
+# Cultivate
+msc 172
+# Thought Vessel
+msc 222
+# Blasphemous Act
+msc 163
+# Farseek
+2x msc 173
+# Beast Within
+msc 169
+# Bojuka Bog
+soc 363 j
+# Rampant Growth
+tdc 265
+# Terramorphic Expanse
+msc 273
+# Myriad Landscape
+eoc 169 z
+# Nature's Lore
+msc 177
+# Chaos Warp
+msc 164
+# Heroic Intervention
+cmm 295
+# Mind Stone
+soc 352 f
+# Birds of Paradise
+msc 170
+# Dark Ritual
+msc 793
+# An Offer You Can't Refuse
+fdn 160
+# Polluted Delta
+mh3 224
+# Kodama's Reach
+ecc 113
+# Solemn Simulacrum
+msc 215
+# Flooded Strand
+mh3 220 z
+# Skullclamp
+2x msc 210
+# Misty Rainforest
+mh2 250
+# Three Visits
+msc 181
+# Bloodstained Mire
+mh3 216
+# Rhystic Study
+j22 114 j
+# Windswept Heath
+mh3 235 f
+# Wooded Foothills
+mh3 236
+# Commander's Sphere
+ecc 139
+# Verdant Catacombs
+mh2 260
+# Scalding Tarn
+mh2 254
+# Fabled Passage
+msc 242 z
+# Marsh Flats
+mh2 248
+# Watery Grave
+eoe 261
+# Cyclonic Rift
+rvr 40
+# Negate
+tmt 47
+# Arcane Denial
+msc 147
+# Arid Mesa
+mh2 244
+# Reanimate
+2x dsc 155
+# Generous Gift
+msc 133 f
+# Llanowar Elves
+fdn 227
+# Demonic Tutor
+cmm 150
+# Godless Shrine
+eoe 254 z
+# Breeding Pool
+eoe 251
+# Smothering Tithe
+cmm 57 j
+# Hallowed Fountain
+ecl 265
+# Steam Vents
+ecl 267
+# Ancient Tomb
+uma 236
+# Toxic Deluge
+msc 161
+# Stomping Ground
+eoe 258
+# Blood Crypt
+ecl 262
+# Overgrown Tomb
+ecl 266
+# Swan Song
+eoc 46 f
+# Brainstorm
+tle 155 z
+# Urborg, Tomb of Yawgmoth
+tsr 287
+# Temple of the False God
+2x soc 416
+# Sacred Foundry
+eoe 256
+# Esper Sentinel
+mh2 12
+# Yavimaya, Cradle of Growth
+mh2 261
+# Deflecting Swat
+cmm 214
+# Boseiju, Who Endures
+neo 266
+# Fierce Guardianship
+cmm 94
+# Sulfur Falls
+msc 269
+# Temple Garden
+ecl 268 j
+# Clifftop Retreat
+msc 231 z
+# Chromatic Lantern
+msc 195 f
+# Cinder Glade
+msc 230
+# Sunken Hollow
+msc 271
+# Dragonskull Summit
+msc 238
+# Otawara, Soaring City
+neo 271
+# Feed the Swarm
+tle 257
+# The One Ring
+ltr 246
+# Talisman of Dominance
+2x msc 219
+# Garruk's Uprising
+ecc 109
+# Isolated Chapel
+soc 382
+# Smoldering Marsh
+msc 266 z
+# Faithless Looting
+soc 244
+# Glacial Fortress
+msc 248
+# Mystic Remora
+dmr 59 f
+# City of Brass
+tmc 62
+# Hinterland Harbor
+msc 250
+# Phyrexian Arena
+fdn 180
+# Vandalblast
+msc 168 j
+# Jeska's Will
+mkc 156
+# Frantic Search
+tle 159
+# Canopy Vista
+msc 227
+# Prairie Stream
+msc 257 z
