@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T13:43:53Z",
+  "generated_at": "2026-07-12T16:15:56Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -11,8 +11,8 @@
       "note": ""
     }
   },
-  "count": 132,
-  "total_quantity": 196,
+  "count": 237,
+  "total_quantity": 332,
   "sellers": [
     "claystan"
   ],
@@ -20,6 +20,100 @@
     "武汉"
   ],
   "cards": [
+    {
+      "id": "claystan-2x2-8-en-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "8",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Divine Visitation",
+      "name_zh": "神恩天降",
+      "name_printed": "Divine Visitation",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{W}{W}",
+      "cmc": 5.0,
+      "text": "If one or more creature tokens would be created under your control, that many 4/4 white Angel creature tokens with flying and vigilance are created instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/a/3a73bd5a-eb22-41dc-84ff-93d23d84afae.jpg?1782737964",
+        "normal": "https://cards.scryfall.io/normal/front/3/a/3a73bd5a-eb22-41dc-84ff-93d23d84afae.jpg?1782737964",
+        "large": "https://cards.scryfall.io/large/front/3/a/3a73bd5a-eb22-41dc-84ff-93d23d84afae.jpg?1782737964"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/8/divine-visitation?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-8-zhs-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "8",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Divine Visitation",
+      "name_zh": "神恩天降",
+      "name_printed": "神恩天降",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{W}{W}",
+      "cmc": 5.0,
+      "text": "如果将在你的操控下派出一个或数个衍生生物，则改为派出等量的4/4白色，具飞行与警戒异能的天使衍生生物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/b/1bfc1a8d-1bd6-4b3d-bb73-4df7e3c88e61.jpg?1782848070",
+        "normal": "https://cards.scryfall.io/normal/front/1/b/1bfc1a8d-1bd6-4b3d-bb73-4df7e3c88e61.jpg?1782848070",
+        "large": "https://cards.scryfall.io/large/front/1/b/1bfc1a8d-1bd6-4b3d-bb73-4df7e3c88e61.jpg?1782848070"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/8/zhs/%E7%A5%9E%E6%81%A9%E5%A4%A9%E9%99%8D-(divine-visitation)?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-038-en-nf",
+      "set": "2x2",
+      "set_name": "2X2",
+      "number": "038",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "",
+      "name_zh": "",
+      "name_printed": "",
+      "type_line": "",
+      "type_line_en": "",
+      "types": [],
+      "mana_cost": "",
+      "cmc": 0,
+      "text": "",
+      "image": {
+        "small": "",
+        "normal": "",
+        "large": ""
+      },
+      "error": "not_found"
+    },
     {
       "id": "claystan-2x2-73-zhs-f",
       "set": "2x2",
@@ -147,6 +241,38 @@
         "large": "https://cards.scryfall.io/large/front/6/5/65e10759-e862-4b69-8b58-474df2cdae29.jpg?1782737881"
       },
       "scryfall_uri": "https://scryfall.com/card/2x2/130/warriors-oath?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-151-en-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "151",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Hardened Scales",
+      "name_zh": "坚固鳞甲",
+      "name_printed": "Hardened Scales",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "text": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/d/fdf31b01-0836-4366-948d-879999832abe.jpg?1782737867",
+        "normal": "https://cards.scryfall.io/normal/front/f/d/fdf31b01-0836-4366-948d-879999832abe.jpg?1782737867",
+        "large": "https://cards.scryfall.io/large/front/f/d/fdf31b01-0836-4366-948d-879999832abe.jpg?1782737867"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/151/hardened-scales?utm_source=api"
     },
     {
       "id": "claystan-2x2-170-en-f",
@@ -277,6 +403,70 @@
       "scryfall_uri": "https://scryfall.com/card/2x2/239/kolaghans-command?utm_source=api"
     },
     {
+      "id": "claystan-2x2-263-en-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "263",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Privileged Position",
+      "name_zh": "优越地位",
+      "name_printed": "Privileged Position",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{G/W}{G/W}{G/W}",
+      "cmc": 5.0,
+      "text": "({G/W} can be paid with either {G} or {W}.)\nOther permanents you control have hexproof. (They can't be the targets of spells or abilities your opponents control.)",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/6/9655bbe4-062f-4278-ad05-a326a64c5b69.jpg?1782737793",
+        "normal": "https://cards.scryfall.io/normal/front/9/6/9655bbe4-062f-4278-ad05-a326a64c5b69.jpg?1782737793",
+        "large": "https://cards.scryfall.io/large/front/9/6/9655bbe4-062f-4278-ad05-a326a64c5b69.jpg?1782737793"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/263/privileged-position?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-263-zhs-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "263",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Privileged Position",
+      "name_zh": "优越地位",
+      "name_printed": "优越地位",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{G/W}{G/W}{G/W}",
+      "cmc": 5.0,
+      "text": "由你操控的其他永久物具有辟邪异能。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/a/faa9b4d2-b188-40ff-b178-6664488bc25d.jpg?1782847246",
+        "normal": "https://cards.scryfall.io/normal/front/f/a/faa9b4d2-b188-40ff-b178-6664488bc25d.jpg?1782847246",
+        "large": "https://cards.scryfall.io/large/front/f/a/faa9b4d2-b188-40ff-b178-6664488bc25d.jpg?1782847246"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/263/zhs/%E4%BC%98%E8%B6%8A%E5%9C%B0%E4%BD%8D-(privileged-position)?utm_source=api"
+    },
+    {
       "id": "claystan-2x2-280-ja-nf",
       "set": "2x2",
       "set_name": "Double Masters 2022",
@@ -307,6 +497,70 @@
         "large": "https://cards.scryfall.io/large/front/5/6/560530f3-553c-46f3-984a-1fa29128b6bd.jpg?1782847189"
       },
       "scryfall_uri": "https://scryfall.com/card/2x2/280/ja/%E8%87%B3%E9%AB%98%E3%81%AE%E8%A9%95%E6%B1%BA-(supreme-verdict)?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-296-zhs-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "296",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Wrenn and Six",
+      "name_zh": "芮恩与六树妖",
+      "name_printed": "芮恩与六树妖",
+      "type_line": "传奇鹏洛客 ～芮恩",
+      "type_line_en": "Legendary Planeswalker — Wrenn",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{R}{G}",
+      "cmc": 2.0,
+      "text": "+1：将至多一张目标地牌从你的坟墓场移回你手上。\n−1：芮恩与六树妖对任意一个目标造成1点伤害。\n−7：你获得具有以下异能的徽记～「你坟墓场中的瞬间与法术牌都具有追溯异能。」",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/2/a205824d-2c40-41c4-9510-63cc9dc4144a.jpg?1782847140",
+        "normal": "https://cards.scryfall.io/normal/front/a/2/a205824d-2c40-41c4-9510-63cc9dc4144a.jpg?1782847140",
+        "large": "https://cards.scryfall.io/large/front/a/2/a205824d-2c40-41c4-9510-63cc9dc4144a.jpg?1782847140"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/296/zhs/%E8%8A%AE%E6%81%A9%E4%B8%8E%E5%85%AD%E6%A0%91%E5%A6%96-(wrenn-and-six)?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-333-en-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "333",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Liliana, the Last Hope",
+      "name_zh": "最终救星莉莲娜",
+      "name_printed": "Liliana, the Last Hope",
+      "type_line": "Legendary Planeswalker — Liliana",
+      "type_line_en": "Legendary Planeswalker — Liliana",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{1}{B}{B}",
+      "cmc": 3.0,
+      "text": "+1: Up to one target creature gets -2/-1 until your next turn.\n−2: Mill two cards, then you may return a creature card from your graveyard to your hand.\n−7: You get an emblem with \"At the beginning of your end step, create X 2/2 black Zombie creature tokens, where X is two plus the number of Zombies you control.\"",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/8/c8638c18-f5ea-4e36-9c48-ec1446d0f7a6.jpg?1782737744",
+        "normal": "https://cards.scryfall.io/normal/front/c/8/c8638c18-f5ea-4e36-9c48-ec1446d0f7a6.jpg?1782737744",
+        "large": "https://cards.scryfall.io/large/front/c/8/c8638c18-f5ea-4e36-9c48-ec1446d0f7a6.jpg?1782737744"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/333/liliana-the-last-hope?utm_source=api"
     },
     {
       "id": "claystan-2x2-347-en-f",
@@ -469,6 +723,102 @@
       "scryfall_uri": "https://scryfall.com/card/2x2/378/glimpse-the-unthinkable?utm_source=api"
     },
     {
+      "id": "claystan-2x2-385-en-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "385",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Privileged Position",
+      "name_zh": "优越地位",
+      "name_printed": "Privileged Position",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{G/W}{G/W}{G/W}",
+      "cmc": 5.0,
+      "text": "({G/W} can be paid with either {G} or {W}.)\nOther permanents you control have hexproof. (They can't be the targets of spells or abilities your opponents control.)",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/7/a7dd7473-9baa-4410-aeab-3373f3a5ffb9.jpg?1782737709",
+        "normal": "https://cards.scryfall.io/normal/front/a/7/a7dd7473-9baa-4410-aeab-3373f3a5ffb9.jpg?1782737709",
+        "large": "https://cards.scryfall.io/large/front/a/7/a7dd7473-9baa-4410-aeab-3373f3a5ffb9.jpg?1782737709"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/385/privileged-position?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-390-en-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "390",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Thousand-Year Storm",
+      "name_zh": "千年风暴",
+      "name_printed": "Thousand-Year Storm",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{4}{U}{R}",
+      "cmc": 6.0,
+      "text": "Whenever you cast an instant or sorcery spell, copy it for each other instant and sorcery spell you've cast before it this turn. You may choose new targets for the copies.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/c/ec17fa3c-9033-4eab-a236-3f0068595536.jpg?1782737707",
+        "normal": "https://cards.scryfall.io/normal/front/e/c/ec17fa3c-9033-4eab-a236-3f0068595536.jpg?1782737707",
+        "large": "https://cards.scryfall.io/large/front/e/c/ec17fa3c-9033-4eab-a236-3f0068595536.jpg?1782737707"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/390/thousand-year-storm?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-390-en-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "390",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Thousand-Year Storm",
+      "name_zh": "千年风暴",
+      "name_printed": "Thousand-Year Storm",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{4}{U}{R}",
+      "cmc": 6.0,
+      "text": "Whenever you cast an instant or sorcery spell, copy it for each other instant and sorcery spell you've cast before it this turn. You may choose new targets for the copies.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/c/ec17fa3c-9033-4eab-a236-3f0068595536.jpg?1782737707",
+        "normal": "https://cards.scryfall.io/normal/front/e/c/ec17fa3c-9033-4eab-a236-3f0068595536.jpg?1782737707",
+        "large": "https://cards.scryfall.io/large/front/e/c/ec17fa3c-9033-4eab-a236-3f0068595536.jpg?1782737707"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/390/thousand-year-storm?utm_source=api"
+    },
+    {
       "id": "claystan-2x2-430-en-f",
       "set": "2x2",
       "set_name": "Double Masters 2022",
@@ -499,6 +849,102 @@
         "large": "https://cards.scryfall.io/large/front/8/3/83a69886-8fc7-4f0e-b43e-afa4fc1a0ec5.jpg?1782737681"
       },
       "scryfall_uri": "https://scryfall.com/card/2x2/430/gifts-ungiven?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-462-en-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "462",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Hardened Scales",
+      "name_zh": "坚固鳞甲",
+      "name_printed": "Hardened Scales",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "text": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/b/db2a4076-d5cf-494f-bf78-cbe8a689681e.jpg?1782737661",
+        "normal": "https://cards.scryfall.io/normal/front/d/b/db2a4076-d5cf-494f-bf78-cbe8a689681e.jpg?1782737661",
+        "large": "https://cards.scryfall.io/large/front/d/b/db2a4076-d5cf-494f-bf78-cbe8a689681e.jpg?1782737661"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/462/hardened-scales?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-524-zhs-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "524",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Mayael's Aria",
+      "name_zh": "梅燕的咏叹调",
+      "name_printed": "梅燕的咏叹调",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{R}{G}{W}",
+      "cmc": 3.0,
+      "text": "在你的维持开始时，如果你操控力量等于或大于5的生物，则在每个由你操控的生物上各放置一个+1/+1指示物。然后如果你操控力量等于或大于10的生物，则你获得10点生命。然后如果你操控力量等于或大于20的生物，则你赢得这盘游戏。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/2/a2d9eac5-eeb3-4c67-a3e9-6fb44689eb5b.jpg?1782846473",
+        "normal": "https://cards.scryfall.io/normal/front/a/2/a2d9eac5-eeb3-4c67-a3e9-6fb44689eb5b.jpg?1782846473",
+        "large": "https://cards.scryfall.io/large/front/a/2/a2d9eac5-eeb3-4c67-a3e9-6fb44689eb5b.jpg?1782846473"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/524/zhs/%E6%A2%85%E7%87%95%E7%9A%84%E5%92%8F%E5%8F%B9%E8%B0%83-(mayaels-aria)?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-532-en-f",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "532",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Privileged Position",
+      "name_zh": "优越地位",
+      "name_printed": "Privileged Position",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{G/W}{G/W}{G/W}",
+      "cmc": 5.0,
+      "text": "({G/W} can be paid with either {G} or {W}.)\nOther permanents you control have hexproof. (They can't be the targets of spells or abilities your opponents control.)",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/5/a5656b93-8dcd-4c46-95b4-d5a311d17096.jpg?1782737619",
+        "normal": "https://cards.scryfall.io/normal/front/a/5/a5656b93-8dcd-4c46-95b4-d5a311d17096.jpg?1782737619",
+        "large": "https://cards.scryfall.io/large/front/a/5/a5656b93-8dcd-4c46-95b4-d5a311d17096.jpg?1782737619"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/532/privileged-position?utm_source=api"
     },
     {
       "id": "claystan-2xm-64-zhs-nf",
@@ -629,6 +1075,198 @@
       "scryfall_uri": "https://scryfall.com/card/2xm/338/brainstorm?utm_source=api"
     },
     {
+      "id": "claystan-afr-285-zhs-f",
+      "set": "afr",
+      "set_name": "Adventures in the Forgotten Realms",
+      "number": "285",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Zariel, Archduke of Avernus",
+      "name_zh": "禽绝地狱大公扎瑞尔",
+      "name_printed": "禽绝地狱大公扎瑞尔",
+      "type_line": "传奇鹏洛客 ～扎瑞尔",
+      "type_line_en": "Legendary Planeswalker — Zariel",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{R}{R}",
+      "cmc": 4.0,
+      "text": "+1：直到回合结束，由你操控的生物得+1/+0且获得敏捷异能。\n0：派出一个1/1红色魔鬼衍生生物，且具有「当此生物死去时，它对任意一个目标造成1点伤害。」\n−6：你获得具有以下异能的徽记～「在你回合首个战斗阶段的战斗结束时，重置目标由你操控的生物。在此阶段后，额外多出一个战斗阶段。」",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/b/2be12a7e-2217-41b8-ae01-bb6b62b7bd48.jpg?1782876285",
+        "normal": "https://cards.scryfall.io/normal/front/2/b/2be12a7e-2217-41b8-ae01-bb6b62b7bd48.jpg?1782876285",
+        "large": "https://cards.scryfall.io/large/front/2/b/2be12a7e-2217-41b8-ae01-bb6b62b7bd48.jpg?1782876285"
+      },
+      "scryfall_uri": "https://scryfall.com/card/afr/285/zhs/%E7%A6%BD%E7%BB%9D%E5%9C%B0%E7%8B%B1%E5%A4%A7%E5%85%AC%E6%89%8E%E7%91%9E%E5%B0%94-(zariel-archduke-of-avernus)?utm_source=api"
+    },
+    {
+      "id": "claystan-big-48-zhs-nf",
+      "set": "big",
+      "set_name": "The Big Score",
+      "number": "48",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Omenpath Journey",
+      "name_zh": "预兆路旅程",
+      "name_printed": "预兆路旅程",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{G}",
+      "cmc": 4.0,
+      "text": "当预兆路旅程进战场时，从你牌库中搜寻至多五张名称各不相同的地牌，将它们放逐，然后洗牌。\n在你的结束步骤开始时，随机选择一张以预兆路旅程放逐的牌并将之横置放进战场。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/b/0b49f58c-236d-47fd-9211-747ce7c0736f.jpg?1782798974",
+        "normal": "https://cards.scryfall.io/normal/front/0/b/0b49f58c-236d-47fd-9211-747ce7c0736f.jpg?1782798974",
+        "large": "https://cards.scryfall.io/large/front/0/b/0b49f58c-236d-47fd-9211-747ce7c0736f.jpg?1782798974"
+      },
+      "scryfall_uri": "https://scryfall.com/card/big/48/zhs/%E9%A2%84%E5%85%86%E8%B7%AF%E6%97%85%E7%A8%8B-(omenpath-journey)?utm_source=api"
+    },
+    {
+      "id": "claystan-blb-6-en-f",
+      "set": "blb",
+      "set_name": "Bloomburrow",
+      "number": "6",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Caretaker's Talent",
+      "name_zh": "照护者才能",
+      "name_printed": "Caretaker's Talent",
+      "type_line": "Enchantment — Class",
+      "type_line_en": "Enchantment — Class",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}",
+      "cmc": 3.0,
+      "text": "(Gain the next level as a sorcery to add its ability.)\nWhenever one or more tokens you control enter, draw a card. This ability triggers only once each turn.\n{W}: Level 2\nWhen this Class becomes level 2, create a token that's a copy of target token you control.\n{3}{W}: Level 3\nCreature tokens you control get +2/+2.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/d/ad5ea98a-e36e-4ab9-b4da-cc572f3777db.jpg?1782690635",
+        "normal": "https://cards.scryfall.io/normal/front/a/d/ad5ea98a-e36e-4ab9-b4da-cc572f3777db.jpg?1782690635",
+        "large": "https://cards.scryfall.io/large/front/a/d/ad5ea98a-e36e-4ab9-b4da-cc572f3777db.jpg?1782690635"
+      },
+      "scryfall_uri": "https://scryfall.com/card/blb/6/caretakers-talent?utm_source=api"
+    },
+    {
+      "id": "claystan-bro-30-zhs-f",
+      "set": "bro",
+      "set_name": "The Brothers' War",
+      "number": "30",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Tocasia's Welcome",
+      "name_zh": "托卡西雅的款待",
+      "name_printed": "托卡西雅的款待",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}",
+      "cmc": 3.0,
+      "text": "每当一个或数个法术力值等于或小于3的生物在你的操控下进战场时，抓一张牌。此异能每回合只会触发一次。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/2/424eed10-8d86-46c8-9532-16ec3a8af4a2.jpg?1782840824",
+        "normal": "https://cards.scryfall.io/normal/front/4/2/424eed10-8d86-46c8-9532-16ec3a8af4a2.jpg?1782840824",
+        "large": "https://cards.scryfall.io/large/front/4/2/424eed10-8d86-46c8-9532-16ec3a8af4a2.jpg?1782840824"
+      },
+      "scryfall_uri": "https://scryfall.com/card/bro/30/zhs/%E6%89%98%E5%8D%A1%E8%A5%BF%E9%9B%85%E7%9A%84%E6%AC%BE%E5%BE%85-(tocasias-welcome)?utm_source=api"
+    },
+    {
+      "id": "claystan-bro-59-zhs-f",
+      "set": "bro",
+      "set_name": "The Brothers' War",
+      "number": "59",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "One with the Multiverse",
+      "name_zh": "多重宇宙加身",
+      "name_printed": "多重宇宙加身",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{6}{U}{U}",
+      "cmc": 8.0,
+      "text": "你可以随时检视你的牌库顶牌。\n你可以从你的牌库顶使用地和施放咒语。\n仅于你的每个回合中且限一次，你可以从你手上或你的牌库顶施放咒语，且不需支付其法术力费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/8/08987797-0e0f-47df-9444-44897c79c45c.jpg?1782840656",
+        "normal": "https://cards.scryfall.io/normal/front/0/8/08987797-0e0f-47df-9444-44897c79c45c.jpg?1782840656",
+        "large": "https://cards.scryfall.io/large/front/0/8/08987797-0e0f-47df-9444-44897c79c45c.jpg?1782840656"
+      },
+      "scryfall_uri": "https://scryfall.com/card/bro/59/zhs/%E5%A4%9A%E9%87%8D%E5%AE%87%E5%AE%99%E5%8A%A0%E8%BA%AB-(one-with-the-multiverse)?utm_source=api"
+    },
+    {
+      "id": "claystan-bro-66-zhs-nf",
+      "set": "bro",
+      "set_name": "The Brothers' War",
+      "number": "66",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Teferi, Temporal Pilgrim",
+      "name_zh": "历时旅人泰菲力",
+      "name_printed": "历时旅人泰菲力",
+      "type_line": "传奇鹏洛客 ～泰菲力",
+      "type_line_en": "Legendary Planeswalker — Teferi",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{3}{U}{U}",
+      "cmc": 5.0,
+      "text": "每当你抓一张牌时，在历时旅人泰菲力上放置一个忠诚指示物。\n0：抓一张牌。\n−2：派出一个2/2蓝色精怪衍生生物，且具有警戒与「每当你抓一张牌时，在此生物上放置一个+1/+1指示物。」\n−12：目标对手选择一个由其操控的永久物并将它移回其拥有者手上，然后将所有由其操控的非地永久物洗入其拥有者牌库。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/a/aa8fec65-3735-4acd-afcf-56d3ece77259.jpg?1782840613",
+        "normal": "https://cards.scryfall.io/normal/front/a/a/aa8fec65-3735-4acd-afcf-56d3ece77259.jpg?1782840613",
+        "large": "https://cards.scryfall.io/large/front/a/a/aa8fec65-3735-4acd-afcf-56d3ece77259.jpg?1782840613"
+      },
+      "scryfall_uri": "https://scryfall.com/card/bro/66/zhs/%E5%8E%86%E6%97%B6%E6%97%85%E4%BA%BA%E6%B3%B0%E8%8F%B2%E5%8A%9B-(teferi-temporal-pilgrim)?utm_source=api"
+    },
+    {
       "id": "claystan-bro-97-zhs-nf",
       "set": "bro",
       "set_name": "The Brothers' War",
@@ -691,6 +1329,38 @@
         "large": "https://cards.scryfall.io/large/front/0/4/04be367a-101c-4a1c-a2ba-089d53f2d2c6.jpg?1782839231"
       },
       "scryfall_uri": "https://scryfall.com/card/bro/327/zhs/%E5%9F%BA%E5%85%8B%E6%96%AF%E7%9A%84%E6%8C%87%E5%91%BD-(gixs-command)?utm_source=api"
+    },
+    {
+      "id": "claystan-cmm-37-zhs-nf",
+      "set": "cmm",
+      "set_name": "Commander Masters",
+      "number": "37",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Land Tax",
+      "name_zh": "抽地税",
+      "name_printed": "抽地税",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{W}",
+      "cmc": 1.0,
+      "text": "在你的维持开始时，若某对手操控的地比你多，则你可以从你牌库中搜寻至多三张基本地牌，展示这些牌，将它们置于你手上，然后洗牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/e/4efa5890-d884-46fd-8963-4a4c951fef58.jpg?1782818291",
+        "normal": "https://cards.scryfall.io/normal/front/4/e/4efa5890-d884-46fd-8963-4a4c951fef58.jpg?1782818291",
+        "large": "https://cards.scryfall.io/large/front/4/e/4efa5890-d884-46fd-8963-4a4c951fef58.jpg?1782818291"
+      },
+      "scryfall_uri": "https://scryfall.com/card/cmm/37/zhs/%E6%8A%BD%E5%9C%B0%E7%A8%8E-(land-tax)?utm_source=api"
     },
     {
       "id": "claystan-cmm-55-ja-nf",
@@ -757,6 +1427,38 @@
       "scryfall_uri": "https://scryfall.com/card/cmm/308/ja/%E3%81%BC%E3%82%84%E3%81%8B%E3%81%99%E8%96%84%E9%9C%A7-(obscuring-haze)?utm_source=api"
     },
     {
+      "id": "claystan-cmm-464-en-f",
+      "set": "cmm",
+      "set_name": "Commander Masters",
+      "number": "464",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Land Tax",
+      "name_zh": "抽地税",
+      "name_printed": "Land Tax",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{W}",
+      "cmc": 1.0,
+      "text": "At the beginning of your upkeep, if an opponent controls more lands than you, you may search your library for up to three basic land cards, reveal them, put them into your hand, then shuffle.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/0/9071c93f-d5c6-4ca2-bac6-15fe96d03178.jpg?1782732988",
+        "normal": "https://cards.scryfall.io/normal/front/9/0/9071c93f-d5c6-4ca2-bac6-15fe96d03178.jpg?1782732988",
+        "large": "https://cards.scryfall.io/large/front/9/0/9071c93f-d5c6-4ca2-bac6-15fe96d03178.jpg?1782732988"
+      },
+      "scryfall_uri": "https://scryfall.com/card/cmm/464/land-tax?utm_source=api"
+    },
+    {
       "id": "claystan-cmm-508-zhs-f",
       "set": "cmm",
       "set_name": "Commander Masters",
@@ -789,6 +1491,38 @@
       "scryfall_uri": "https://scryfall.com/card/cmm/508/zhs/%E8%8B%A6%E7%97%9B%E7%9A%84%E5%AE%A3%E5%88%A4-(decree-of-pain)?utm_source=api"
     },
     {
+      "id": "claystan-cmm-557-en-f",
+      "set": "cmm",
+      "set_name": "Commander Masters",
+      "number": "557",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Doubling Season",
+      "name_zh": "倍产旺季",
+      "name_printed": "Doubling Season",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{4}{G}",
+      "cmc": 5.0,
+      "text": "If an effect would create one or more tokens under your control, it creates twice that many of those tokens instead.\nIf an effect would put one or more counters on a permanent you control, it puts twice that many of those counters on that permanent instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/6/f/6f161997-ef21-4e90-b373-1d9e4402bf21.jpg?1782732924",
+        "normal": "https://cards.scryfall.io/normal/front/6/f/6f161997-ef21-4e90-b373-1d9e4402bf21.jpg?1782732924",
+        "large": "https://cards.scryfall.io/large/front/6/f/6f161997-ef21-4e90-b373-1d9e4402bf21.jpg?1782732924"
+      },
+      "scryfall_uri": "https://scryfall.com/card/cmm/557/doubling-season?utm_source=api"
+    },
+    {
       "id": "claystan-cmm-701-zhs-nf",
       "set": "cmm",
       "set_name": "Commander Masters",
@@ -819,6 +1553,38 @@
         "large": "https://cards.scryfall.io/large/front/6/7/677c6141-ae72-411b-bd39-f315e0852c0a.jpg?1782815530"
       },
       "scryfall_uri": "https://scryfall.com/card/cmm/701/zhs/%E9%81%AE%E6%8E%A9%E8%BF%B7%E9%9B%BE-(obscuring-haze)?utm_source=api"
+    },
+    {
+      "id": "claystan-cmm-766-en-nf",
+      "set": "cmm",
+      "set_name": "Commander Masters",
+      "number": "766",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Descendants' Fury",
+      "name_zh": "后代怒火",
+      "name_printed": "Descendants' Fury",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{R}",
+      "cmc": 4.0,
+      "text": "Whenever one or more creatures you control deal combat damage to a player, you may sacrifice one of them. If you do, reveal cards from the top of your library until you reveal a creature card that shares a creature type with the sacrificed creature. Put that card onto the battlefield and the rest on the bottom of your library in a random order.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/c/4ce28dd7-56d0-4801-855f-ddebf81adf6e.jpg?1782732777",
+        "normal": "https://cards.scryfall.io/normal/front/4/c/4ce28dd7-56d0-4801-855f-ddebf81adf6e.jpg?1782732777",
+        "large": "https://cards.scryfall.io/large/front/4/c/4ce28dd7-56d0-4801-855f-ddebf81adf6e.jpg?1782732777"
+      },
+      "scryfall_uri": "https://scryfall.com/card/cmm/766/descendants-fury?utm_source=api"
     },
     {
       "id": "claystan-cmr-84-en-nf",
@@ -885,6 +1651,102 @@
       "scryfall_uri": "https://scryfall.com/card/cmr/84/zhs/%E6%B3%A8%E5%AE%9A-(preordain)?utm_source=api"
     },
     {
+      "id": "claystan-ddh-1-en-f",
+      "set": "ddh",
+      "set_name": "Duel Decks: Ajani vs. Nicol Bolas",
+      "number": "1",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Ajani Vengeant",
+      "name_zh": "复仇阿耶尼",
+      "name_printed": "Ajani Vengeant",
+      "type_line": "Legendary Planeswalker — Ajani",
+      "type_line_en": "Legendary Planeswalker — Ajani",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{R}{W}",
+      "cmc": 4.0,
+      "text": "+1: Target permanent doesn't untap during its controller's next untap step.\n−2: Ajani deals 3 damage to any target and you gain 3 life.\n−7: Destroy all lands target player controls.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/3/f3bf1867-aab4-4935-b891-45489ebeb231.jpg?1782752513",
+        "normal": "https://cards.scryfall.io/normal/front/f/3/f3bf1867-aab4-4935-b891-45489ebeb231.jpg?1782752513",
+        "large": "https://cards.scryfall.io/large/front/f/3/f3bf1867-aab4-4935-b891-45489ebeb231.jpg?1782752513"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ddh/1/ajani-vengeant?utm_source=api"
+    },
+    {
+      "id": "claystan-dmr-32-en-f",
+      "set": "dmr",
+      "set_name": "Dominaria Remastered",
+      "number": "32",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Test of Endurance",
+      "name_zh": "耐力试炼",
+      "name_printed": "Test of Endurance",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}{W}",
+      "cmc": 4.0,
+      "text": "At the beginning of your upkeep, if you have 50 or more life, you win the game.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/7/6/76841945-8ff1-4c2d-895e-d1e2cf468cff.jpg?1782735301",
+        "normal": "https://cards.scryfall.io/normal/front/7/6/76841945-8ff1-4c2d-895e-d1e2cf468cff.jpg?1782735301",
+        "large": "https://cards.scryfall.io/large/front/7/6/76841945-8ff1-4c2d-895e-d1e2cf468cff.jpg?1782735301"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmr/32/test-of-endurance?utm_source=api"
+    },
+    {
+      "id": "claystan-dmr-290-zhs-f",
+      "set": "dmr",
+      "set_name": "Dominaria Remastered",
+      "number": "290",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Opposition",
+      "name_zh": "唱反调",
+      "name_printed": "唱反调",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{U}{U}",
+      "cmc": 4.0,
+      "text": "横置一个由你操控且未横置的生物：横置目标神器，生物或地。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/3/f31d3a1a-4bca-45c9-ae24-ec8801f94ed5.jpg?1782832028",
+        "normal": "https://cards.scryfall.io/normal/front/f/3/f31d3a1a-4bca-45c9-ae24-ec8801f94ed5.jpg?1782832028",
+        "large": "https://cards.scryfall.io/large/front/f/3/f31d3a1a-4bca-45c9-ae24-ec8801f94ed5.jpg?1782832028"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmr/290/zhs/%E5%94%B1%E5%8F%8D%E8%B0%83-(opposition)?utm_source=api"
+    },
+    {
       "id": "claystan-dmr-430-zhs-f",
       "set": "dmr",
       "set_name": "Dominaria Remastered",
@@ -949,6 +1811,166 @@
       "scryfall_uri": "https://scryfall.com/card/dmu/17/destroy-evil?utm_source=api"
     },
     {
+      "id": "claystan-dmu-87-zhs-nf",
+      "set": "dmu",
+      "set_name": "Dominaria United",
+      "number": "87",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "The Cruelty of Gix",
+      "name_zh": "基克斯暴行录",
+      "name_printed": "基克斯暴行录",
+      "type_line": "结界 ～传纪",
+      "type_line_en": "Enchantment — Saga",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{B}{B}",
+      "cmc": 5.0,
+      "text": "跳读（选择一个章节，此传纪一开始就有该数量的学问指示物。于你抓牌步骤后再加一个。跳过的章节不会触发。到III后牺牲之。）\nI — 目标对手展示其手牌。你选择其中一张生物或鹏洛客牌。该牌手弃掉该牌。\nII — 从你牌库中搜寻一张牌，将该牌置于你手上，然后洗牌。你失去3点生命。\nIII — 将目标生物牌在你的操控下从坟墓场放进战场。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/6/062e24b5-2025-4c44-b240-6c397730cf1e.jpg?1782844833",
+        "normal": "https://cards.scryfall.io/normal/front/0/6/062e24b5-2025-4c44-b240-6c397730cf1e.jpg?1782844833",
+        "large": "https://cards.scryfall.io/large/front/0/6/062e24b5-2025-4c44-b240-6c397730cf1e.jpg?1782844833"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmu/87/zhs/%E5%9F%BA%E5%85%8B%E6%96%AF%E6%9A%B4%E8%A1%8C%E5%BD%95-(the-cruelty-of-gix)?utm_source=api"
+    },
+    {
+      "id": "claystan-dmu-373-en-nf",
+      "set": "dmu",
+      "set_name": "Dominaria United",
+      "number": "373",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Liliana of the Veil",
+      "name_zh": "面纱的莉莲娜",
+      "name_printed": "Liliana of the Veil",
+      "type_line": "Legendary Planeswalker — Liliana",
+      "type_line_en": "Legendary Planeswalker — Liliana",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{1}{B}{B}",
+      "cmc": 3.0,
+      "text": "+1: Each player discards a card.\n−2: Target player sacrifices a creature.\n−6: Separate all permanents target player controls into two piles. That player sacrifices all permanents in the pile of their choice.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/1/a18b8768-4126-4636-990e-21b4308740dc.jpg?1782700326",
+        "normal": "https://cards.scryfall.io/normal/front/a/1/a18b8768-4126-4636-990e-21b4308740dc.jpg?1782700326",
+        "large": "https://cards.scryfall.io/large/front/a/1/a18b8768-4126-4636-990e-21b4308740dc.jpg?1782700326"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmu/373/liliana-of-the-veil?utm_source=api"
+    },
+    {
+      "id": "claystan-dmu-387-en-f",
+      "set": "dmu",
+      "set_name": "Dominaria United",
+      "number": "387",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Leyline Binding",
+      "name_zh": "地脉束缚",
+      "name_printed": "Leyline Binding",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{5}{W}",
+      "cmc": 6.0,
+      "text": "Flash\nDomain — This spell costs {1} less to cast for each basic land type among lands you control.\nWhen this enchantment enters, exile target nonland permanent an opponent controls until this enchantment leaves the battlefield.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/2/32da8479-7d0e-4eb1-b18c-66eb170e31a5.jpg?1782700317",
+        "normal": "https://cards.scryfall.io/normal/front/3/2/32da8479-7d0e-4eb1-b18c-66eb170e31a5.jpg?1782700317",
+        "large": "https://cards.scryfall.io/large/front/3/2/32da8479-7d0e-4eb1-b18c-66eb170e31a5.jpg?1782700317"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmu/387/leyline-binding?utm_source=api"
+    },
+    {
+      "id": "claystan-dmu-387-zhs-nf",
+      "set": "dmu",
+      "set_name": "Dominaria United",
+      "number": "387",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Leyline Binding",
+      "name_zh": "地脉束缚",
+      "name_printed": "地脉束缚",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{5}{W}",
+      "cmc": 6.0,
+      "text": "闪现\n领土～由你操控的地中每有一种基本地类别，此咒语便减少{1}来施放。\n当地脉束缚进战场时，放逐目标由对手操控的非地永久物，直到地脉束缚离开战场为止。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/6/3655fb9c-58cb-4b4e-8a04-e82f2c9a2ed2.jpg?1782842755",
+        "normal": "https://cards.scryfall.io/normal/front/3/6/3655fb9c-58cb-4b4e-8a04-e82f2c9a2ed2.jpg?1782842755",
+        "large": "https://cards.scryfall.io/large/front/3/6/3655fb9c-58cb-4b4e-8a04-e82f2c9a2ed2.jpg?1782842755"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmu/387/zhs/%E5%9C%B0%E8%84%89%E6%9D%9F%E7%BC%9A-(leyline-binding)?utm_source=api"
+    },
+    {
+      "id": "claystan-dmu-389-en-f",
+      "set": "dmu",
+      "set_name": "Dominaria United",
+      "number": "389",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Temporary Lockdown",
+      "name_zh": "短时封锁",
+      "name_printed": "Temporary Lockdown",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{W}{W}",
+      "cmc": 3.0,
+      "text": "When this enchantment enters, exile each nonland permanent with mana value 2 or less until this enchantment leaves the battlefield.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/b/9/b9672bc7-ccc9-4f89-ad92-60e130369336.jpg?1782700316",
+        "normal": "https://cards.scryfall.io/normal/front/b/9/b9672bc7-ccc9-4f89-ad92-60e130369336.jpg?1782700316",
+        "large": "https://cards.scryfall.io/large/front/b/9/b9672bc7-ccc9-4f89-ad92-60e130369336.jpg?1782700316"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dmu/389/temporary-lockdown?utm_source=api"
+    },
+    {
       "id": "claystan-dmu-413-en-f",
       "set": "dmu",
       "set_name": "Dominaria United",
@@ -1011,6 +2033,68 @@
         "large": "https://cards.scryfall.io/large/front/f/4/f4f2ff77-09ac-4833-9d3a-47bac7428086.jpg?1782700299"
       },
       "scryfall_uri": "https://scryfall.com/card/dmu/413/herd-migration?utm_source=api"
+    },
+    {
+      "id": "claystan-dnc-348-en-nf",
+      "set": "dnc",
+      "set_name": "DNC",
+      "number": "348",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "",
+      "name_zh": "",
+      "name_printed": "",
+      "type_line": "",
+      "type_line_en": "",
+      "types": [],
+      "mana_cost": "",
+      "cmc": 0,
+      "text": "",
+      "image": {
+        "small": "",
+        "normal": "",
+        "large": ""
+      },
+      "error": "not_found"
+    },
+    {
+      "id": "claystan-dom-207-en-nf",
+      "set": "dom",
+      "set_name": "Dominaria",
+      "number": "207",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Teferi, Hero of Dominaria",
+      "name_zh": "多明纳里亚英雄泰菲力",
+      "name_printed": "Teferi, Hero of Dominaria",
+      "type_line": "Legendary Planeswalker — Teferi",
+      "type_line_en": "Legendary Planeswalker — Teferi",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{3}{W}{U}",
+      "cmc": 5.0,
+      "text": "+1: Draw a card. At the beginning of the next end step, untap up to two lands.\n−3: Put target nonland permanent into its owner's library third from the top.\n−8: You get an emblem with \"Whenever you draw a card, exile target permanent an opponent controls.\"",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg?1782710071",
+        "normal": "https://cards.scryfall.io/normal/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg?1782710071",
+        "large": "https://cards.scryfall.io/large/front/5/d/5d10b752-d9cb-419d-a5c4-d4ee1acb655e.jpg?1782710071"
+      },
+      "scryfall_uri": "https://scryfall.com/card/dom/207/teferi-hero-of-dominaria?utm_source=api"
     },
     {
       "id": "claystan-dsc-41-en-nf",
@@ -1237,6 +2321,70 @@
       "scryfall_uri": "https://scryfall.com/card/iko/185/ja/%E5%87%BA%E7%8F%BE%E3%81%AE%E6%A0%B9%E6%9C%AC%E5%8E%9F%E7%90%86-(emergent-ultimatum)?utm_source=api"
     },
     {
+      "id": "claystan-j22-31-zhs-nf",
+      "set": "j22",
+      "set_name": "Jumpstart 2022",
+      "number": "31",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Brazen Cannonade",
+      "name_zh": "莽霸联盟炮击",
+      "name_printed": "莽霸联盟炮击",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{R}",
+      "cmc": 4.0,
+      "text": "每当一个由你操控且进行攻击的生物死去时，莽霸联盟炮击向每位对手各造成2点伤害。\n突击～在你战斗后的行动阶段开始时，若你本回合中曾以生物攻击，则放逐你的牌库顶牌。直到你下一个回合的战斗结束，你可以使用该牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/e/defd521c-f275-453f-bbd3-6dce8eeff3a8.jpg?1782837316",
+        "normal": "https://cards.scryfall.io/normal/front/d/e/defd521c-f275-453f-bbd3-6dce8eeff3a8.jpg?1782837316",
+        "large": "https://cards.scryfall.io/large/front/d/e/defd521c-f275-453f-bbd3-6dce8eeff3a8.jpg?1782837316"
+      },
+      "scryfall_uri": "https://scryfall.com/card/j22/31/zhs/%E8%8E%BD%E9%9C%B8%E8%81%94%E7%9B%9F%E7%82%AE%E5%87%BB-(brazen-cannonade)?utm_source=api"
+    },
+    {
+      "id": "claystan-j22-58-zhs-nf",
+      "set": "j22",
+      "set_name": "Jumpstart 2022",
+      "number": "58",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Sage's Reverie",
+      "name_zh": "智者妙想",
+      "name_printed": "智者妙想",
+      "type_line": "结界 ～灵气",
+      "type_line_en": "Enchantment — Aura",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{W}",
+      "cmc": 4.0,
+      "text": "结附于生物\n当智者妙想进战场时，你每操控一个贴附在生物上的灵气，便抓一张牌。\n你每操控一个贴附在生物上的灵气，所结附的生物便得+1/+1。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/2/4281bcc9-81fa-4dc3-bb1d-faf189347476.jpg?1782837186",
+        "normal": "https://cards.scryfall.io/normal/front/4/2/4281bcc9-81fa-4dc3-bb1d-faf189347476.jpg?1782837186",
+        "large": "https://cards.scryfall.io/large/front/4/2/4281bcc9-81fa-4dc3-bb1d-faf189347476.jpg?1782837186"
+      },
+      "scryfall_uri": "https://scryfall.com/card/j22/58/zhs/%E6%99%BA%E8%80%85%E5%A6%99%E6%83%B3-(sages-reverie)?utm_source=api"
+    },
+    {
       "id": "claystan-khm-295-zhs-nf",
       "set": "khm",
       "set_name": "Kaldheim",
@@ -1363,6 +2511,39 @@
         "large": "https://cards.scryfall.io/large/front/8/5/85159701-bc58-4d40-9c10-84cbe8099b75.jpg?1782694676"
       },
       "scryfall_uri": "https://scryfall.com/card/lcc/279/prismari-command?utm_source=api"
+    },
+    {
+      "id": "claystan-lci-188-zhs-f",
+      "set": "lci",
+      "set_name": "The Lost Caverns of Ixalan",
+      "number": "188",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Growing Rites of Itlimoc // Itlimoc, Cradle of the Sun",
+      "name_zh": "Growing Rites of Itlimoc",
+      "name_printed": "Growing Rites of Itlimoc",
+      "type_line": "传奇结界 // 传奇地",
+      "type_line_en": "Legendary Enchantment // Legendary Land",
+      "types": [
+        "enchantment",
+        "land"
+      ],
+      "mana_cost": "{2}{G} // —",
+      "cmc": 3.0,
+      "text": "当伊替莫成长仪式进战场时，检视你牌库顶的四张牌。你可以展示其中一张生物牌并置于你手上。将其余的牌以任意顺序置于你牌库底。\n在你的结束步骤开始时，若你操控四个或更多生物，则转化伊替莫成长仪式。\n//\n（由伊替莫成长仪式转化。）\n{T}：加{G}。\n{T}：你每操控一个生物，便加{G}。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/a/2a65c7c4-5bd9-4222-8c4b-f835222b01b7.jpg?1782808019",
+        "normal": "https://cards.scryfall.io/normal/front/2/a/2a65c7c4-5bd9-4222-8c4b-f835222b01b7.jpg?1782808019",
+        "large": "https://cards.scryfall.io/large/front/2/a/2a65c7c4-5bd9-4222-8c4b-f835222b01b7.jpg?1782808019"
+      },
+      "scryfall_uri": "https://scryfall.com/card/lci/188/zhs/growing-rites-of-itlimoc-itlimoc-cradle-of-the-sun-(growing-rites-of-itlimoc-itlimoc-cradle-of-the-sun)?utm_source=api"
     },
     {
       "id": "claystan-lci-333-en-f",
@@ -1493,6 +2674,358 @@
       "scryfall_uri": "https://scryfall.com/card/lci/342/zhs/%E7%86%94%E6%AF%81%E5%B4%A9%E5%A1%8C-(molten-collapse)?utm_source=api"
     },
     {
+      "id": "claystan-lci-361-zhs-nf",
+      "set": "lci",
+      "set_name": "The Lost Caverns of Ixalan",
+      "number": "361",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Deeproot Pilgrimage",
+      "name_zh": "繁根林朝圣",
+      "name_printed": "繁根林朝圣",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{U}",
+      "cmc": 2.0,
+      "text": "每当一个或数个由你操控且非衍生物的人鱼成为横置时，派出一个1/1蓝色，具辟邪异能的人鱼衍生生物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/8/9/8948a595-95e4-4898-ae8e-8e654c31ff74.jpg?1782807023",
+        "normal": "https://cards.scryfall.io/normal/front/8/9/8948a595-95e4-4898-ae8e-8e654c31ff74.jpg?1782807023",
+        "large": "https://cards.scryfall.io/large/front/8/9/8948a595-95e4-4898-ae8e-8e654c31ff74.jpg?1782807023"
+      },
+      "scryfall_uri": "https://scryfall.com/card/lci/361/zhs/%E7%B9%81%E6%A0%B9%E6%9E%97%E6%9C%9D%E5%9C%A3-(deeproot-pilgrimage)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-5-en-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "5",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Dawn of a New Age",
+      "name_zh": "新纪元的曙光",
+      "name_printed": "Dawn of a New Age",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{W}",
+      "cmc": 2.0,
+      "text": "This enchantment enters with a hope counter on it for each creature you control.\nAt the beginning of your end step, remove a hope counter from this enchantment. If you do, draw a card. Then if this enchantment has no hope counters on it, sacrifice it and you gain 4 life.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/b/cb966ee6-bf1b-4bb6-9277-8de6f3918ae2.jpg?1782697254",
+        "normal": "https://cards.scryfall.io/normal/front/c/b/cb966ee6-bf1b-4bb6-9277-8de6f3918ae2.jpg?1782697254",
+        "large": "https://cards.scryfall.io/large/front/c/b/cb966ee6-bf1b-4bb6-9277-8de6f3918ae2.jpg?1782697254"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/5/dawn-of-a-new-age?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-5-zhs-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "5",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Dawn of a New Age",
+      "name_zh": "新纪元的曙光",
+      "name_printed": "新纪元的曙光",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{W}",
+      "cmc": 2.0,
+      "text": "新纪元的曙光进战场时上面有数个希望指示物，其数量等同于由你操控的生物数量。\n在你的结束步骤开始时，从新纪元的曙光上移去一个希望指示物。若你如此作，则抓一张牌。然后如果新纪元的曙光上没有希望指示物，则将它牺牲且你获得4点生命。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/7/3/73a7cf8b-f469-484d-8d7b-a4ea9da64dcc.jpg?1782822212",
+        "normal": "https://cards.scryfall.io/normal/front/7/3/73a7cf8b-f469-484d-8d7b-a4ea9da64dcc.jpg?1782822212",
+        "large": "https://cards.scryfall.io/large/front/7/3/73a7cf8b-f469-484d-8d7b-a4ea9da64dcc.jpg?1782822212"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/5/zhs/%E6%96%B0%E7%BA%AA%E5%85%83%E7%9A%84%E6%9B%99%E5%85%89-(dawn-of-a-new-age)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-17-zhs-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "17",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Forge Anew",
+      "name_zh": "重铸一新",
+      "name_printed": "重铸一新",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}",
+      "cmc": 3.0,
+      "text": "当重铸一新进战场时，将目标武具牌从你的坟墓场移回战场。\n只要是在你的回合中，你便可以于你能够施放瞬间的时机下起动佩带异能。\n对你于你的每个回合中首度起动的佩带异能而言，你可以支付{0}，而不支付其佩带费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/c/9c89afe7-8712-496a-85de-eeaf82d9fd78.jpg?1782822158",
+        "normal": "https://cards.scryfall.io/normal/front/9/c/9c89afe7-8712-496a-85de-eeaf82d9fd78.jpg?1782822158",
+        "large": "https://cards.scryfall.io/large/front/9/c/9c89afe7-8712-496a-85de-eeaf82d9fd78.jpg?1782822158"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/17/zhs/%E9%87%8D%E9%93%B8%E4%B8%80%E6%96%B0-(forge-anew)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-79-zhs-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "79",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Call of the Ring",
+      "name_zh": "魔戒呼唤",
+      "name_printed": "魔戒呼唤",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{B}",
+      "cmc": 2.0,
+      "text": "在你的维持开始时，魔戒引诱你。\n每当你选择一个生物作你的持戒人时，你可以支付2点生命。若你如此作，则抓一张牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/c/0c6f2715-53e8-4a0b-ac02-8645c874f46c.jpg?1782821831",
+        "normal": "https://cards.scryfall.io/normal/front/0/c/0c6f2715-53e8-4a0b-ac02-8645c874f46c.jpg?1782821831",
+        "large": "https://cards.scryfall.io/large/front/0/c/0c6f2715-53e8-4a0b-ac02-8645c874f46c.jpg?1782821831"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/79/zhs/%E9%AD%94%E6%88%92%E5%91%BC%E5%94%A4-(call-of-the-ring)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-79-zhs-nf",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "79",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 3,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Call of the Ring",
+      "name_zh": "魔戒呼唤",
+      "name_printed": "魔戒呼唤",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{B}",
+      "cmc": 2.0,
+      "text": "在你的维持开始时，魔戒引诱你。\n每当你选择一个生物作你的持戒人时，你可以支付2点生命。若你如此作，则抓一张牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/c/0c6f2715-53e8-4a0b-ac02-8645c874f46c.jpg?1782821831",
+        "normal": "https://cards.scryfall.io/normal/front/0/c/0c6f2715-53e8-4a0b-ac02-8645c874f46c.jpg?1782821831",
+        "large": "https://cards.scryfall.io/large/front/0/c/0c6f2715-53e8-4a0b-ac02-8645c874f46c.jpg?1782821831"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/79/zhs/%E9%AD%94%E6%88%92%E5%91%BC%E5%94%A4-(call-of-the-ring)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-149-en-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "149",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Spiteful Banditry",
+      "name_zh": "怨毒行劫",
+      "name_printed": "Spiteful Banditry",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{X}{R}{R}",
+      "cmc": 2.0,
+      "text": "When this enchantment enters, it deals X damage to each creature.\nWhenever one or more creatures your opponents control die, you create a Treasure token. This ability triggers only once each turn.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/8/e85a82bc-49f3-4694-b688-808a541146db.jpg?1782697154",
+        "normal": "https://cards.scryfall.io/normal/front/e/8/e85a82bc-49f3-4694-b688-808a541146db.jpg?1782697154",
+        "large": "https://cards.scryfall.io/large/front/e/8/e85a82bc-49f3-4694-b688-808a541146db.jpg?1782697154"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/149/spiteful-banditry?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-149-zhs-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "149",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Spiteful Banditry",
+      "name_zh": "怨毒行劫",
+      "name_printed": "怨毒行劫",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{X}{R}{R}",
+      "cmc": 2.0,
+      "text": "当怨毒行劫进战场时，它对每个生物各造成X点伤害。\n每当由对手操控的一个或数个生物死去时，你派出一个珍宝衍生物。此异能每回合只会触发一次。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/9/29606ae0-bd3f-474d-9eb6-25d30eb4be7f.jpg?1782821447",
+        "normal": "https://cards.scryfall.io/normal/front/2/9/29606ae0-bd3f-474d-9eb6-25d30eb4be7f.jpg?1782821447",
+        "large": "https://cards.scryfall.io/large/front/2/9/29606ae0-bd3f-474d-9eb6-25d30eb4be7f.jpg?1782821447"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/149/zhs/%E6%80%A8%E6%AF%92%E8%A1%8C%E5%8A%AB-(spiteful-banditry)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-149-zhs-nf",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "149",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Spiteful Banditry",
+      "name_zh": "怨毒行劫",
+      "name_printed": "怨毒行劫",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{X}{R}{R}",
+      "cmc": 2.0,
+      "text": "当怨毒行劫进战场时，它对每个生物各造成X点伤害。\n每当由对手操控的一个或数个生物死去时，你派出一个珍宝衍生物。此异能每回合只会触发一次。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/9/29606ae0-bd3f-474d-9eb6-25d30eb4be7f.jpg?1782821447",
+        "normal": "https://cards.scryfall.io/normal/front/2/9/29606ae0-bd3f-474d-9eb6-25d30eb4be7f.jpg?1782821447",
+        "large": "https://cards.scryfall.io/large/front/2/9/29606ae0-bd3f-474d-9eb6-25d30eb4be7f.jpg?1782821447"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/149/zhs/%E6%80%A8%E6%AF%92%E8%A1%8C%E5%8A%AB-(spiteful-banditry)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-349-en-nf",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "349",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Forge Anew",
+      "name_zh": "重铸一新",
+      "name_printed": "Forge Anew",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}",
+      "cmc": 3.0,
+      "text": "When this enchantment enters, return target Equipment card from your graveyard to the battlefield.\nDuring your turn, you may activate equip abilities any time you could cast an instant.\nYou may pay {0} rather than pay the equip cost of the first equip ability you activate during each of your turns.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/7/e/7ecc1bec-a90d-4d1b-8096-42a1455e86d2.jpg?1782697041",
+        "normal": "https://cards.scryfall.io/normal/front/7/e/7ecc1bec-a90d-4d1b-8096-42a1455e86d2.jpg?1782697041",
+        "large": "https://cards.scryfall.io/large/front/7/e/7ecc1bec-a90d-4d1b-8096-42a1455e86d2.jpg?1782697041"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/349/forge-anew?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-349-zhs-nf",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "349",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Forge Anew",
+      "name_zh": "重铸一新",
+      "name_printed": "重铸一新",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}",
+      "cmc": 3.0,
+      "text": "当重铸一新进战场时，将目标武具牌从你的坟墓场移回战场。\n只要是在你的回合中，你便可以于你能够施放瞬间的时机下起动佩带异能。\n对你于你的每个回合中首度起动的佩带异能而言，你可以支付{0}，而不支付其佩带费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/a/cac3d98a-3ee2-491e-944a-3bf80824bb96.jpg?1782820372",
+        "normal": "https://cards.scryfall.io/normal/front/c/a/cac3d98a-3ee2-491e-944a-3bf80824bb96.jpg?1782820372",
+        "large": "https://cards.scryfall.io/large/front/c/a/cac3d98a-3ee2-491e-944a-3bf80824bb96.jpg?1782820372"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/349/zhs/%E9%87%8D%E9%93%B8%E4%B8%80%E6%96%B0-(forge-anew)?utm_source=api"
+    },
+    {
       "id": "claystan-ltr-371-en-nf",
       "set": "ltr",
       "set_name": "The Lord of the Rings: Tales of Middle-earth",
@@ -1557,6 +3090,102 @@
       "scryfall_uri": "https://scryfall.com/card/ltr/406/zhs/%E9%98%BF%E8%AF%BA%E5%B0%94%E4%B9%8B%E7%81%AB-(flame-of-anor)?utm_source=api"
     },
     {
+      "id": "claystan-ltr-419-en-nf",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "419",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Quickbeam, Upstart Ent",
+      "name_zh": "恩特新贵急楸",
+      "name_printed": "Quickbeam, Upstart Ent",
+      "type_line": "Legendary Creature — Treefolk",
+      "type_line_en": "Legendary Creature — Treefolk",
+      "types": [
+        "creature"
+      ],
+      "mana_cost": "{4}{G}{G}",
+      "cmc": 6.0,
+      "text": "Whenever Quickbeam or another Treefolk you control enters, up to two target creatures each get +2/+2 and gain trample until end of turn.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/0/402d829d-9d99-48ac-9ffe-14405ec56302.jpg?1782696990",
+        "normal": "https://cards.scryfall.io/normal/front/4/0/402d829d-9d99-48ac-9ffe-14405ec56302.jpg?1782696990",
+        "large": "https://cards.scryfall.io/large/front/4/0/402d829d-9d99-48ac-9ffe-14405ec56302.jpg?1782696990"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/419/quickbeam-upstart-ent?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-439-zhs-f",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "439",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Spiteful Banditry",
+      "name_zh": "怨毒行劫",
+      "name_printed": "怨毒行劫",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{X}{R}{R}",
+      "cmc": 2.0,
+      "text": "当怨毒行劫进战场时，它对每个生物各造成X点伤害。\n每当由对手操控的一个或数个生物死去时，你派出一个珍宝衍生物。此异能每回合只会触发一次。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/e/ce40ed4b-3bf2-4c2f-bbf1-52c4a72d9028.jpg?1782819972",
+        "normal": "https://cards.scryfall.io/normal/front/c/e/ce40ed4b-3bf2-4c2f-bbf1-52c4a72d9028.jpg?1782819972",
+        "large": "https://cards.scryfall.io/large/front/c/e/ce40ed4b-3bf2-4c2f-bbf1-52c4a72d9028.jpg?1782819972"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/439/zhs/%E6%80%A8%E6%AF%92%E8%A1%8C%E5%8A%AB-(spiteful-banditry)?utm_source=api"
+    },
+    {
+      "id": "claystan-ltr-439-zhs-nf",
+      "set": "ltr",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "number": "439",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Spiteful Banditry",
+      "name_zh": "怨毒行劫",
+      "name_printed": "怨毒行劫",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{X}{R}{R}",
+      "cmc": 2.0,
+      "text": "当怨毒行劫进战场时，它对每个生物各造成X点伤害。\n每当由对手操控的一个或数个生物死去时，你派出一个珍宝衍生物。此异能每回合只会触发一次。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/e/ce40ed4b-3bf2-4c2f-bbf1-52c4a72d9028.jpg?1782819972",
+        "normal": "https://cards.scryfall.io/normal/front/c/e/ce40ed4b-3bf2-4c2f-bbf1-52c4a72d9028.jpg?1782819972",
+        "large": "https://cards.scryfall.io/large/front/c/e/ce40ed4b-3bf2-4c2f-bbf1-52c4a72d9028.jpg?1782819972"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ltr/439/zhs/%E6%80%A8%E6%AF%92%E8%A1%8C%E5%8A%AB-(spiteful-banditry)?utm_source=api"
+    },
+    {
       "id": "claystan-m11-30-en-nf",
       "set": "m11",
       "set_name": "Magic 2011",
@@ -1587,6 +3216,68 @@
         "large": "https://cards.scryfall.io/large/front/3/7/37b70d17-e4ec-4731-8892-b444f82be7a2.jpg?1782715425"
       },
       "scryfall_uri": "https://scryfall.com/card/m11/30/silence?utm_source=api"
+    },
+    {
+      "id": "claystan-m19-67-zhs-f",
+      "set": "m19",
+      "set_name": "Core Set 2019",
+      "number": "67",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Patient Rebuilding",
+      "name_zh": "耐心复原",
+      "name_printed": "耐心复原",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{U}{U}",
+      "cmc": 5.0,
+      "text": "在你的维持开始时，目标对手将其牌库顶的三张牌置入其坟墓场，然后每以此法将一张地牌置入该坟墓场，你便抓一张牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/b/eb8ac3db-9563-4b38-9272-e3046753cb9c.jpg?1782931049",
+        "normal": "https://cards.scryfall.io/normal/front/e/b/eb8ac3db-9563-4b38-9272-e3046753cb9c.jpg?1782931049",
+        "large": "https://cards.scryfall.io/large/front/e/b/eb8ac3db-9563-4b38-9272-e3046753cb9c.jpg?1782931049"
+      },
+      "scryfall_uri": "https://scryfall.com/card/m19/67/zhs/%E8%80%90%E5%BF%83%E5%A4%8D%E5%8E%9F-(patient-rebuilding)?utm_source=api"
+    },
+    {
+      "id": "claystan-m3-63-zhs-nf",
+      "set": "m3",
+      "set_name": "M3",
+      "number": "63",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "",
+      "name_zh": "",
+      "name_printed": "",
+      "type_line": "",
+      "type_line_en": "",
+      "types": [],
+      "mana_cost": "",
+      "cmc": 0,
+      "text": "",
+      "image": {
+        "small": "",
+        "normal": "",
+        "large": ""
+      },
+      "error": "not_found"
     },
     {
       "id": "claystan-mh1-92-en-nf",
@@ -1813,6 +3504,38 @@
       "scryfall_uri": "https://scryfall.com/card/mh2/322/vindicate?utm_source=api"
     },
     {
+      "id": "claystan-mh3-4-zhs-f",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "4",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Echoes of Eternity",
+      "name_zh": "永恒回响",
+      "name_printed": "永恒回响",
+      "type_line": "亲缘结界 — 奥札奇",
+      "type_line_en": "Kindred Enchantment — Eldrazi",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{C}{C}{C}",
+      "cmc": 6.0,
+      "text": "如果由你操控之无色咒语或由你操控之其他无色永久物的某触发式异能触发，则该异能额外触发一次。\n每当你施放无色咒语时，将它复制。你可以为该复制品选择新的目标。（永久物咒语的复制品会成为衍生物。）",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/6/f/6f6fdbec-5dde-4ed7-84b7-45df7c11524f.jpg?1782794275",
+        "normal": "https://cards.scryfall.io/normal/front/6/f/6f6fdbec-5dde-4ed7-84b7-45df7c11524f.jpg?1782794275",
+        "large": "https://cards.scryfall.io/large/front/6/f/6f6fdbec-5dde-4ed7-84b7-45df7c11524f.jpg?1782794275"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/4/zhs/%E6%B0%B8%E6%81%92%E5%9B%9E%E5%93%8D-(echoes-of-eternity)?utm_source=api"
+    },
+    {
       "id": "claystan-mh3-11-zhs-f",
       "set": "mh3",
       "set_name": "Modern Horizons 3",
@@ -2005,6 +3728,70 @@
       "scryfall_uri": "https://scryfall.com/card/mh3/76/ugins-binding?utm_source=api"
     },
     {
+      "id": "claystan-mh3-83-en-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "83",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Chthonian Nightmare",
+      "name_zh": "阴冥魇境",
+      "name_printed": "Chthonian Nightmare",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{B}",
+      "cmc": 2.0,
+      "text": "When this enchantment enters, you get {E}{E}{E} (three energy counters).\nPay X {E}, Sacrifice a creature, Return this enchantment to its owner's hand: Return target creature card with mana value X from your graveyard to the battlefield. Activate only as a sorcery.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/e/ce5dd2c1-b6e0-4914-b5c9-7dd451c29e22.jpg?1782691335",
+        "normal": "https://cards.scryfall.io/normal/front/c/e/ce5dd2c1-b6e0-4914-b5c9-7dd451c29e22.jpg?1782691335",
+        "large": "https://cards.scryfall.io/large/front/c/e/ce5dd2c1-b6e0-4914-b5c9-7dd451c29e22.jpg?1782691335"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/83/chthonian-nightmare?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-83-ja-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "83",
+      "lang": "ja",
+      "lang_label": "日文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Chthonian Nightmare",
+      "name_zh": "阴冥魇境",
+      "name_printed": "黄泉帰る悪夢",
+      "type_line": "エンチャント",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{B}",
+      "cmc": 2.0,
+      "text": "黄泉帰る悪夢が戦場に出たとき、{E}{E}{E}（エネルギー・カウンター３個）を得る。\n{E}Ｘ個を支払う, クリーチャー１体を生け贄に捧げる, 黄泉帰る悪夢をオーナーの手札に戻す：あなたの墓地にありマナ総量がＸであるクリーチャー・カード１枚を対象とする。それを戦場に戻す。起動はソーサリーとしてのみ行う。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/4/148435cc-3bc4-44ad-a2c0-0da0a0d0a670.jpg?1782793794",
+        "normal": "https://cards.scryfall.io/normal/front/1/4/148435cc-3bc4-44ad-a2c0-0da0a0d0a670.jpg?1782793794",
+        "large": "https://cards.scryfall.io/large/front/1/4/148435cc-3bc4-44ad-a2c0-0da0a0d0a670.jpg?1782793794"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/83/ja/%E9%BB%84%E6%B3%89%E5%B8%B0%E3%82%8B%E6%82%AA%E5%A4%A2-(chthonian-nightmare)?utm_source=api"
+    },
+    {
       "id": "claystan-mh3-95-en-f",
       "set": "mh3",
       "set_name": "Modern Horizons 3",
@@ -2067,6 +3854,70 @@
         "large": "https://cards.scryfall.io/large/front/1/9/19efb9ce-62eb-4cbf-b01e-979f3fd09ba6.jpg?1782691323"
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/95/flare-of-malice?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-102-en-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "102",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Necrodominance",
+      "name_zh": "死冥霸权",
+      "name_printed": "Necrodominance",
+      "type_line": "Legendary Enchantment",
+      "type_line_en": "Legendary Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{B}{B}{B}",
+      "cmc": 3.0,
+      "text": "Skip your draw step.\nAt the beginning of your end step, you may pay any amount of life. If you do, draw that many cards.\nYour maximum hand size is five.\nIf a card or token would be put into your graveyard from anywhere, exile it instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/f/ffc0109c-f939-4424-820e-d6e60cacd794.jpg?1782691314",
+        "normal": "https://cards.scryfall.io/normal/front/f/f/ffc0109c-f939-4424-820e-d6e60cacd794.jpg?1782691314",
+        "large": "https://cards.scryfall.io/large/front/f/f/ffc0109c-f939-4424-820e-d6e60cacd794.jpg?1782691314"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/102/necrodominance?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-131-en-f",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "131",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Powerbalance",
+      "name_zh": "冲销",
+      "name_printed": "Powerbalance",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{R}{R}",
+      "cmc": 2.0,
+      "text": "Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, you may cast that card without paying its mana cost if the two spells have the same mana value.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/f/aff7c0bb-1210-4aeb-b5f8-1387eb633b0f.jpg?1782691286",
+        "normal": "https://cards.scryfall.io/normal/front/a/f/aff7c0bb-1210-4aeb-b5f8-1387eb633b0f.jpg?1782691286",
+        "large": "https://cards.scryfall.io/large/front/a/f/aff7c0bb-1210-4aeb-b5f8-1387eb633b0f.jpg?1782691286"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/131/powerbalance?utm_source=api"
     },
     {
       "id": "claystan-mh3-154-en-f",
@@ -2163,6 +4014,38 @@
         "large": "https://cards.scryfall.io/large/front/0/a/0a7c2400-4ba8-4696-b991-1eec77f1fed9.jpg?1782793372"
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/154/zhs/%E6%A0%BD%E5%9F%B9%E7%9C%A9%E9%97%AA-(flare-of-cultivation)?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-166-zhs-f",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "166",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Primal Prayers",
+      "name_zh": "原初祷言",
+      "name_printed": "原初祷言",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{G}{G}",
+      "cmc": 4.0,
+      "text": "当原初祷言进战场时，你得到{E}{E}（两个能量指示物）。\n你可以藉由「支付{E}，而不支付其法术力费用」之方式施放法术力值等于或小于3的生物咒语。如果你以此法施放咒语，则你可以将之视同具有闪现异能地来施放。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/6/3/6353f560-4bc9-4d17-b5fa-fa46b9b5a71d.jpg?1782793300",
+        "normal": "https://cards.scryfall.io/normal/front/6/3/6353f560-4bc9-4d17-b5fa-fa46b9b5a71d.jpg?1782793300",
+        "large": "https://cards.scryfall.io/large/front/6/3/6353f560-4bc9-4d17-b5fa-fa46b9b5a71d.jpg?1782793300"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/166/zhs/%E5%8E%9F%E5%88%9D%E7%A5%B7%E8%A8%80-(primal-prayers)?utm_source=api"
     },
     {
       "id": "claystan-mh3-190-en-f",
@@ -2325,6 +4208,38 @@
       "scryfall_uri": "https://scryfall.com/card/mh3/331/zhs/%E6%81%B6%E6%84%8F%E7%9C%A9%E9%97%AA-(flare-of-malice)?utm_source=api"
     },
     {
+      "id": "claystan-mh3-335-zhs-f",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "335",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Powerbalance",
+      "name_zh": "冲销",
+      "name_printed": "冲销",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{R}{R}",
+      "cmc": 2.0,
+      "text": "每当任一对手施放咒语时，你可以展示你的牌库顶牌。若你如此作，则如果施放该牌所成之咒语的法术力值与对手咒语的法术力值相同，你可以施放该牌，且不需支付其法术力费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/e/1e226dd9-5376-448a-92f6-e5f6d5177d33.jpg?1782792176",
+        "normal": "https://cards.scryfall.io/normal/front/1/e/1e226dd9-5376-448a-92f6-e5f6d5177d33.jpg?1782792176",
+        "large": "https://cards.scryfall.io/large/front/1/e/1e226dd9-5376-448a-92f6-e5f6d5177d33.jpg?1782792176"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/335/zhs/%E5%86%B2%E9%94%80-(powerbalance)?utm_source=api"
+    },
+    {
       "id": "claystan-mh3-391-zhs-f",
       "set": "mh3",
       "set_name": "Modern Horizons 3",
@@ -2355,6 +4270,102 @@
         "large": "https://cards.scryfall.io/large/front/7/8/78bf2ad1-f7c9-42df-b1f5-8a7a18a8473d.jpg?1782791816"
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/391/zhs/%E5%88%9A%E6%AF%85%E7%9C%A9%E9%97%AA-(flare-of-fortitude)?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-406-en-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "406",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Chthonian Nightmare",
+      "name_zh": "阴冥魇境",
+      "name_printed": "Chthonian Nightmare",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{B}",
+      "cmc": 2.0,
+      "text": "When this enchantment enters, you get {E}{E}{E} (three energy counters).\nPay X {E}, Sacrifice a creature, Return this enchantment to its owner's hand: Return target creature card with mana value X from your graveyard to the battlefield. Activate only as a sorcery.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/5/9/59cbd637-30d1-4c3c-95ce-b6c6f9248d15.jpg?1782691018",
+        "normal": "https://cards.scryfall.io/normal/front/5/9/59cbd637-30d1-4c3c-95ce-b6c6f9248d15.jpg?1782691018",
+        "large": "https://cards.scryfall.io/large/front/5/9/59cbd637-30d1-4c3c-95ce-b6c6f9248d15.jpg?1782691018"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/406/chthonian-nightmare?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-411-en-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "411",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 3,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Necrodominance",
+      "name_zh": "死冥霸权",
+      "name_printed": "Necrodominance",
+      "type_line": "Legendary Enchantment",
+      "type_line_en": "Legendary Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{B}{B}{B}",
+      "cmc": 3.0,
+      "text": "Skip your draw step.\nAt the beginning of your end step, you may pay any amount of life. If you do, draw that many cards.\nYour maximum hand size is five.\nIf a card or token would be put into your graveyard from anywhere, exile it instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/8/f810a2d7-efbe-4ea1-83d1-d594a8eaf88b.jpg?1782691013",
+        "normal": "https://cards.scryfall.io/normal/front/f/8/f810a2d7-efbe-4ea1-83d1-d594a8eaf88b.jpg?1782691013",
+        "large": "https://cards.scryfall.io/large/front/f/8/f810a2d7-efbe-4ea1-83d1-d594a8eaf88b.jpg?1782691013"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/411/necrodominance?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-411-zhs-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "411",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Necrodominance",
+      "name_zh": "死冥霸权",
+      "name_printed": "死冥霸权",
+      "type_line": "传奇结界",
+      "type_line_en": "Legendary Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{B}{B}{B}",
+      "cmc": 3.0,
+      "text": "略过你的抓牌步骤。\n在你的结束步骤开始时，你可以支付任意数量的生命。若你如此作，则抓等量的牌。\n你的手牌上限为五张。\n如果某牌或衍生物将从任何区域进入你的坟墓场，则改为将它放逐。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/9/19e0176f-9090-4b94-9ee0-9ac152d1b68e.jpg?1782791696",
+        "normal": "https://cards.scryfall.io/normal/front/1/9/19e0176f-9090-4b94-9ee0-9ac152d1b68e.jpg?1782791696",
+        "large": "https://cards.scryfall.io/large/front/1/9/19e0176f-9090-4b94-9ee0-9ac152d1b68e.jpg?1782791696"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/411/zhs/%E6%AD%BB%E5%86%A5%E9%9C%B8%E6%9D%83-(necrodominance)?utm_source=api"
     },
     {
       "id": "claystan-mh3-425-zhs-nf",
@@ -2485,6 +4496,38 @@
       "scryfall_uri": "https://scryfall.com/card/mkc/137/reanimate?utm_source=api"
     },
     {
+      "id": "claystan-mkm-114-zhs-nf",
+      "set": "mkm",
+      "set_name": "Murders at Karlov Manor",
+      "number": "114",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Case of the Crimson Pulse",
+      "name_zh": "绯红线脉案",
+      "name_printed": "绯红线脉案",
+      "type_line": "结界 — 案件",
+      "type_line_en": "Enchantment — Case",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{R}",
+      "cmc": 3.0,
+      "text": "当此案件进战场时，弃一张牌，然后抓两张牌。\n侦办～你没有手牌。（若本案未侦结，则在你的结束步骤开始时侦办。）\n侦结～在你的维持开始时，弃掉你的手牌，然后抓两张牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/7/4/74cefe5c-cc19-4e5a-8278-0d693c33a010.jpg?1782802462",
+        "normal": "https://cards.scryfall.io/normal/front/7/4/74cefe5c-cc19-4e5a-8278-0d693c33a010.jpg?1782802462",
+        "large": "https://cards.scryfall.io/large/front/7/4/74cefe5c-cc19-4e5a-8278-0d693c33a010.jpg?1782802462"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mkm/114/zhs/%E7%BB%AF%E7%BA%A2%E7%BA%BF%E8%84%89%E6%A1%88-(case-of-the-crimson-pulse)?utm_source=api"
+    },
+    {
       "id": "claystan-mkm-308-zhs-f",
       "set": "mkm",
       "set_name": "Murders at Karlov Manor",
@@ -2515,6 +4558,38 @@
         "large": "https://cards.scryfall.io/large/front/c/4/c4af1fe5-7fb5-4821-adf9-3c4c1a16ff4e.jpg?1782801401"
       },
       "scryfall_uri": "https://scryfall.com/card/mkm/308/zhs/%E5%88%86%E6%9E%90%E8%8A%B1%E7%B2%89-(analyze-the-pollen)?utm_source=api"
+    },
+    {
+      "id": "claystan-mkm-315-ja-nf",
+      "set": "mkm",
+      "set_name": "Murders at Karlov Manor",
+      "number": "315",
+      "lang": "ja",
+      "lang_label": "日文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Warleader's Call",
+      "name_zh": "战领召令",
+      "name_printed": "戦導者の号令",
+      "type_line": "エンチャント",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{R}{W}",
+      "cmc": 3.0,
+      "text": "あなたがコントロールしているすべてのクリーチャーは＋１/＋１の修整を受ける。\nクリーチャー１体があなたのコントロール下で戦場に出るたび、戦導者の号令は各対戦相手にそれぞれ１点のダメージを与える。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/5/e/5e79dbf2-5089-4e15-84f0-8382533f9fc8.jpg?1782801358",
+        "normal": "https://cards.scryfall.io/normal/front/5/e/5e79dbf2-5089-4e15-84f0-8382533f9fc8.jpg?1782801358",
+        "large": "https://cards.scryfall.io/large/front/5/e/5e79dbf2-5089-4e15-84f0-8382533f9fc8.jpg?1782801358"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mkm/315/ja/%E6%88%A6%E5%B0%8E%E8%80%85%E3%81%AE%E5%8F%B7%E4%BB%A4-(warleaders-call)?utm_source=api"
     },
     {
       "id": "claystan-mom-40-en-f",
@@ -2773,6 +4848,38 @@
       "scryfall_uri": "https://scryfall.com/card/neo/111/zhs/%E4%BC%A4%E6%82%B2%E8%A1%8C%E8%BF%9B-(march-of-wretched-sorrow)?utm_source=api"
     },
     {
+      "id": "claystan-neo-303-zhs-nf",
+      "set": "neo",
+      "set_name": "Kamigawa: Neon Dynasty",
+      "number": "303",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "The Wandering Emperor",
+      "name_zh": "飘萍皇",
+      "name_printed": "飘萍皇",
+      "type_line": "传奇鹏洛客",
+      "type_line_en": "Legendary Planeswalker",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{W}{W}",
+      "cmc": 4.0,
+      "text": "闪现\n只要飘萍皇是于本回合进战场，你便可以于你能够施放瞬间的时机下起动她的忠诚异能。\n+1：在至多一个目标生物上放置一个+1/+1指示物。它获得先攻异能直到回合结束。\n−1：派出一个2/2白色，具警戒异能的武士衍生生物。\n−2：放逐目标已横置的生物。你获得2点生命。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/6/261f61d2-8d48-4c1e-97f8-3960345e790a.jpg?1782860925",
+        "normal": "https://cards.scryfall.io/normal/front/2/6/261f61d2-8d48-4c1e-97f8-3960345e790a.jpg?1782860925",
+        "large": "https://cards.scryfall.io/large/front/2/6/261f61d2-8d48-4c1e-97f8-3960345e790a.jpg?1782860925"
+      },
+      "scryfall_uri": "https://scryfall.com/card/neo/303/zhs/%E9%A3%98%E8%90%8D%E7%9A%87-(the-wandering-emperor)?utm_source=api"
+    },
+    {
       "id": "claystan-neo-457-zhs-nf",
       "set": "neo",
       "set_name": "Kamigawa: Neon Dynasty",
@@ -2803,6 +4910,102 @@
         "large": "https://cards.scryfall.io/large/front/9/9/997f9eca-7687-4196-987c-b900eb599caa.jpg?1782860016"
       },
       "scryfall_uri": "https://scryfall.com/card/neo/457/zhs/%E4%BC%A4%E6%82%B2%E8%A1%8C%E8%BF%9B-(march-of-wretched-sorrow)?utm_source=api"
+    },
+    {
+      "id": "claystan-one-34-zhs-nf",
+      "set": "one",
+      "set_name": "Phyrexia: All Will Be One",
+      "number": "34",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Skrelv's Hive",
+      "name_zh": "斯勒夫的巢穴",
+      "name_printed": "斯勒夫的巢穴",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{W}",
+      "cmc": 2.0,
+      "text": "在你的维持开始时，你失去1点生命并派出一个1/1无色非瑞人／虫械衍生神器生物，且具有下毒1与「此生物不能进行阻挡。」\n腐化～只要某对手具有三个或更多中毒指示物，由你操控且具下毒异能的生物便具有系命异能。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/f/1f2735d0-5a86-4b48-9857-00ee9b2e510d.jpg?1782830085",
+        "normal": "https://cards.scryfall.io/normal/front/1/f/1f2735d0-5a86-4b48-9857-00ee9b2e510d.jpg?1782830085",
+        "large": "https://cards.scryfall.io/large/front/1/f/1f2735d0-5a86-4b48-9857-00ee9b2e510d.jpg?1782830085"
+      },
+      "scryfall_uri": "https://scryfall.com/card/one/34/zhs/%E6%96%AF%E5%8B%92%E5%A4%AB%E7%9A%84%E5%B7%A2%E7%A9%B4-(skrelvs-hive)?utm_source=api"
+    },
+    {
+      "id": "claystan-one-363-en-f",
+      "set": "one",
+      "set_name": "Phyrexia: All Will Be One",
+      "number": "363",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Lukka, Bound to Ruin",
+      "name_zh": "命定大劫卢卡",
+      "name_printed": "Lukka, Bound to Ruin",
+      "type_line": "Legendary Planeswalker — Lukka",
+      "type_line_en": "Legendary Planeswalker — Lukka",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{R}{R/G/P}{G}",
+      "cmc": 5.0,
+      "text": "Compleated ({R/G/P} can be paid with {R}, {G}, or 2 life. If life was paid, this planeswalker enters with two fewer loyalty counters.)\n+1: Add {R}{G}. Spend this mana only to cast creature spells or activate abilities of creatures.\n−1: Create a 3/3 green Phyrexian Beast creature token with toxic 1.\n−4: Lukka deals X damage divided as you choose among any number of target creatures and/or planeswalkers, where X is the greatest power among creatures you control as you activate this ability.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/0/f04c1d8c-ddb8-4617-8d59-5427cbde7972.jpg?1782698212",
+        "normal": "https://cards.scryfall.io/normal/front/f/0/f04c1d8c-ddb8-4617-8d59-5427cbde7972.jpg?1782698212",
+        "large": "https://cards.scryfall.io/large/front/f/0/f04c1d8c-ddb8-4617-8d59-5427cbde7972.jpg?1782698212"
+      },
+      "scryfall_uri": "https://scryfall.com/card/one/363/lukka-bound-to-ruin?utm_source=api"
+    },
+    {
+      "id": "claystan-one-376-zhs-f",
+      "set": "one",
+      "set_name": "Phyrexia: All Will Be One",
+      "number": "376",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Skrelv's Hive",
+      "name_zh": "斯勒夫的巢穴",
+      "name_printed": "斯勒夫的巢穴",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{W}",
+      "cmc": 2.0,
+      "text": "在你的维持开始时，你失去1点生命并派出一个1/1无色非瑞人／虫械衍生神器生物，且具有下毒1与「此生物不能进行阻挡。」\n腐化～只要某对手具有三个或更多中毒指示物，由你操控且具下毒异能的生物便具有系命异能。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/a/7/a7824f3b-2747-49da-8468-6a65ce9211b3.jpg?1782828399",
+        "normal": "https://cards.scryfall.io/normal/front/a/7/a7824f3b-2747-49da-8468-6a65ce9211b3.jpg?1782828399",
+        "large": "https://cards.scryfall.io/large/front/a/7/a7824f3b-2747-49da-8468-6a65ce9211b3.jpg?1782828399"
+      },
+      "scryfall_uri": "https://scryfall.com/card/one/376/zhs/%E6%96%AF%E5%8B%92%E5%A4%AB%E7%9A%84%E5%B7%A2%E7%A9%B4-(skrelvs-hive)?utm_source=api"
     },
     {
       "id": "claystan-ons-132-zhs-nf",
@@ -2869,6 +5072,38 @@
       "scryfall_uri": "https://scryfall.com/card/ori/143/zhs/%E7%B2%BE%E5%B7%A7%E7%81%AB%E6%9C%AF-(exquisite-firecraft)?utm_source=api"
     },
     {
+      "id": "claystan-otj-44-zhs-nf",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "44",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 3,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Double Down",
+      "name_zh": "双倍加注",
+      "name_printed": "双倍加注",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{U}",
+      "cmc": 4.0,
+      "text": "每当你施放狂徒咒语时，复制该咒语。（杀手、佣兵、海盗、浪客和邪术师是狂徒。永久物咒语的复制品会成为衍生物。）",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/0/908f0cf2-89ef-4e6a-b63d-d0f694b7bad2.jpg?1782797411",
+        "normal": "https://cards.scryfall.io/normal/front/9/0/908f0cf2-89ef-4e6a-b63d-d0f694b7bad2.jpg?1782797411",
+        "large": "https://cards.scryfall.io/large/front/9/0/908f0cf2-89ef-4e6a-b63d-d0f694b7bad2.jpg?1782797411"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/44/zhs/%E5%8F%8C%E5%80%8D%E5%8A%A0%E6%B3%A8-(double-down)?utm_source=api"
+    },
+    {
       "id": "claystan-otj-91-zhs-f",
       "set": "otj",
       "set_name": "Outlaws of Thunder Junction",
@@ -2899,6 +5134,70 @@
         "large": "https://cards.scryfall.io/large/front/f/0/f0c1b04d-4366-44f8-9e68-5807eb148328.jpg?1782797169"
       },
       "scryfall_uri": "https://scryfall.com/card/otj/91/zhs/%E6%97%A0%E9%AD%87%E8%B4%AA%E6%AC%B2-(insatiable-avarice)?utm_source=api"
+    },
+    {
+      "id": "claystan-otj-223-en-nf",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "223",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Oko, the Ringleader",
+      "name_zh": "魁首瓯柯",
+      "name_printed": "Oko, the Ringleader",
+      "type_line": "Legendary Planeswalker — Oko",
+      "type_line_en": "Legendary Planeswalker — Oko",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{G}{U}",
+      "cmc": 4.0,
+      "text": "At the beginning of combat on your turn, Oko becomes a copy of up to one target creature you control until end of turn, except he has hexproof.\n+1: Draw two cards. If you've committed a crime this turn, discard a card. Otherwise, discard two cards.\n−1: Create a 3/3 green Elk creature token.\n−5: For each other nonland permanent you control, create a token that's a copy of that permanent.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/9/396df8d6-e85d-4486-8116-68841b7e1e2e.jpg?1782691967",
+        "normal": "https://cards.scryfall.io/normal/front/3/9/396df8d6-e85d-4486-8116-68841b7e1e2e.jpg?1782691967",
+        "large": "https://cards.scryfall.io/large/front/3/9/396df8d6-e85d-4486-8116-68841b7e1e2e.jpg?1782691967"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/223/oko-the-ringleader?utm_source=api"
+    },
+    {
+      "id": "claystan-otj-223-zhs-nf",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "223",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Oko, the Ringleader",
+      "name_zh": "魁首瓯柯",
+      "name_printed": "魁首瓯柯",
+      "type_line": "传奇鹏洛客 — 瓯柯",
+      "type_line_en": "Legendary Planeswalker — Oko",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{G}{U}",
+      "cmc": 4.0,
+      "text": "在你回合的战斗开始时，魁首瓯柯成为至多一个目标由你操控的生物之复制品直到回合结束，但他具有辟邪异能。\n+1：抓两张牌。如果你本回合中曾犯下罪行，弃一张牌。若否，则弃两张牌。\n-1：派出一个3/3绿色麋鹿衍生生物。\n−5：对每个由你操控的其他非地永久物而言，派出一个为该永久物之复制品的衍生物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/b/d/bd87b673-6543-4461-a3a3-9b8d586da501.jpg?1782796439",
+        "normal": "https://cards.scryfall.io/normal/front/b/d/bd87b673-6543-4461-a3a3-9b8d586da501.jpg?1782796439",
+        "large": "https://cards.scryfall.io/large/front/b/d/bd87b673-6543-4461-a3a3-9b8d586da501.jpg?1782796439"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/223/zhs/%E9%AD%81%E9%A6%96%E7%93%AF%E6%9F%AF-(oko-the-ringleader)?utm_source=api"
     },
     {
       "id": "claystan-otj-224-en-f",
@@ -2997,6 +5296,134 @@
       "scryfall_uri": "https://scryfall.com/card/otj/224/zhs/%E6%8E%A0%E5%A4%BA%E8%85%90%E6%B2%BC-(pillage-the-bog)?utm_source=api"
     },
     {
+      "id": "claystan-otj-271-en-f",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "271",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Jace Reawakened",
+      "name_zh": "重新觉醒的杰斯",
+      "name_printed": "Jace Reawakened",
+      "type_line": "Legendary Planeswalker — Jace",
+      "type_line_en": "Legendary Planeswalker — Jace",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{U}{U}",
+      "cmc": 2.0,
+      "text": "You can't cast Jace Reawakened during your first, second, or third turns of the game.\n+1: Draw a card, then discard a card.\n+1: You may exile a nonland card with mana value 3 or less from your hand. If you do, it becomes plotted.\n−6: Until end of turn, whenever you cast a spell, copy it. You may choose new targets for the copy.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/d/fd17e8d4-499e-4005-ae3c-bc9c44dc5a67.jpg?1782691926",
+        "normal": "https://cards.scryfall.io/normal/front/f/d/fd17e8d4-499e-4005-ae3c-bc9c44dc5a67.jpg?1782691926",
+        "large": "https://cards.scryfall.io/large/front/f/d/fd17e8d4-499e-4005-ae3c-bc9c44dc5a67.jpg?1782691926"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/271/jace-reawakened?utm_source=api"
+    },
+    {
+      "id": "claystan-otj-271-en-nf",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "271",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Jace Reawakened",
+      "name_zh": "重新觉醒的杰斯",
+      "name_printed": "Jace Reawakened",
+      "type_line": "Legendary Planeswalker — Jace",
+      "type_line_en": "Legendary Planeswalker — Jace",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{U}{U}",
+      "cmc": 2.0,
+      "text": "You can't cast Jace Reawakened during your first, second, or third turns of the game.\n+1: Draw a card, then discard a card.\n+1: You may exile a nonland card with mana value 3 or less from your hand. If you do, it becomes plotted.\n−6: Until end of turn, whenever you cast a spell, copy it. You may choose new targets for the copy.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/d/fd17e8d4-499e-4005-ae3c-bc9c44dc5a67.jpg?1782691926",
+        "normal": "https://cards.scryfall.io/normal/front/f/d/fd17e8d4-499e-4005-ae3c-bc9c44dc5a67.jpg?1782691926",
+        "large": "https://cards.scryfall.io/large/front/f/d/fd17e8d4-499e-4005-ae3c-bc9c44dc5a67.jpg?1782691926"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/271/jace-reawakened?utm_source=api"
+    },
+    {
+      "id": "claystan-otj-296-en-nf",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "296",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Oko, the Ringleader",
+      "name_zh": "魁首瓯柯",
+      "name_printed": "Oko, the Ringleader",
+      "type_line": "Legendary Planeswalker — Oko",
+      "type_line_en": "Legendary Planeswalker — Oko",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{G}{U}",
+      "cmc": 4.0,
+      "text": "At the beginning of combat on your turn, Oko becomes a copy of up to one target creature you control until end of turn, except he has hexproof.\n+1: Draw two cards. If you've committed a crime this turn, discard a card. Otherwise, discard two cards.\n−1: Create a 3/3 green Elk creature token.\n−5: For each other nonland permanent you control, create a token that's a copy of that permanent.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/c/9c025072-0d0a-4ca7-a386-f1ed7c97638b.jpg?1782691901",
+        "normal": "https://cards.scryfall.io/normal/front/9/c/9c025072-0d0a-4ca7-a386-f1ed7c97638b.jpg?1782691901",
+        "large": "https://cards.scryfall.io/large/front/9/c/9c025072-0d0a-4ca7-a386-f1ed7c97638b.jpg?1782691901"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/296/oko-the-ringleader?utm_source=api"
+    },
+    {
+      "id": "claystan-otj-306-zhs-nf",
+      "set": "otj",
+      "set_name": "Outlaws of Thunder Junction",
+      "number": "306",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Jace Reawakened",
+      "name_zh": "重新觉醒的杰斯",
+      "name_printed": "重新觉醒的杰斯",
+      "type_line": "传奇鹏洛客 — 杰斯",
+      "type_line_en": "Legendary Planeswalker — Jace",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{U}{U}",
+      "cmc": 2.0,
+      "text": "本盘游戏中，你在你的第一，第二或第三回合都不能施放此咒语。\n+1：抓一张牌，然后弃一张牌。\n+1：你可以从你手上放逐一张法术力值等于或小于3的非地牌。若你如此作，则它成为已设谋。\n−6：直到回合结束，每当你施放咒语时，将它复制。你可以为该复制品选择新的目标。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/e/3e87cb97-2d66-49db-a053-946d980ef3b4.jpg?1782795978",
+        "normal": "https://cards.scryfall.io/normal/front/3/e/3e87cb97-2d66-49db-a053-946d980ef3b4.jpg?1782795978",
+        "large": "https://cards.scryfall.io/large/front/3/e/3e87cb97-2d66-49db-a053-946d980ef3b4.jpg?1782795978"
+      },
+      "scryfall_uri": "https://scryfall.com/card/otj/306/zhs/%E9%87%8D%E6%96%B0%E8%A7%89%E9%86%92%E7%9A%84%E6%9D%B0%E6%96%AF-(jace-reawakened)?utm_source=api"
+    },
+    {
       "id": "claystan-p30a-6-en-f",
       "set": "p30a",
       "set_name": "30th Anniversary Play Promos",
@@ -3029,6 +5456,70 @@
       "scryfall_uri": "https://scryfall.com/card/p30a/6/windfall?utm_source=api"
     },
     {
+      "id": "claystan-pip-58-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "58",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Grim Reaper's Sprint",
+      "name_zh": "死神的冲刺",
+      "name_printed": "死神的冲刺",
+      "type_line": "结界 — 灵气",
+      "type_line_en": "Enchantment — Aura",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{4}{R}",
+      "cmc": 5.0,
+      "text": "丧心～如果本回合中有生物死去，则此咒语减少{3}来施放。\n结附于生物\n当死神的冲刺进战场时，重置所有由你操控的生物。若当前是你的行动阶段，则在此阶段后额外多出一个战斗阶段。\n所结附的生物得+2/+2且具有敏捷异能。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/7/d75f0b7f-8489-4ac2-a8ad-65690d46a2b5.jpg?1782800606",
+        "normal": "https://cards.scryfall.io/normal/front/d/7/d75f0b7f-8489-4ac2-a8ad-65690d46a2b5.jpg?1782800606",
+        "large": "https://cards.scryfall.io/large/front/d/7/d75f0b7f-8489-4ac2-a8ad-65690d46a2b5.jpg?1782800606"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/58/zhs/%E6%AD%BB%E7%A5%9E%E7%9A%84%E5%86%B2%E5%88%BA-(grim-reapers-sprint)?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-72-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "72",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Animal Friend",
+      "name_zh": "动物朋友",
+      "name_printed": "动物朋友",
+      "type_line": "结界 — 灵气",
+      "type_line_en": "Enchantment — Aura",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{G}",
+      "cmc": 2.0,
+      "text": "结附于生物\n所结附的生物具有「每当此生物攻击时，派出一个1/1绿色松鼠衍生生物。此生物上每贴附一个动物朋友以外的灵气和武具，便在该衍生物上放置一个+1/+1指示物。」",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/6/265f0994-768b-44b4-bf01-91aeed48386e.jpg?1782800548",
+        "normal": "https://cards.scryfall.io/normal/front/2/6/265f0994-768b-44b4-bf01-91aeed48386e.jpg?1782800548",
+        "large": "https://cards.scryfall.io/large/front/2/6/265f0994-768b-44b4-bf01-91aeed48386e.jpg?1782800548"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/72/zhs/%E5%8A%A8%E7%89%A9%E6%9C%8B%E5%8F%8B-(animal-friend)?utm_source=api"
+    },
+    {
       "id": "claystan-pip-184-zhs-f",
       "set": "pip",
       "set_name": "Fallout",
@@ -3059,6 +5550,38 @@
         "large": "https://cards.scryfall.io/large/front/c/6/c611062f-5fec-4dee-8c77-d470b2e16d76.jpg?1782800080"
       },
       "scryfall_uri": "https://scryfall.com/card/pip/184/zhs/%E8%87%B4%E5%91%BD%E4%BA%89%E6%89%A7-(deadly-dispute)?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-195-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "195",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Branching Evolution",
+      "name_zh": "分枝演化",
+      "name_printed": "分枝演化",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{G}",
+      "cmc": 3.0,
+      "text": "如果将在某个由你操控的生物上放置一个或数个+1/+1指示物，则改为在该生物上放置该数量两倍的+1/+1指示物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/5/4/54167b15-8e84-4f50-be17-74401f43cfe7.jpg?1782800036",
+        "normal": "https://cards.scryfall.io/normal/front/5/4/54167b15-8e84-4f50-be17-74401f43cfe7.jpg?1782800036",
+        "large": "https://cards.scryfall.io/large/front/5/4/54167b15-8e84-4f50-be17-74401f43cfe7.jpg?1782800036"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/195/zhs/%E5%88%86%E6%9E%9D%E6%BC%94%E5%8C%96-(branching-evolution)?utm_source=api"
     },
     {
       "id": "claystan-pip-331-zhs-f",
@@ -3123,6 +5646,102 @@
         "large": "https://cards.scryfall.io/large/front/e/1/e10baf80-8b2f-47e0-a859-b7ba0059b16e.jpg?1782799440"
       },
       "scryfall_uri": "https://scryfall.com/card/pip/353/zhs/%E5%91%8A%E5%88%AB-(farewell)?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-380-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "380",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Struggle for Project Purity",
+      "name_zh": "净水计划争夺战",
+      "name_printed": "净水计划争夺战",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{U}",
+      "cmc": 4.0,
+      "text": "于净水计划争夺战进战场时，选择兄弟会或英克雷。\n•兄弟会～在你的维持开始时，每位对手各抓一张牌。所有牌手每以此法抓一张牌，你便抓一张牌。\n•英克雷～每当任一牌手以一个或数个生物攻击你时，该牌手得到该数量两倍的拉德指示物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/d/2d25d66e-3b7b-46e9-9935-6ac5dcd47544.jpg?1782799405",
+        "normal": "https://cards.scryfall.io/normal/front/2/d/2d25d66e-3b7b-46e9-9935-6ac5dcd47544.jpg?1782799405",
+        "large": "https://cards.scryfall.io/large/front/2/d/2d25d66e-3b7b-46e9-9935-6ac5dcd47544.jpg?1782799405"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/380/zhs/%E5%87%80%E6%B0%B4%E8%AE%A1%E5%88%92%E4%BA%89%E5%A4%BA%E6%88%98-(struggle-for-project-purity)?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-460-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "460",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Inexorable Tide",
+      "name_zh": "难阻浪潮",
+      "name_printed": "难阻浪潮",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{U}{U}",
+      "cmc": 5.0,
+      "text": "每当你施放咒语时，增殖。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/5/5/55a25647-0c65-4d92-a5bb-77aa019f1ba9.jpg?1782799283",
+        "normal": "https://cards.scryfall.io/normal/front/5/5/55a25647-0c65-4d92-a5bb-77aa019f1ba9.jpg?1782799283",
+        "large": "https://cards.scryfall.io/large/front/5/5/55a25647-0c65-4d92-a5bb-77aa019f1ba9.jpg?1782799283"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/460/zhs/%E9%9A%BE%E9%98%BB%E6%B5%AA%E6%BD%AE-(inexorable-tide)?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-651-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "651",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Vault 112: Sadistic Simulation",
+      "name_zh": "Vault 112: Sadistic Simulation",
+      "name_printed": "Vault 112: Sadistic Simulation",
+      "type_line": "Enchantment — Saga",
+      "type_line_en": "Enchantment — Saga",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{U}{R}",
+      "cmc": 4.0,
+      "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.)\nI, II — Tap up to one target creature and put a stun counter on it. You get {E}{E} (two energy counters).\nIII — Pay any amount of {E}. If you paid one or more {E} this way, shuffle your library, then exile that many cards from the top. You may play one of those cards without paying its mana cost.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/3/93922262-f4db-4cdb-b6e5-bd05a1f9172c.jpg?1782692869",
+        "normal": "https://cards.scryfall.io/normal/front/9/3/93922262-f4db-4cdb-b6e5-bd05a1f9172c.jpg?1782692869",
+        "large": "https://cards.scryfall.io/large/front/9/3/93922262-f4db-4cdb-b6e5-bd05a1f9172c.jpg?1782692869"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/651/vault-112:-sadistic-simulation?utm_source=api"
     },
     {
       "id": "claystan-pip-701-zhs-f",
@@ -3219,6 +5838,70 @@
         "large": "https://cards.scryfall.io/large/front/7/0/7092139a-f0ad-42fd-83f2-058650c01553.jpg?1782692794"
       },
       "scryfall_uri": "https://scryfall.com/card/pip/746/heroic-reinforcements?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-895-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "895",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Overencumbered",
+      "name_zh": "Overencumbered",
+      "name_printed": "Overencumbered",
+      "type_line": "Enchantment — Aura",
+      "type_line_en": "Enchantment — Aura",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{W}",
+      "cmc": 2.0,
+      "text": "Enchant opponent\nWhen this Aura enters, enchanted opponent creates a Clue token, a Food token, and a Junk token.\nAt the beginning of combat on enchanted opponent's turn, that player may pay {1} for each artifact they control. If they don't, creatures can't attack this combat.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/8/9/899ce2c9-b2aa-47c9-ae6e-480c9733e5bb.jpg?1782692674",
+        "normal": "https://cards.scryfall.io/normal/front/8/9/899ce2c9-b2aa-47c9-ae6e-480c9733e5bb.jpg?1782692674",
+        "large": "https://cards.scryfall.io/large/front/8/9/899ce2c9-b2aa-47c9-ae6e-480c9733e5bb.jpg?1782692674"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/895/overencumbered?utm_source=api"
+    },
+    {
+      "id": "claystan-pip-988-zhs-f",
+      "set": "pip",
+      "set_name": "Fallout",
+      "number": "988",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Inexorable Tide",
+      "name_zh": "Inexorable Tide",
+      "name_printed": "Inexorable Tide",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{U}{U}",
+      "cmc": 5.0,
+      "text": "Whenever you cast a spell, proliferate. (Choose any number of permanents and/or players, then give each another counter of each kind already there.)",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/2/7/27fd7775-da74-4312-9b2d-c4721ee179cb.jpg?1782692598",
+        "normal": "https://cards.scryfall.io/normal/front/2/7/27fd7775-da74-4312-9b2d-c4721ee179cb.jpg?1782692598",
+        "large": "https://cards.scryfall.io/large/front/2/7/27fd7775-da74-4312-9b2d-c4721ee179cb.jpg?1782692598"
+      },
+      "scryfall_uri": "https://scryfall.com/card/pip/988/inexorable-tide?utm_source=api"
     },
     {
       "id": "claystan-plst-DD2-23-en-nf",
@@ -3957,6 +6640,38 @@
       "scryfall_uri": "https://scryfall.com/card/stx/244/ja/%E6%B6%88%E5%A4%B1%E3%81%AE%E8%A9%A9%E5%8F%A5-(vanishing-verse)?utm_source=api"
     },
     {
+      "id": "claystan-tdm-352-en-nf",
+      "set": "tdm",
+      "set_name": "Tarkir: Dragonstorm",
+      "number": "352",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "All-Out Assault",
+      "name_zh": "全军突袭",
+      "name_printed": "All-Out Assault",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{R}{W}{B}",
+      "cmc": 5.0,
+      "text": "Creatures you control get +1/+1 and have deathtouch.\nWhen this enchantment enters, if it's your main phase, there is an additional combat phase after this phase followed by an additional main phase. When you next attack this turn, untap each creature you control.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/0/e0febe8c-7e00-485a-bd06-1d7c4d4e816e.jpg?1782687017",
+        "normal": "https://cards.scryfall.io/normal/front/e/0/e0febe8c-7e00-485a-bd06-1d7c4d4e816e.jpg?1782687017",
+        "large": "https://cards.scryfall.io/large/front/e/0/e0febe8c-7e00-485a-bd06-1d7c4d4e816e.jpg?1782687017"
+      },
+      "scryfall_uri": "https://scryfall.com/card/tdm/352/all-out-assault?utm_source=api"
+    },
+    {
       "id": "claystan-ths-205-zhs-f",
       "set": "ths",
       "set_name": "Theros",
@@ -4019,6 +6734,38 @@
         "large": "https://cards.scryfall.io/large/front/9/0/9079c93e-3da8-442a-89d2-609a3eac83b0.jpg?1782741906"
       },
       "scryfall_uri": "https://scryfall.com/card/tsr/52/ancestral-vision?utm_source=api"
+    },
+    {
+      "id": "claystan-tsr-220-zhs-f",
+      "set": "tsr",
+      "set_name": "Time Spiral Remastered",
+      "number": "220",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Muraganda Petroglyphs",
+      "name_zh": "莫甘达岩画",
+      "name_printed": "莫甘达岩画",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{G}",
+      "cmc": 4.0,
+      "text": "没有异能的生物得+2/+2。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/6/b/6b7e66d8-4bb9-4dbe-8630-b3cac11f8057.jpg?1782889720",
+        "normal": "https://cards.scryfall.io/normal/front/6/b/6b7e66d8-4bb9-4dbe-8630-b3cac11f8057.jpg?1782889720",
+        "large": "https://cards.scryfall.io/large/front/6/b/6b7e66d8-4bb9-4dbe-8630-b3cac11f8057.jpg?1782889720"
+      },
+      "scryfall_uri": "https://scryfall.com/card/tsr/220/zhs/%E8%8E%AB%E7%94%98%E8%BE%BE%E5%B2%A9%E7%94%BB-(muraganda-petroglyphs)?utm_source=api"
     },
     {
       "id": "claystan-tsr-234-zhs-nf",
@@ -4085,6 +6832,70 @@
       "scryfall_uri": "https://scryfall.com/card/tsr/334/zhs/%E6%94%AB%E5%8F%96%E6%80%9D%E7%BB%AA-(thoughtseize)?utm_source=api"
     },
     {
+      "id": "claystan-unf-452-en-f",
+      "set": "unf",
+      "set_name": "Unfinity",
+      "number": "452",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Comet, Stellar Pup",
+      "name_zh": "星际飞狗慧慧",
+      "name_printed": "Comet, Stellar Pup",
+      "type_line": "Legendary Planeswalker — Comet",
+      "type_line_en": "Legendary Planeswalker — Comet",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{R}{W}",
+      "cmc": 4.0,
+      "text": "0: Roll a six-sided die.\n1 or 2 — [+2], then create two 1/1 green Squirrel creature tokens. They gain haste until end of turn.\n3 — [−1], then return a card with mana value 2 or less from your graveyard to your hand.\n4 or 5 — Comet deals damage equal to the number of loyalty counters on him to a creature or player, then [−2].\n6 — [+1], and you may activate Comet's loyalty ability two more times this turn.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/f/0f25e571-402b-4caa-afd8-562dff0ef341.jpg?1782736669",
+        "normal": "https://cards.scryfall.io/normal/front/0/f/0f25e571-402b-4caa-afd8-562dff0ef341.jpg?1782736669",
+        "large": "https://cards.scryfall.io/large/front/0/f/0f25e571-402b-4caa-afd8-562dff0ef341.jpg?1782736669"
+      },
+      "scryfall_uri": "https://scryfall.com/card/unf/452/comet-stellar-pup?utm_source=api"
+    },
+    {
+      "id": "claystan-vow-131-en-f",
+      "set": "vow",
+      "set_name": "Innistrad: Crimson Vow",
+      "number": "131",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Sorin the Mirthless",
+      "name_zh": "阴郁的索霖",
+      "name_printed": "Sorin the Mirthless",
+      "type_line": "Legendary Planeswalker — Sorin",
+      "type_line_en": "Legendary Planeswalker — Sorin",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{B}{B}",
+      "cmc": 4.0,
+      "text": "+1: Look at the top card of your library. You may reveal that card and put it into your hand. If you do, you lose life equal to its mana value.\n−2: Create a 2/3 black Vampire creature token with flying and lifelink.\n−7: Sorin deals 13 damage to any target. You gain 13 life.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/c/cc7ff5f4-a7cc-41a1-a22b-8cf67ad18707.jpg?1782703098",
+        "normal": "https://cards.scryfall.io/normal/front/c/c/cc7ff5f4-a7cc-41a1-a22b-8cf67ad18707.jpg?1782703098",
+        "large": "https://cards.scryfall.io/large/front/c/c/cc7ff5f4-a7cc-41a1-a22b-8cf67ad18707.jpg?1782703098"
+      },
+      "scryfall_uri": "https://scryfall.com/card/vow/131/sorin-the-mirthless?utm_source=api"
+    },
+    {
       "id": "claystan-vow-387-en-nf",
       "set": "vow",
       "set_name": "Innistrad: Crimson Vow",
@@ -4115,6 +6926,38 @@
         "large": "https://cards.scryfall.io/large/front/0/7/078d0194-0137-45cd-977a-eefae67f9bca.jpg?1782702914"
       },
       "scryfall_uri": "https://scryfall.com/card/vow/387/dig-up?utm_source=api"
+    },
+    {
+      "id": "claystan-war-211-ja-f",
+      "set": "war",
+      "set_name": "War of the Spark",
+      "number": "211",
+      "lang": "ja",
+      "lang_label": "日文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Ral, Storm Conduit",
+      "name_zh": "召雷拉尔",
+      "name_printed": "嵐の伝導者、ラル",
+      "type_line": "伝説のプレインズウォーカー — ラル",
+      "type_line_en": "Legendary Planeswalker — Ral",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{2}{U}{R}",
+      "cmc": 4.0,
+      "text": "あなたがインスタントやソーサリーである呪文を唱えるかコピーするたび、対戦相手１人かプレインズウォーカー１体を対象とする。嵐の伝導者、ラルはそれに１点のダメージを与える。\n+2：占術１を行う。\n-2：このターン、あなたが次にインスタントやソーサリーである呪文を唱えたとき、その呪文をコピーする。あなたはそのコピーの新しい対象を選んでもよい。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/8/6/86f7004f-91e8-4058-9ed9-23ffaee325e9.jpg?1782920839",
+        "normal": "https://cards.scryfall.io/normal/front/8/6/86f7004f-91e8-4058-9ed9-23ffaee325e9.jpg?1782920839",
+        "large": "https://cards.scryfall.io/large/front/8/6/86f7004f-91e8-4058-9ed9-23ffaee325e9.jpg?1782920839"
+      },
+      "scryfall_uri": "https://scryfall.com/card/war/211/ja/%E5%B5%90%E3%81%AE%E4%BC%9D%E5%B0%8E%E8%80%85%E3%80%81%E3%83%A9%E3%83%AB-(ral-storm-conduit)?utm_source=api"
     },
     {
       "id": "claystan-woe-87-en-f",
@@ -4179,6 +7022,519 @@
         "large": "https://cards.scryfall.io/large/front/6/9/690d2270-5905-4989-bf57-75acadb3f796.jpg?1782814216"
       },
       "scryfall_uri": "https://scryfall.com/card/woe/87/zhs/%E6%95%85%E4%BA%8B%E7%BB%93%E5%B1%80-(the-end)?utm_source=api"
+    },
+    {
+      "id": "claystan-woe-281-zhs-nf",
+      "set": "woe",
+      "set_name": "Wilds of Eldraine",
+      "number": "281",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Virtue of Persistence // Locthwain Scorn",
+      "name_zh": "Virtue of Persistence // Locthwain Scorn",
+      "name_printed": "Virtue of Persistence // Locthwain Scorn",
+      "type_line": "Enchantment // Sorcery — Adventure",
+      "type_line_en": "Enchantment // Sorcery — Adventure",
+      "types": [
+        "sorcery",
+        "enchantment"
+      ],
+      "mana_cost": "{5}{B}{B} // {1}{B}",
+      "cmc": 7.0,
+      "text": "At the beginning of your upkeep, put target creature card from a graveyard onto the battlefield under your control.\n//\nTarget creature gets -3/-3 until end of turn. You gain 2 life.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/3/337393e3-9081-4251-b4ca-afd7ce10dc99.jpg?1782696457",
+        "normal": "https://cards.scryfall.io/normal/front/3/3/337393e3-9081-4251-b4ca-afd7ce10dc99.jpg?1782696457",
+        "large": "https://cards.scryfall.io/large/front/3/3/337393e3-9081-4251-b4ca-afd7ce10dc99.jpg?1782696457"
+      },
+      "scryfall_uri": "https://scryfall.com/card/woe/281/virtue-of-persistence-locthwain-scorn?utm_source=api"
+    },
+    {
+      "id": "claystan-woe-297-en-f",
+      "set": "woe",
+      "set_name": "Wilds of Eldraine",
+      "number": "297",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Ashiok, Wicked Manipulator",
+      "name_zh": "弄恶安梭苛",
+      "name_printed": "Ashiok, Wicked Manipulator",
+      "type_line": "Legendary Planeswalker — Ashiok",
+      "type_line_en": "Legendary Planeswalker — Ashiok",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{3}{B}{B}",
+      "cmc": 5.0,
+      "text": "If you would pay life while your library has at least that many cards in it, exile that many cards from the top of your library instead.\n+1: Look at the top two cards of your library. Exile one of them and put the other into your hand.\n−2: Create two 1/1 black Nightmare creature tokens with \"At the beginning of combat on your turn, if a card was put into exile this turn, put a +1/+1 counter on this token.\"\n−7: Target player exiles the top X cards of their library, where X is the total mana value of cards you own in exile.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/d/dd6f57de-21af-4c25-8a21-df3a75157939.jpg?1782696441",
+        "normal": "https://cards.scryfall.io/normal/front/d/d/dd6f57de-21af-4c25-8a21-df3a75157939.jpg?1782696441",
+        "large": "https://cards.scryfall.io/large/front/d/d/dd6f57de-21af-4c25-8a21-df3a75157939.jpg?1782696441"
+      },
+      "scryfall_uri": "https://scryfall.com/card/woe/297/ashiok-wicked-manipulator?utm_source=api"
+    },
+    {
+      "id": "claystan-woe-297-zhs-f",
+      "set": "woe",
+      "set_name": "Wilds of Eldraine",
+      "number": "297",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Ashiok, Wicked Manipulator",
+      "name_zh": "弄恶安梭苛",
+      "name_printed": "弄恶安梭苛",
+      "type_line": "传奇鹏洛客 — 安梭苛",
+      "type_line_en": "Legendary Planeswalker — Ashiok",
+      "types": [
+        "planeswalker"
+      ],
+      "mana_cost": "{3}{B}{B}",
+      "cmc": 5.0,
+      "text": "如果你将支付生命时你牌库中有至少相同数量的牌，则改为从你牌库顶放逐等量的牌。\n+1：检视你牌库顶的两张牌。将其中一张放逐，另一张则置于你手上。\n−2：派出两个1/1黑色梦魇衍生生物，且具有「在你回合的战斗开始时，若本回合中有牌进入放逐区，则在此生物上放置一个+1/+1指示物。」\n−7：目标牌手放逐其牌库顶的X张牌，X为放逐区中由你拥有之牌的法术力值总和。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/3/0/30dda817-1c56-4977-b852-2064ae01ac0f.jpg?1782813214",
+        "normal": "https://cards.scryfall.io/normal/front/3/0/30dda817-1c56-4977-b852-2064ae01ac0f.jpg?1782813214",
+        "large": "https://cards.scryfall.io/large/front/3/0/30dda817-1c56-4977-b852-2064ae01ac0f.jpg?1782813214"
+      },
+      "scryfall_uri": "https://scryfall.com/card/woe/297/zhs/%E5%BC%84%E6%81%B6%E5%AE%89%E6%A2%AD%E8%8B%9B-(ashiok-wicked-manipulator)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-9-zhs-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "9",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Land Tax",
+      "name_zh": "抽地税",
+      "name_printed": "抽地税",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{W}",
+      "cmc": 1.0,
+      "text": "在你的维持开始时，若某对手操控的地比你多，则你可以从你牌库中搜寻至多三张基本地牌，展示这些牌，将它们置于你手上，然后洗牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/8/e817487b-3d18-4715-8d1e-91ad03cbca11.jpg?1782812241",
+        "normal": "https://cards.scryfall.io/normal/front/e/8/e817487b-3d18-4715-8d1e-91ad03cbca11.jpg?1782812241",
+        "large": "https://cards.scryfall.io/large/front/e/8/e817487b-3d18-4715-8d1e-91ad03cbca11.jpg?1782812241"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/9/zhs/%E6%8A%BD%E5%9C%B0%E7%A8%8E-(land-tax)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-10-zhs-f",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "10",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Leyline of Sanctity",
+      "name_zh": "圣洁地脉",
+      "name_printed": "圣洁地脉",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}{W}",
+      "cmc": 4.0,
+      "text": "如果你的起手牌中包含了圣洁地脉，则你可以让它在战场上来开始游戏。\n你具有辟邪异能。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/8/182eef67-c320-4d45-b73f-b25127154953.jpg?1782812234",
+        "normal": "https://cards.scryfall.io/normal/front/1/8/182eef67-c320-4d45-b73f-b25127154953.jpg?1782812234",
+        "large": "https://cards.scryfall.io/large/front/1/8/182eef67-c320-4d45-b73f-b25127154953.jpg?1782812234"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/10/zhs/%E5%9C%A3%E6%B4%81%E5%9C%B0%E8%84%89-(leyline-of-sanctity)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-10-zhs-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "10",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Leyline of Sanctity",
+      "name_zh": "圣洁地脉",
+      "name_printed": "圣洁地脉",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{2}{W}{W}",
+      "cmc": 4.0,
+      "text": "如果你的起手牌中包含了圣洁地脉，则你可以让它在战场上来开始游戏。\n你具有辟邪异能。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/8/182eef67-c320-4d45-b73f-b25127154953.jpg?1782812234",
+        "normal": "https://cards.scryfall.io/normal/front/1/8/182eef67-c320-4d45-b73f-b25127154953.jpg?1782812234",
+        "large": "https://cards.scryfall.io/large/front/1/8/182eef67-c320-4d45-b73f-b25127154953.jpg?1782812234"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/10/zhs/%E5%9C%A3%E6%B4%81%E5%9C%B0%E8%84%89-(leyline-of-sanctity)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-24-zhs-f",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "24",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Omniscience",
+      "name_zh": "全知全能",
+      "name_printed": "全知全能",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{7}{U}{U}{U}",
+      "cmc": 10.0,
+      "text": "你可以从你手上施放咒语，且不需支付其法术力费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/c/1ccaa554-33a1-4cb9-99f3-9ea57e4da111.jpg?1782812165",
+        "normal": "https://cards.scryfall.io/normal/front/1/c/1ccaa554-33a1-4cb9-99f3-9ea57e4da111.jpg?1782812165",
+        "large": "https://cards.scryfall.io/large/front/1/c/1ccaa554-33a1-4cb9-99f3-9ea57e4da111.jpg?1782812165"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/24/zhs/%E5%85%A8%E7%9F%A5%E5%85%A8%E8%83%BD-(omniscience)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-24-zhs-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "24",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Omniscience",
+      "name_zh": "全知全能",
+      "name_printed": "全知全能",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{7}{U}{U}{U}",
+      "cmc": 10.0,
+      "text": "你可以从你手上施放咒语，且不需支付其法术力费用。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/1/c/1ccaa554-33a1-4cb9-99f3-9ea57e4da111.jpg?1782812165",
+        "normal": "https://cards.scryfall.io/normal/front/1/c/1ccaa554-33a1-4cb9-99f3-9ea57e4da111.jpg?1782812165",
+        "large": "https://cards.scryfall.io/large/front/1/c/1ccaa554-33a1-4cb9-99f3-9ea57e4da111.jpg?1782812165"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/24/zhs/%E5%85%A8%E7%9F%A5%E5%85%A8%E8%83%BD-(omniscience)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-34-zhs-f",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "34",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Polluted Bonds",
+      "name_zh": "污物羁绊",
+      "name_printed": "污物羁绊",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{B}{B}",
+      "cmc": 5.0,
+      "text": "每当一个地在对手操控下进战场时，该牌手失去2点生命且你获得2点生命。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/b/4/b4556b45-632e-467d-9e07-01b346b90c49.jpg?1782812114",
+        "normal": "https://cards.scryfall.io/normal/front/b/4/b4556b45-632e-467d-9e07-01b346b90c49.jpg?1782812114",
+        "large": "https://cards.scryfall.io/large/front/b/4/b4556b45-632e-467d-9e07-01b346b90c49.jpg?1782812114"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/34/zhs/%E6%B1%A1%E7%89%A9%E7%BE%81%E7%BB%8A-(polluted-bonds)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-48-zhs-f",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "48",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Repercussion",
+      "name_zh": "后遗症",
+      "name_printed": "后遗症",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{R}{R}",
+      "cmc": 3.0,
+      "text": "每当一个生物受到伤害时，后遗症对该生物的操控者造成等量的伤害。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/1/41e62bb0-8ff9-4d37-adcb-9cedad941902.jpg?1782812047",
+        "normal": "https://cards.scryfall.io/normal/front/4/1/41e62bb0-8ff9-4d37-adcb-9cedad941902.jpg?1782812047",
+        "large": "https://cards.scryfall.io/large/front/4/1/41e62bb0-8ff9-4d37-adcb-9cedad941902.jpg?1782812047"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/48/zhs/%E5%90%8E%E9%81%97%E7%97%87-(repercussion)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-48-zhs-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "48",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Repercussion",
+      "name_zh": "后遗症",
+      "name_printed": "后遗症",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{R}{R}",
+      "cmc": 3.0,
+      "text": "每当一个生物受到伤害时，后遗症对该生物的操控者造成等量的伤害。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/4/1/41e62bb0-8ff9-4d37-adcb-9cedad941902.jpg?1782812047",
+        "normal": "https://cards.scryfall.io/normal/front/4/1/41e62bb0-8ff9-4d37-adcb-9cedad941902.jpg?1782812047",
+        "large": "https://cards.scryfall.io/large/front/4/1/41e62bb0-8ff9-4d37-adcb-9cedad941902.jpg?1782812047"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/48/zhs/%E5%90%8E%E9%81%97%E7%97%87-(repercussion)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-50-zhs-f",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "50",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Sneak Attack",
+      "name_zh": "偷袭",
+      "name_printed": "偷袭",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{3}{R}",
+      "cmc": 4.0,
+      "text": "{R}：你可以将一张生物牌从你手上放进战场。该生物获得敏捷异能。在下一个结束步骤开始时，牺牲该生物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/b/9bc0f11d-e4fd-42b8-a75a-1768f23fc660.jpg?1782812036",
+        "normal": "https://cards.scryfall.io/normal/front/9/b/9bc0f11d-e4fd-42b8-a75a-1768f23fc660.jpg?1782812036",
+        "large": "https://cards.scryfall.io/large/front/9/b/9bc0f11d-e4fd-42b8-a75a-1768f23fc660.jpg?1782812036"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/50/zhs/%E5%81%B7%E8%A2%AD-(sneak-attack)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-55-en-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "55",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Hardened Scales",
+      "name_zh": "坚固鳞甲",
+      "name_printed": "Hardened Scales",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "text": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/2/d2d1bfab-25b4-474b-bdab-ac18215f1920.jpg?1782696221",
+        "normal": "https://cards.scryfall.io/normal/front/d/2/d2d1bfab-25b4-474b-bdab-ac18215f1920.jpg?1782696221",
+        "large": "https://cards.scryfall.io/large/front/d/2/d2d1bfab-25b4-474b-bdab-ac18215f1920.jpg?1782696221"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/55/hardened-scales?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-55-zhs-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "55",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Hardened Scales",
+      "name_zh": "坚固鳞甲",
+      "name_printed": "坚固鳞甲",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "text": "如果将在某个由你操控的生物上放置一个或数个+1/+1指示物，则改为在其上放置该数量加一的+1/+1指示物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/9/996e307e-0a86-4cb8-b432-75fcca7a4a1b.jpg?1782812013",
+        "normal": "https://cards.scryfall.io/normal/front/9/9/996e307e-0a86-4cb8-b432-75fcca7a4a1b.jpg?1782812013",
+        "large": "https://cards.scryfall.io/large/front/9/9/996e307e-0a86-4cb8-b432-75fcca7a4a1b.jpg?1782812013"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/55/zhs/%E5%9D%9A%E5%9B%BA%E9%B3%9E%E7%94%B2-(hardened-scales)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-60-zhs-nf",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "60",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 3,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Prismatic Omen",
+      "name_zh": "五彩预兆",
+      "name_printed": "五彩预兆",
+      "type_line": "结界",
+      "type_line_en": "Enchantment",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{1}{G}",
+      "cmc": 2.0,
+      "text": "由你操控的地均额外具有所有基本地类别。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/c/3/c37477d6-e5c1-4a81-b4e2-d159ee8e7830.jpg?1782811986",
+        "normal": "https://cards.scryfall.io/normal/front/c/3/c37477d6-e5c1-4a81-b4e2-d159ee8e7830.jpg?1782811986",
+        "large": "https://cards.scryfall.io/large/front/c/3/c37477d6-e5c1-4a81-b4e2-d159ee8e7830.jpg?1782811986"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/60/zhs/%E4%BA%94%E5%BD%A9%E9%A2%84%E5%85%86-(prismatic-omen)?utm_source=api"
+    },
+    {
+      "id": "claystan-wot-63-zhs-f",
+      "set": "wot",
+      "set_name": "Wilds of Eldraine: Enchanting Tales",
+      "number": "63",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Utopia Sprawl",
+      "name_zh": "理想境蔓生",
+      "name_printed": "理想境蔓生",
+      "type_line": "结界 — 灵气",
+      "type_line_en": "Enchantment — Aura",
+      "types": [
+        "enchantment"
+      ],
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "text": "结附于树林\n于理想境蔓生进战场时，选择一种颜色。\n每当横置所结附的树林以产生法术力时，其操控者额外加一点所选颜色的法术力。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/2/d23109da-e389-423d-808c-5bae82f1fdb3.jpg?1782811972",
+        "normal": "https://cards.scryfall.io/normal/front/d/2/d23109da-e389-423d-808c-5bae82f1fdb3.jpg?1782811972",
+        "large": "https://cards.scryfall.io/large/front/d/2/d23109da-e389-423d-808c-5bae82f1fdb3.jpg?1782811972"
+      },
+      "scryfall_uri": "https://scryfall.com/card/wot/63/zhs/%E7%90%86%E6%83%B3%E5%A2%83%E8%94%93%E7%94%9F-(utopia-sprawl)?utm_source=api"
     },
     {
       "id": "claystan-zen-57-en-nf",
