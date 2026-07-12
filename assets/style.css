@@ -158,32 +158,32 @@ body.dd-open .toolbar {
   position: fixed;
   inset: 0;
   z-index: 40;
-  /* 不用 backdrop-filter，避免整页发糊且盖住菜单 */
-  background: rgba(0, 0, 0, 0.55);
+  /* 轻点遮罩即可关闭，不压暗太多 */
+  background: transparent;
 }
 
 .dd-scrim[hidden] {
   display: none !important;
 }
 
-/* 挂到 body 的底部抽屉菜单（手机） */
+/* 挂到 body、锚定在筛选按钮下方（手机） */
 .dd-menu.is-portal {
   display: block;
   position: fixed;
-  left: 0.6rem;
-  right: 0.6rem;
-  bottom: max(0.6rem, env(safe-area-inset-bottom, 0px));
-  top: auto;
   z-index: 60;
-  min-width: 0;
-  max-width: none;
-  max-height: min(52dvh, 420px);
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  min-width: 9.5rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+  max-height: min(50vh, 360px);
   overflow: auto;
   margin: 0;
-  padding: 0.45rem;
+  padding: 0.35rem;
   list-style: none;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   background: #1a2030;
   box-shadow: var(--shadow);
   -webkit-overflow-scrolling: touch;

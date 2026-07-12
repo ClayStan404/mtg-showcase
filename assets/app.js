@@ -104,17 +104,59 @@ function restorePortaledMenus() {
   });
 }
 
+/** 把菜单放到触发按钮正下方，贴合筛选条而不是从屏幕底部弹出 */
+function positionPortaledMenu(dd, menu) {
+  const trigger = dd.querySelector(".dd-trigger");
+  if (!trigger) return;
+
+  const rect = trigger.getBoundingClientRect();
+  const gap = 6;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const maxW = Math.min(288, vw - 16);
+  const minW = Math.max(rect.width, 148);
+
+  // 先设宽度再量高度，避免超出视口
+  menu.style.minWidth = `${minW}px`;
+  menu.style.maxWidth = `${maxW}px`;
+  menu.style.top = "0px";
+  menu.style.left = "0px";
+
+  const menuH = Math.min(menu.scrollHeight || 240, vh * 0.5);
+  let top = rect.bottom + gap;
+  // 下方空间不够则翻到按钮上方
+  if (top + menuH > vh - 8 && rect.top > menuH + gap + 8) {
+    top = Math.max(8, rect.top - gap - menuH);
+  }
+  let left = rect.left;
+  if (left + minW > vw - 8) left = Math.max(8, vw - 8 - minW);
+  if (left < 8) left = 8;
+
+  menu.style.top = `${Math.round(top)}px`;
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.right = "auto";
+  menu.style.bottom = "auto";
+}
+
 /** 窄屏把菜单挂到 body，避免 sticky/overflow 层叠把选项盖住 */
 function portalMenuIfNeeded(dd, open) {
-  const menu = dd.querySelector(".dd-menu");
+  const menu = dd.querySelector(".dd-menu") || findMenu(dd.dataset.filter);
   if (!menu) return;
 
   if (open && isNarrow()) {
     menu.dataset.home = dd.id;
     menu.classList.add("is-portal");
     document.body.appendChild(menu);
+    // 等一帧让内容进 DOM 再量尺寸
+    requestAnimationFrame(() => positionPortaledMenu(dd, menu));
   } else if (menu.classList.contains("is-portal")) {
     menu.classList.remove("is-portal");
+    menu.style.top = "";
+    menu.style.left = "";
+    menu.style.right = "";
+    menu.style.bottom = "";
+    menu.style.minWidth = "";
+    menu.style.maxWidth = "";
     delete menu.dataset.home;
     dd.appendChild(menu);
   }
@@ -339,8 +381,14 @@ function mountFilters() {
       dd.classList.toggle("open", willOpen);
       trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
       portalMenuIfNeeded(dd, willOpen);
-      // 打开后刷新选项 DOM（菜单可能已挂到 body）
-      if (willOpen) renderDropdown(dd.dataset.filter);
+      // 打开后刷新选项 DOM（菜单可能已挂到 body），再锚定位置
+      if (willOpen) {
+        renderDropdown(dd.dataset.filter);
+        const menu = findMenu(dd.dataset.filter);
+        if (menu?.classList.contains("is-portal")) {
+          requestAnimationFrame(() => positionPortaledMenu(dd, menu));
+        }
+      }
       syncScrim();
       return;
     }
@@ -493,6 +541,25 @@ function bindEvents() {
     { threshold: [1], rootMargin: "-1px 0px 0px 0px" }
   );
   observer.observe(toolbar);
+
+  // 滚动/旋转时关掉或重定位筛选菜单，避免悬空
+  const reflowOrClose = () => {
+    const open = document.querySelector(".dd.open");
+    if (!open) return;
+    const menu = findMenu(open.dataset.filter);
+    if (menu?.classList.contains("is-portal")) {
+      positionPortaledMenu(open, menu);
+    }
+  };
+  window.addEventListener("resize", reflowOrClose, { passive: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      // 页面滚动时直接收起，交互更干净
+      if (document.querySelector(".dd.open")) closeAllDropdowns();
+    },
+    { passive: true, capture: true }
+  );
 }
 
 async function main() {
