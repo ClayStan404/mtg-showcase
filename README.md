@@ -32,21 +32,6 @@ WPS 求购协作文档 ──→ fetch_wps_share.py ──→ parse_wps_wants_ex
 
 ---
 
-## Quick Start
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# 本地预览
-python3 -m http.server  # → http://localhost:8000
-
-# 手动触发 GitHub Actions
-gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
-```
-
----
-
 ## 致谢
 
 ### Scryfall
@@ -75,10 +60,6 @@ Scryfall 的卡牌数据和图片数据库在 [Wizards of the Coast Fan Content 
 - [Wizards of the Coast Fan Content Policy](https://company.wizards.com/en/legal/fan-content-policy)
 
 MTG 卡牌图像和相关信息版权归 Wizards of the Coast, LLC 所有。
-
-### 金山文档 (WPS)
-
-本项目使用 [金山文档](https://www.kdocs.cn/) 在线协作表格作为多人库存协作的数据源。
 
 ---
 
