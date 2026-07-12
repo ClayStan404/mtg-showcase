@@ -25,10 +25,10 @@ from pathlib import Path
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
-# Cookie 文件查找顺序：项目根目录 → 用户主目录
+# Cookie 文件查找顺序：项目根目录 → ~/.config/
 COOKIE_PATHS = [
     ROOT / "wps_cookies.txt",
-    Path.home() / "wps_cookies.txt",
+    Path.home() / ".config" / "wps_cookies.txt",
 ]
 DEFAULT_SHARE_ID = "cgyl3WizNfp7"
 DEFAULT_OUTPUT = ROOT / "wps_download_test.xlsx"
