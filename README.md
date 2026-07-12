@@ -59,7 +59,7 @@ gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
 - ✅ 遵守 API 速率限制（请求间隔 ≥ 0.12s）
 - ✅ 不设付费墙 — 网站完全免费，无账户系统
 - ✅ 不重新发布或代理 Scryfall 原始数据 — 本项目在卡牌数据上叠加库存管理、搜索、多卖家展示等额外功能
-- ✅ 不修改卡牌图片 — 原样展示，无裁剪、水印或变形
+- ✅ **图片直接引用 Scryfall CDN URL（hotlink）**，不下载、不复制、不存储图片文件，不裁剪、不水印、不变形 — 原样展示
 - ✅ 非 Scryfall 认可的关联方
 
 Scryfall 的卡牌数据和图片数据库在 [Wizards of the Coast Fan Content Policy](https://company.wizards.com/en/legal/fan-content-policy) 下免费提供。
