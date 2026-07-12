@@ -1,0 +1,13 @@
+# seller: ClayStan
+# city: 武汉
+# contact: 微信 your_wechat
+#
+# 由 parse_wps_excel.py 生成 — 语言 e/z/j/o（空默认e） 闪 0/1  数量默认1
+
+2x 2x2 94 e 0
+2x 2x2 356 z 0
+neo 111 e 0
+neo 457 z 0
+6x neo 111 z 1
+neo 111 j 1
+2x mh3 71 z 0

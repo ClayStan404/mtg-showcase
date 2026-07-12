@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T16:30:12Z",
+  "generated_at": "2026-07-12T17:45:21Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -11,15 +11,240 @@
       "note": ""
     }
   },
-  "count": 237,
-  "total_quantity": 332,
+  "count": 244,
+  "total_quantity": 347,
   "sellers": [
+    "ClayStan",
     "claystan"
   ],
   "cities": [
     "武汉"
   ],
   "cards": [
+    {
+      "id": "claystan-2x2-94-en-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "94",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 2,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "Surgical Extraction",
+      "name_zh": "手术摘除",
+      "name_printed": "Surgical Extraction",
+      "type_line": "Instant",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{B/P}",
+      "cmc": 1.0,
+      "text": "({B/P} can be paid with either {B} or 2 life.)\nChoose target card in a graveyard other than a basic land card. Search its owner's graveyard, hand, and library for any number of cards with the same name as that card and exile them. Then that player shuffles.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/e/1/e15d76ac-1c23-4503-8225-375ac2bf2fb6.jpg?1782737903",
+        "normal": "https://cards.scryfall.io/normal/front/e/1/e15d76ac-1c23-4503-8225-375ac2bf2fb6.jpg?1782737903",
+        "large": "https://cards.scryfall.io/large/front/e/1/e15d76ac-1c23-4503-8225-375ac2bf2fb6.jpg?1782737903"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/94/surgical-extraction?utm_source=api"
+    },
+    {
+      "id": "claystan-2x2-356-zhs-nf",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "number": "356",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "Surgical Extraction",
+      "name_zh": "手术摘除",
+      "name_printed": "手术摘除",
+      "type_line": "瞬间",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{B/P}",
+      "cmc": 1.0,
+      "text": "（{B/P}可用{B}或2点生命来支付。）\n选择目标在坟墓场中的牌，且不能是基本地牌。从其拥有者的坟墓场、手牌及牌库中搜寻任意数量与之同名的牌，并将它们放逐。然后该牌手洗牌。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/6/2/62235a4f-e60e-4df2-b867-a8013450e31f.jpg?1782846961",
+        "normal": "https://cards.scryfall.io/normal/front/6/2/62235a4f-e60e-4df2-b867-a8013450e31f.jpg?1782846961",
+        "large": "https://cards.scryfall.io/large/front/6/2/62235a4f-e60e-4df2-b867-a8013450e31f.jpg?1782846961"
+      },
+      "scryfall_uri": "https://scryfall.com/card/2x2/356/zhs/%E6%89%8B%E6%9C%AF%E6%91%98%E9%99%A4-(surgical-extraction)?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-71-zhs-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "71",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 2,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "Strix Serenade",
+      "name_zh": "猛枭夜曲",
+      "name_printed": "猛枭夜曲",
+      "type_line": "瞬间",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{U}",
+      "cmc": 1.0,
+      "text": "反击目标神器，生物或鹏洛客咒语。其操控者派出一个2/2蓝色，具飞行异能的鸟衍生生物。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/f/8/f857ce41-7cd1-4d6d-9915-8f2357ff7750.jpg?1782793879",
+        "normal": "https://cards.scryfall.io/normal/front/f/8/f857ce41-7cd1-4d6d-9915-8f2357ff7750.jpg?1782793879",
+        "large": "https://cards.scryfall.io/large/front/f/8/f857ce41-7cd1-4d6d-9915-8f2357ff7750.jpg?1782793879"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/71/zhs/%E7%8C%9B%E6%9E%AD%E5%A4%9C%E6%9B%B2-(strix-serenade)?utm_source=api"
+    },
+    {
+      "id": "claystan-neo-111-en-nf",
+      "set": "neo",
+      "set_name": "Kamigawa: Neon Dynasty",
+      "number": "111",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "March of Wretched Sorrow",
+      "name_zh": "伤悲行进",
+      "name_printed": "March of Wretched Sorrow",
+      "type_line": "Instant",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{X}{B}",
+      "cmc": 1.0,
+      "text": "As an additional cost to cast this spell, you may exile any number of black cards from your hand. This spell costs {2} less to cast for each card exiled this way.\nMarch of Wretched Sorrow deals X damage to target creature or planeswalker and you gain X life.",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/5/050a604e-6146-4e2e-88a5-863ecb3dfa1f.jpg?1782702259",
+        "normal": "https://cards.scryfall.io/normal/front/0/5/050a604e-6146-4e2e-88a5-863ecb3dfa1f.jpg?1782702259",
+        "large": "https://cards.scryfall.io/large/front/0/5/050a604e-6146-4e2e-88a5-863ecb3dfa1f.jpg?1782702259"
+      },
+      "scryfall_uri": "https://scryfall.com/card/neo/111/march-of-wretched-sorrow?utm_source=api"
+    },
+    {
+      "id": "claystan-neo-111-ja-f",
+      "set": "neo",
+      "set_name": "Kamigawa: Neon Dynasty",
+      "number": "111",
+      "lang": "ja",
+      "lang_label": "日文",
+      "foil": true,
+      "quantity": 1,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "March of Wretched Sorrow",
+      "name_zh": "伤悲行进",
+      "name_printed": "不憫な悲哀の行進",
+      "type_line": "インスタント",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{X}{B}",
+      "cmc": 1.0,
+      "text": "この呪文を唱えるための追加コストとして、あなたはあなたの手札にある望む枚数の黒のカードを追放してもよい。この呪文を唱えるためのコストは、これにより追放されたカード１枚につき{2}少なくなる。\nクリーチャーやプレインズウォーカーのうち１体を対象とする。不憫な悲哀の行進はそれにＸ点のダメージを与え、あなたはＸ点のライフを得る。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/d/e/de385036-e1fd-4530-8075-c4655661185a.jpg?1782862379",
+        "normal": "https://cards.scryfall.io/normal/front/d/e/de385036-e1fd-4530-8075-c4655661185a.jpg?1782862379",
+        "large": "https://cards.scryfall.io/large/front/d/e/de385036-e1fd-4530-8075-c4655661185a.jpg?1782862379"
+      },
+      "scryfall_uri": "https://scryfall.com/card/neo/111/ja/%E4%B8%8D%E6%86%AB%E3%81%AA%E6%82%B2%E5%93%80%E3%81%AE%E8%A1%8C%E9%80%B2-(march-of-wretched-sorrow)?utm_source=api"
+    },
+    {
+      "id": "claystan-neo-111-zhs-f",
+      "set": "neo",
+      "set_name": "Kamigawa: Neon Dynasty",
+      "number": "111",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": true,
+      "quantity": 6,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "March of Wretched Sorrow",
+      "name_zh": "伤悲行进",
+      "name_printed": "伤悲行进",
+      "type_line": "瞬间",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{X}{B}",
+      "cmc": 1.0,
+      "text": "你可以从你手上放逐任意数量的黑色牌，以作为施放此咒语的额外费用。每以此法放逐一张牌，此咒语便减少{2}来施放。\n伤悲行进对目标生物或鹏洛客造成X点伤害，且你获得X点生命。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/7/0/70659a15-fee7-40b1-a8e3-e96d82c06456.jpg?1782862381",
+        "normal": "https://cards.scryfall.io/normal/front/7/0/70659a15-fee7-40b1-a8e3-e96d82c06456.jpg?1782862381",
+        "large": "https://cards.scryfall.io/large/front/7/0/70659a15-fee7-40b1-a8e3-e96d82c06456.jpg?1782862381"
+      },
+      "scryfall_uri": "https://scryfall.com/card/neo/111/zhs/%E4%BC%A4%E6%82%B2%E8%A1%8C%E8%BF%9B-(march-of-wretched-sorrow)?utm_source=api"
+    },
+    {
+      "id": "claystan-neo-457-zhs-nf",
+      "set": "neo",
+      "set_name": "Kamigawa: Neon Dynasty",
+      "number": "457",
+      "lang": "zhs",
+      "lang_label": "简中",
+      "foil": false,
+      "quantity": 1,
+      "seller": "ClayStan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "微信 your_wechat",
+      "source_file": "ClayStan.txt",
+      "name_en": "March of Wretched Sorrow",
+      "name_zh": "伤悲行进",
+      "name_printed": "伤悲行进",
+      "type_line": "瞬间",
+      "type_line_en": "Instant",
+      "types": [
+        "instant"
+      ],
+      "mana_cost": "{X}{B}",
+      "cmc": 1.0,
+      "text": "你可以从你手上放逐任意数量的黑色牌，以作为施放此咒语的额外费用。每以此法放逐一张牌，此咒语便减少{2}来施放。\n伤悲行进对目标生物或鹏洛客造成X点伤害，且你获得X点生命。",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/9/9/997f9eca-7687-4196-987c-b900eb599caa.jpg?1782860016",
+        "normal": "https://cards.scryfall.io/normal/front/9/9/997f9eca-7687-4196-987c-b900eb599caa.jpg?1782860016",
+        "large": "https://cards.scryfall.io/large/front/9/9/997f9eca-7687-4196-987c-b900eb599caa.jpg?1782860016"
+      },
+      "scryfall_uri": "https://scryfall.com/card/neo/457/zhs/%E4%BC%A4%E6%82%B2%E8%A1%8C%E8%BF%9B-(march-of-wretched-sorrow)?utm_source=api"
+    },
     {
       "id": "claystan-2x2-8-en-nf",
       "set": "2x2",
