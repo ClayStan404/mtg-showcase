@@ -139,7 +139,7 @@ header.site-header {
 
 /* 使用说明折叠区 */
 .guide {
-  margin: 0 0 1rem;
+  margin: 0 auto 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elevated);
