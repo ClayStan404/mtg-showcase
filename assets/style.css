@@ -173,6 +173,7 @@ header.site-header {
   background: transparent
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239aa6bc' d='M1.1 1.2 6 6.1l4.9-4.9 1.1 1.1L6 8.3.01 2.3z'/%3E%3C/svg%3E")
     no-repeat right 0.55rem center / 0.65rem;
+  /* 收起态：跟随深色主题 */
   color: var(--text);
   font: inherit;
   font-size: 0.9rem;
@@ -180,6 +181,13 @@ header.site-header {
   cursor: pointer;
   min-width: 5.5rem;
   max-width: 14rem;
+}
+
+/* 展开列表多为系统白底；强制深色字，避免继承收起态的浅色字 */
+.filter-field select option,
+.filter-field select optgroup {
+  background-color: #ffffff;
+  color: #111827;
 }
 
 .filter-field:has(#filter-set) select {
