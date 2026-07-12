@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T16:19:43Z",
+  "generated_at": "2026-07-12T16:22:35Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -3062,10 +3062,10 @@
       "scryfall_uri": "https://scryfall.com/card/ltr/406/zhs/%E9%98%BF%E8%AF%BA%E5%B0%94%E4%B9%8B%E7%81%AB-(flame-of-anor)?utm_source=api"
     },
     {
-      "id": "claystan-ltr-419-en-nf",
+      "id": "claystan-ltr-439-en-nf",
       "set": "ltr",
       "set_name": "The Lord of the Rings: Tales of Middle-earth",
-      "number": "419",
+      "number": "439",
       "lang": "en",
       "lang_label": "英文",
       "foil": false,
@@ -3075,23 +3075,23 @@
       "city": "武汉",
       "contact": "QQ 417592443",
       "source_file": "claystan.txt",
-      "name_en": "Quickbeam, Upstart Ent",
-      "name_zh": "恩特新贵急楸",
-      "name_printed": "Quickbeam, Upstart Ent",
-      "type_line": "Legendary Creature — Treefolk",
-      "type_line_en": "Legendary Creature — Treefolk",
+      "name_en": "Spiteful Banditry",
+      "name_zh": "怨毒行劫",
+      "name_printed": "Spiteful Banditry",
+      "type_line": "Enchantment",
+      "type_line_en": "Enchantment",
       "types": [
-        "creature"
+        "enchantment"
       ],
-      "mana_cost": "{4}{G}{G}",
-      "cmc": 6.0,
-      "text": "Whenever Quickbeam or another Treefolk you control enters, up to two target creatures each get +2/+2 and gain trample until end of turn.",
+      "mana_cost": "{X}{R}{R}",
+      "cmc": 2.0,
+      "text": "When this enchantment enters, it deals X damage to each creature.\nWhenever one or more creatures your opponents control die, you create a Treasure token. This ability triggers only once each turn.",
       "image": {
-        "small": "https://cards.scryfall.io/small/front/4/0/402d829d-9d99-48ac-9ffe-14405ec56302.jpg?1782696990",
-        "normal": "https://cards.scryfall.io/normal/front/4/0/402d829d-9d99-48ac-9ffe-14405ec56302.jpg?1782696990",
-        "large": "https://cards.scryfall.io/large/front/4/0/402d829d-9d99-48ac-9ffe-14405ec56302.jpg?1782696990"
+        "small": "https://cards.scryfall.io/small/front/f/5/f564871f-0f17-4196-bd1d-617b6738c87d.jpg?1782696976",
+        "normal": "https://cards.scryfall.io/normal/front/f/5/f564871f-0f17-4196-bd1d-617b6738c87d.jpg?1782696976",
+        "large": "https://cards.scryfall.io/large/front/f/5/f564871f-0f17-4196-bd1d-617b6738c87d.jpg?1782696976"
       },
-      "scryfall_uri": "https://scryfall.com/card/ltr/419/quickbeam-upstart-ent?utm_source=api"
+      "scryfall_uri": "https://scryfall.com/card/ltr/439/spiteful-banditry?utm_source=api"
     },
     {
       "id": "claystan-ltr-439-zhs-f",

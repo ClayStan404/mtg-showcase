@@ -160,7 +160,7 @@ ltr 149 z 1
 ltr 149 e 1
 ltr 439 z 0
 2x ltr 439 z 1
-ltr 419 e 0
+ltr 439 e 0
 3x ltr 79 z 0
 2x ltr 79 z 1
 2x ltr 5 z 1
