@@ -36,6 +36,7 @@ from inventory_format import (  # noqa: E402
     normalize_lang,
     normalize_qty,
     slugify,
+    validate_meta,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -99,8 +100,6 @@ def parse_file(path: Path) -> tuple[dict[str, str], list[dict[str, Any]], list[s
             except ParseError as e:
                 errors.append(f"第{line_num}行：{e} — {line}")
 
-    if not meta["seller"]:
-        meta["seller"] = path.stem
     return meta, cards, errors
 
 
@@ -185,6 +184,8 @@ def main() -> int:
         meta["city"] = args.city
     if args.contact:
         meta["contact"] = args.contact
+
+    errors.extend(validate_meta(meta, args.txt.name))
 
     if errors:
         print(f"\n❌ 校验失败（{len(errors)} 个问题）：", file=sys.stderr)

@@ -64,6 +64,20 @@ class ParseError(Exception):
         super().__init__(message)
 
 
+REQUIRED_META_FIELDS = ("seller", "city", "contact")
+_META_FIELD_LABELS = {"seller": "seller", "city": "city", "contact": "contact"}
+
+
+def validate_meta(meta: dict[str, str], source: str = "") -> list[str]:
+    """seller / city / contact 必填，返回缺失字段的错误消息列表。"""
+    errors: list[str] = []
+    for field in REQUIRED_META_FIELDS:
+        if not (meta.get(field) or "").strip():
+            prefix = f"[{source}] " if source else ""
+            errors.append(f"{prefix}缺少必填项 # {field}:")
+    return errors
+
+
 def slugify(value: str, fallback: str = "seller") -> str:
     s = SLUG_RE.sub("-", (value or "").strip()).strip("-").lower()
     return s or fallback

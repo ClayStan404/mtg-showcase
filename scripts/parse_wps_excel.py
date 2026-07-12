@@ -29,6 +29,7 @@ from inventory_format import (  # noqa: E402
     normalize_lang,
     normalize_qty,
     slugify,
+    validate_meta,
 )
 
 try:
@@ -117,8 +118,6 @@ def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any
     """返回 (meta, cards, errors)。"""
     errors: list[str] = []
     meta = find_meta(ws)
-    if not meta["seller"]:
-        meta["seller"] = sheet_name
     header = find_header_row(ws)
     if not header:
         errors.append(f"[{sheet_name}] 未找到表头（需要「系列」「编号」列）")
@@ -165,6 +164,7 @@ def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any
     if not cards and not errors:
         # 空库存允许
         pass
+    errors.extend(validate_meta(meta, sheet_name))
     return meta, cards, errors
 
 

@@ -22,6 +22,7 @@ from inventory_format import (  # noqa: E402
     lang_label,
     scryfall_lang,
     slugify,
+    validate_meta,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,10 +127,11 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
                     "contact": contact,
                 }
 
-    if not seller:
-        print(f"[warn] {path.name} 未设置 # seller: ，将使用文件名「{source}」", file=sys.stderr)
-    if not city:
-        print(f"[warn] {path.name} 未设置 # city:", file=sys.stderr)
+    meta_errors = validate_meta(
+        {"seller": seller, "city": city, "contact": contact}, path.name
+    )
+    if meta_errors:
+        raise ParseError("; ".join(meta_errors))
 
     return list(merged.values())
 
@@ -142,10 +144,19 @@ def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[s
         )
 
     all_entries: list[dict[str, Any]] = []
+    errors: list[str] = []
     for path in files:
-        entries = parse_inventory_file(path)
-        print(f"  · {path.name}: {len(entries)} 种")
-        all_entries.extend(entries)
+        try:
+            entries = parse_inventory_file(path)
+            print(f"  · {path.name}: {len(entries)} 种")
+            all_entries.extend(entries)
+        except ParseError as e:
+            errors.append(str(e))
+    if errors:
+        print(f"\n❌ 校验失败（{len(errors)} 个问题）：", file=sys.stderr)
+        for e in errors:
+            print(f"  · {e}", file=sys.stderr)
+        raise SystemExit(1)
     return all_entries
 
 
