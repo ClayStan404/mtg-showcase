@@ -256,7 +256,7 @@ function renderCartList() {
         ${
           contact
             ? `<p class="cart-group-contact"><span class="cart-contact-label">联系</span>${escapeHtml(contact)}</p>`
-            : `<p class="cart-group-contact muted">暂无联系方式，可对照站内页脚或卡牌详情</p>`
+            : `<p class="cart-group-contact muted">暂无联系方式，见卡牌详情</p>`
         }
       </header>`;
     for (const { card, want } of group) {
@@ -788,30 +788,9 @@ function setFiltersOpen(open) {
 
 function renderSiteMeta() {
   const site = state.site || {};
-  document.title = site.title || "万智牌库存";
-  $("#site-title").textContent = site.title || "万智牌库存";
+  document.title = site.title || "万智牌 Sales List";
+  $("#site-title").textContent = site.title || "万智牌 Sales List";
   $("#site-subtitle").textContent = site.subtitle || "";
-
-  const contact = site.contact || {};
-  $("#contact-note").textContent = contact.note || "";
-  const wechat = $("#contact-wechat");
-  const email = $("#contact-email");
-
-  if (contact.wechat) {
-    wechat.hidden = false;
-    $("#contact-wechat-value").textContent = contact.wechat;
-  } else {
-    wechat.hidden = true;
-  }
-
-  if (contact.email) {
-    email.hidden = false;
-    const a = $("#contact-email-value");
-    a.textContent = contact.email;
-    a.href = `mailto:${contact.email}`;
-  } else {
-    email.hidden = true;
-  }
 
   $("#total-kinds").textContent = String(state.cards.length);
   $("#total-qty").textContent = String(
@@ -940,16 +919,46 @@ function bindEvents() {
     }
   };
   window.addEventListener("resize", reflowOrClose, { passive: true });
+
+  let lastScrollY = window.scrollY || 0;
+  let scrollTicking = false;
   window.addEventListener(
     "scroll",
     () => {
-      // 页面滚动时直接收起，交互更干净
+      // 页面滚动时收起下拉
       if (document.querySelector(".dd.open")) closeAllDropdowns();
+
+      if (!isNarrow() || state.cartOpen || $("#modal")?.classList.contains("open")) return;
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        scrollTicking = false;
+        const y = window.scrollY || 0;
+        const bar = $("#toolbar");
+        if (!bar) return;
+        // 搜索聚焦或筛选展开时不自动隐藏
+        const searchFocused = document.activeElement === $("#search");
+        if (searchFocused || state.filtersOpen) {
+          bar.classList.remove("is-collapsed");
+          lastScrollY = y;
+          return;
+        }
+        const delta = y - lastScrollY;
+        if (y < 48) {
+          bar.classList.remove("is-collapsed");
+        } else if (delta > 6) {
+          bar.classList.add("is-collapsed");
+        } else if (delta < -6) {
+          bar.classList.remove("is-collapsed");
+        }
+        lastScrollY = y;
+      });
     },
     { passive: true, capture: true }
   );
 
   updateCartChrome();
+  updateFilterToggle();
 }
 
 function showLoadError(msg) {

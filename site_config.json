@@ -1,9 +1,9 @@
 {
-  "title": "万智牌库存展示",
-  "subtitle": "多人实体卡展示 · 可按出售人 / 城市检索 · 仅供浏览与联系",
+  "title": "万智牌 Sales List",
+  "subtitle": "实体卡展示 · 站外联系成交",
   "contact": {
-    "wechat": "your_wechat_id",
-    "email": "you@example.com",
-    "note": "有意向请联系卡牌详情中的出售人。留言时带上系列缩写 + 编号（例如 2x2 361）。也可通过 GitHub PR 提交自己的库存。品相均为 NM，不在此站完成交易。"
+    "wechat": "",
+    "email": "",
+    "note": ""
   }
 }
