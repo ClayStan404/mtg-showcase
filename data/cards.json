@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T16:22:35Z",
+  "generated_at": "2026-07-12T16:24:17Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -1173,13 +1173,13 @@
       "scryfall_uri": "https://scryfall.com/card/blb/6/caretakers-talent?utm_source=api"
     },
     {
-      "id": "claystan-bro-30-zhs-f",
+      "id": "claystan-bro-30-zhs-nf",
       "set": "bro",
       "set_name": "The Brothers' War",
       "number": "30",
       "lang": "zhs",
       "lang_label": "简中",
-      "foil": true,
+      "foil": false,
       "quantity": 2,
       "seller": "claystan",
       "seller_id": "claystan",
