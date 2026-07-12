@@ -537,6 +537,13 @@ def main() -> int:
         f"已写入 {args.output} （{payload['count']} 种 / 共 {payload['total_quantity']} 张 · "
         f"{len(sellers)} 位出售人 · {len(cities)} 个城市）"
     )
+
+    # 同步生成前端内嵌数据，减少浏览器额外请求 cards.json（代理/DNS 环境下更稳）
+    js_path = ROOT / "assets" / "cards-data.js"
+    js_path.parent.mkdir(parents=True, exist_ok=True)
+    compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    js_path.write_text(f"window.__MTG_DATA__={compact};\n", encoding="utf-8")
+    print(f"已写入 {js_path}")
     return 0
 
 

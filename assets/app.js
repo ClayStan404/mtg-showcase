@@ -48,7 +48,6 @@ function matches(card) {
   if (state.lang !== "all" && card.lang !== state.lang) return false;
   if (state.foil === "foil" && !card.foil) return false;
   if (state.foil === "nf" && card.foil) return false;
-  if (state.set !== "all" && card.set !== state.set) return false;
   if (state.seller !== "all" && card.seller_id !== state.seller && card.seller !== state.seller) {
     return false;
   }
@@ -425,7 +424,6 @@ function mountFilters() {
 }
 
 function populateFilters() {
-  const sets = [...new Set(state.cards.map((c) => c.set).filter(Boolean))].sort();
   const langs = [...new Set(state.cards.map((c) => c.lang).filter(Boolean))].sort();
 
   const sellerMap = new Map();
@@ -441,11 +439,6 @@ function populateFilters() {
   filters.city.options = [...new Set(state.cards.map((c) => c.city).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "zh"))
     .map((c) => ({ value: c, label: c }));
-
-  filters.set.options = sets.map((s) => {
-    const name = state.cards.find((c) => c.set === s)?.set_name || s;
-    return { value: s, label: `${s.toUpperCase()} · ${name}` };
-  });
 
   const labelOf = (lang) => state.cards.find((c) => c.lang === lang)?.lang_label || lang;
   filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
@@ -560,16 +553,46 @@ function bindEvents() {
   );
 }
 
+function showLoadError(msg) {
+  const el = $("#empty");
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = msg;
+}
+
+async function loadData() {
+  // 1) 内嵌数据（cards-data.js），避免单独请求 JSON 被代理/DNS 拦掉
+  if (window.__MTG_DATA__ && Array.isArray(window.__MTG_DATA__.cards)) {
+    return window.__MTG_DATA__;
+  }
+
+  // 2) 回退 fetch（本地开发 / 未生成 cards-data.js 时）
+  const urls = [`data/cards.json?v=${Date.now()}`, "data/cards.json"];
+  let lastErr = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        lastErr = new Error(`HTTP ${res.status} loading ${url}`);
+        continue;
+      }
+      const data = await res.json();
+      if (!data || !Array.isArray(data.cards)) {
+        lastErr = new Error("cards.json 格式无效");
+        continue;
+      }
+      return data;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("无法加载卡牌数据");
+}
+
 async function main() {
   mountFilters();
   bindEvents();
-  const res = await fetch(`data/cards.json?v=${Date.now()}`, { cache: "no-store" });
-  if (!res.ok) {
-    $("#empty").hidden = false;
-    $("#empty").textContent = "未能加载 data/cards.json，请先运行: python3 scripts/build_data.py";
-    return;
-  }
-  const data = await res.json();
+  const data = await loadData();
   state.cards = data.cards || [];
   state.site = data.site || {};
   renderSiteMeta();
@@ -579,6 +602,6 @@ async function main() {
 
 main().catch((err) => {
   console.error(err);
-  $("#empty").hidden = false;
-  $("#empty").textContent = "加载失败，请检查控制台。";
+  const detail = err && err.message ? err.message : String(err);
+  showLoadError(`加载失败：${detail}。可试 http://127.0.0.1:8080/ 或检查网络/代理。`);
 });
