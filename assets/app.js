@@ -6,7 +6,6 @@ const state = {
   query: "",
   lang: "all",
   foil: "all",
-  set: "all",
   seller: "all",
   city: "all",
 };
@@ -15,11 +14,10 @@ const state = {
 const filters = {
   seller: { key: "seller", label: "出售人", allLabel: "全部出售人", options: [] },
   city: { key: "city", label: "城市", allLabel: "全部城市", options: [] },
-  set: { key: "set", label: "系列", allLabel: "全部系列", options: [] },
   lang: { key: "lang", label: "语言", allLabel: "全部语言", options: [] },
   foil: {
     key: "foil",
-    label: "表面",
+    label: "闪卡",
     allLabel: "全部",
     options: [
       { value: "foil", label: "仅闪卡" },
@@ -28,7 +26,7 @@ const filters = {
   },
 };
 
-const FILTER_ORDER = ["seller", "city", "set", "lang", "foil"];
+const FILTER_ORDER = ["seller", "city", "lang", "foil"];
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
