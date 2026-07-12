@@ -277,6 +277,65 @@ def pick_text(card: dict[str, Any]) -> tuple[str, str]:
     return text, type_line
 
 
+# 主类型（英文 type_line 子串匹配；一张牌可多个，如 Artifact Creature）
+PRIMARY_TYPE_TAGS: list[tuple[str, str]] = [
+    ("planeswalker", "planeswalker"),
+    ("battle", "battle"),
+    ("creature", "creature"),
+    ("instant", "instant"),
+    ("sorcery", "sorcery"),
+    ("enchantment", "enchantment"),
+    ("artifact", "artifact"),
+    ("land", "land"),
+]
+
+
+def pick_type_line_en(card: dict[str, Any]) -> str:
+    """Scryfall 根级 type_line 一般为英文，双面用 // 拼接。"""
+    tl = (card.get("type_line") or "").strip()
+    if tl:
+        return tl
+    faces = card.get("card_faces") or []
+    parts = [(f.get("type_line") or "").strip() for f in faces]
+    return " // ".join(p for p in parts if p)
+
+
+def classify_types(type_line_en: str) -> list[str]:
+    """从英文 type_line 得到可筛主类型标签。"""
+    if not type_line_en:
+        return ["other"]
+    low = type_line_en.lower()
+    found = [tag for key, tag in PRIMARY_TYPE_TAGS if key in low]
+    return found or ["other"]
+
+
+def pick_mana(card: dict[str, Any]) -> tuple[str, float]:
+    """mana_cost 字符串 + cmc。双面/分体费用用 // 拼接（空面记为 —）。"""
+    mc = (card.get("mana_cost") or "").strip()
+    if not mc and card.get("card_faces"):
+        costs = [(f.get("mana_cost") or "").strip() for f in card["card_faces"]]
+        if any(costs):
+            mc = " // ".join(c if c else "—" for c in costs)
+    cmc_raw = card.get("cmc")
+    try:
+        cmc = float(cmc_raw) if cmc_raw is not None else 0.0
+    except (TypeError, ValueError):
+        cmc = 0.0
+    return mc, cmc
+
+
+def enrich_fields_from_scryfall(card: dict[str, Any]) -> dict[str, Any]:
+    """从 Scryfall 卡对象提取展示/筛选用类型与费用字段。"""
+    type_line_en = pick_type_line_en(card)
+    mana_cost, cmc = pick_mana(card)
+    return {
+        "type_line_en": type_line_en,
+        "types": classify_types(type_line_en),
+        "mana_cost": mana_cost,
+        "cmc": cmc,
+    }
+
+
 def card_id(entry: dict[str, Any]) -> str:
     return (
         f"{entry['seller_id']}-"
@@ -306,12 +365,23 @@ def enrich(
 
         base: dict[str, Any] | None = None
         cached = prev.get(prev_key)
-        if cached and not cached.get("error"):
+        # 缺 types/cmc 的旧缓存不可复用（需重新拉 Scryfall）
+        if (
+            cached
+            and not cached.get("error")
+            and "types" in cached
+            and "cmc" in cached
+            and "mana_cost" in cached
+        ):
             base = {
                 "name_en": cached.get("name_en", ""),
                 "name_zh": cached.get("name_zh", ""),
                 "name_printed": cached.get("name_printed", ""),
                 "type_line": cached.get("type_line", ""),
+                "type_line_en": cached.get("type_line_en", ""),
+                "types": list(cached.get("types") or []),
+                "mana_cost": cached.get("mana_cost", ""),
+                "cmc": cached.get("cmc", 0),
                 "text": cached.get("text", ""),
                 "image": cached.get("image") or pick_images({}),
                 "scryfall_uri": cached.get("scryfall_uri", ""),
@@ -344,6 +414,10 @@ def enrich(
                         "name_zh": "",
                         "name_printed": "",
                         "type_line": "",
+                        "type_line_en": "",
+                        "types": [],
+                        "mana_cost": "",
+                        "cmc": 0,
                         "text": "",
                         "image": pick_images({}),
                         "error": "not_found",
@@ -362,11 +436,16 @@ def enrich(
                 name_zh = client.fetch_zh_name(set_code, number)
 
             text, type_line = pick_text(card)
+            meta = enrich_fields_from_scryfall(card)
             base = {
                 "name_en": name_en,
                 "name_zh": name_zh,
                 "name_printed": name_printed or name_en,
                 "type_line": type_line,
+                "type_line_en": meta["type_line_en"],
+                "types": meta["types"],
+                "mana_cost": meta["mana_cost"],
+                "cmc": meta["cmc"],
                 "text": text,
                 "image": pick_images(card),
                 "scryfall_uri": card.get("scryfall_uri") or "",
@@ -396,6 +475,10 @@ def enrich(
                 "name_zh": base["name_zh"],
                 "name_printed": base["name_printed"],
                 "type_line": base["type_line"],
+                "type_line_en": base.get("type_line_en") or "",
+                "types": list(base.get("types") or []),
+                "mana_cost": base.get("mana_cost") or "",
+                "cmc": base.get("cmc") if base.get("cmc") is not None else 0,
                 "text": base["text"],
                 "image": base["image"],
                 "scryfall_uri": base["scryfall_uri"],

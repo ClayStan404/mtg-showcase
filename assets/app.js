@@ -13,6 +13,8 @@ const state = {
   seller: "all", // sell: 出售人；want: 买家 id
   city: "all",
   kind: "all", // want only: printing | any
+  type: "all", // creature | instant | …
+  cmc: "all", // 0 | 1 | 2 | 3 | 4 | 5 | 6p
   /** @type {Record<string, number>} cardId -> want qty */
   cart: {},
   cartOpen: false,
@@ -20,6 +22,40 @@ const state = {
   modalCardId: null,
   filtersOpen: false,
 };
+
+const TYPE_LABELS = {
+  creature: "生物",
+  instant: "瞬间",
+  sorcery: "法术",
+  enchantment: "结界",
+  artifact: "神器",
+  planeswalker: "鹏洛客",
+  battle: "战役",
+  land: "地",
+  other: "其他",
+};
+
+const TYPE_FILTER_ORDER = [
+  "creature",
+  "instant",
+  "sorcery",
+  "enchantment",
+  "artifact",
+  "planeswalker",
+  "battle",
+  "land",
+  "other",
+];
+
+const CMC_FILTER_OPTIONS = [
+  { value: "0", label: "0" },
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4", label: "4" },
+  { value: "5", label: "5" },
+  { value: "6p", label: "6+" },
+];
 
 function loadCart() {
   try {
@@ -314,12 +350,52 @@ const filters = {
       { value: "flex", label: "可替其他版" },
     ],
   },
+  type: {
+    key: "type",
+    label: "类型",
+    allLabel: "全部类型",
+    options: TYPE_FILTER_ORDER.map((v) => ({
+      value: v,
+      label: TYPE_LABELS[v] || v,
+    })),
+  },
+  cmc: {
+    key: "cmc",
+    label: "费用",
+    allLabel: "全部费用",
+    options: CMC_FILTER_OPTIONS,
+  },
 };
 
 function filterOrder() {
   return state.view === "want"
-    ? ["seller", "city", "kind"]
-    : ["seller", "city", "lang", "foil"];
+    ? ["seller", "city", "kind", "type", "cmc"]
+    : ["seller", "city", "lang", "foil", "type", "cmc"];
+}
+
+function cardTypes(card) {
+  if (Array.isArray(card.types) && card.types.length) return card.types;
+  return [];
+}
+
+function cmcBucket(card) {
+  const n = Number(card.cmc);
+  if (!Number.isFinite(n) || n < 0) return "0";
+  if (n >= 6) return "6p";
+  return String(Math.floor(n));
+}
+
+/** 展示用：{2}{W} → 2W；无费用则空（地牌靠类型行表示） */
+function formatManaCost(card) {
+  const raw = (card.mana_cost || "").trim();
+  if (!raw) return "";
+  return raw.replaceAll("{", "").replaceAll("}", "");
+}
+
+function typeLabelShort(card) {
+  const tags = cardTypes(card);
+  if (!tags.length) return "";
+  return tags.map((t) => TYPE_LABELS[t] || t).join("·");
 }
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -366,6 +442,11 @@ function matches(card) {
     }
   }
   if (state.city !== "all" && card.city !== state.city) return false;
+  if (state.type !== "all") {
+    const tags = cardTypes(card);
+    if (!tags.includes(state.type)) return false;
+  }
+  if (state.cmc !== "all" && cmcBucket(card) !== state.cmc) return false;
 
   const q = state.query.trim().toLowerCase();
   if (!q) return true;
@@ -380,6 +461,11 @@ function matches(card) {
     card.number,
     card.lang_label,
     card.type_line,
+    card.type_line_en,
+    typeLabelShort(card),
+    card.mana_cost,
+    formatManaCost(card),
+    card.cmc != null ? String(card.cmc) : "",
     card.text,
     card.note,
     card.seller,
@@ -527,6 +613,8 @@ function renderGrid() {
       const flex = isWant && (c.must === false || c.kind === "flex");
       const metaLeft = `${(c.set || "").toUpperCase()} #${c.number || ""}`;
       const metaRight = c.lang_label || c.lang || "";
+      const mana = formatManaCost(c);
+      const typeShort = typeLabelShort(c);
       return `
     <div class="card" data-id="${escapeAttr(c.id)}">
       <div class="card-media">
@@ -567,6 +655,14 @@ function renderGrid() {
             <span>${escapeHtml(metaLeft)}</span>
             <span>${escapeHtml(metaRight)}</span>
           </div>
+          ${
+            typeShort || mana
+              ? `<div class="card-meta card-meta-extra">
+            <span>${escapeHtml(typeShort)}</span>
+            <span class="card-mana">${escapeHtml(mana)}</span>
+          </div>`
+              : ""
+          }
           ${sellerLine(c) ? `<p class="card-seller">${escapeHtml(sellerLine(c))}</p>` : ""}
           ${c.note ? `<p class="card-note">${escapeHtml(c.note)}</p>` : ""}
         </div>
@@ -590,11 +686,15 @@ function openModal(card) {
   $("#modal-en").textContent = secondaryName(card);
   $("#modal-en").hidden = !secondaryName(card);
 
+  const typeShort = typeLabelShort(card);
+  const mana = formatManaCost(card);
   $("#modal-tags").innerHTML = [
     isWant
       ? `<span class="tag">${must ? "必须此版" : "可替其他版"}</span>`
       : `<span class="tag">${escapeHtml(card.lang_label || card.lang)}</span>`,
     card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
+    typeShort ? `<span class="tag">${escapeHtml(typeShort)}</span>` : "",
+    mana ? `<span class="tag">${escapeHtml(mana)}</span>` : "",
     `<span class="tag">×${card.quantity}</span>`,
     card.city ? `<span class="tag">${escapeHtml(card.city)}</span>` : "",
   ].join("");
@@ -609,7 +709,18 @@ function openModal(card) {
   $("#modal-set").textContent = `${card.set_name || ""} (${(card.set || "").toUpperCase()})`;
   $("#modal-number-label").textContent = "编号";
   $("#modal-number").textContent = card.number || "—";
-  $("#modal-type").textContent = card.type_line || "—";
+  $("#modal-type").textContent = card.type_line || card.type_line_en || "—";
+  const manaDd = $("#modal-mana");
+  if (manaDd) {
+    const cmcNum = Number(card.cmc);
+    const cmcPart = Number.isFinite(cmcNum)
+      ? `CMC ${Number.isInteger(cmcNum) ? cmcNum : cmcNum}`
+      : "";
+    if (mana && cmcPart) manaDd.textContent = `${mana} · ${cmcPart}`;
+    else if (mana) manaDd.textContent = mana;
+    else if (cmcPart) manaDd.textContent = cmcPart;
+    else manaDd.textContent = "—";
+  }
   let face = card.text || "（无牌面文字）";
   if (isWant && flex) {
     face = `【可替】参考此印刷，其他系列/语言/闪也可。\n\n${face}`;
@@ -856,6 +967,8 @@ function activeFilterCount() {
   let n = 0;
   if (state.seller !== "all") n += 1;
   if (state.city !== "all") n += 1;
+  if (state.type !== "all") n += 1;
+  if (state.cmc !== "all") n += 1;
   if (state.view === "want") {
     if (state.kind !== "all") n += 1;
   } else {
@@ -930,6 +1043,8 @@ function setView(view) {
   state.lang = "all";
   state.foil = "all";
   state.kind = "all";
+  state.type = "all";
+  state.cmc = "all";
   state.filtersOpen = false;
   const search = $("#search");
   if (search) search.value = "";

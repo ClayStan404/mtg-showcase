@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-07-12T11:32:34Z",
+  "generated_at": "2026-07-12T12:17:33Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
     "wps_inventory_url": "https://www.kdocs.cn/l/cgyl3WizNfp7",
+    "wps_wants_url": "https://www.kdocs.cn/l/cvvaN21e3gm8",
     "contact": {
       "wechat": "",
       "email": "",
@@ -39,6 +40,12 @@
       "name_zh": "血腥墓穴",
       "name_printed": "血腥墓穴",
       "type_line": "地 ～沼泽／山脉",
+      "type_line_en": "Land — Swamp Mountain",
+      "types": [
+        "land"
+      ],
+      "mana_cost": "",
+      "cmc": 0.0,
       "text": "（{T}：加{B}或{R}。）\n于血腥墓穴进战场时，你可以支付2点生命。如果你未如此作，则血腥墓穴须横置进战场。",
       "image": {
         "small": "https://cards.scryfall.io/small/front/e/8/e8ae3a83-38c9-48a2-a1cc-aa29641ea0d6.jpg?1782923167",
@@ -68,6 +75,12 @@
       "name_zh": "突发通牒",
       "name_printed": "Emergent Ultimatum",
       "type_line": "Sorcery",
+      "type_line_en": "Sorcery",
+      "types": [
+        "sorcery"
+      ],
+      "mana_cost": "{B}{B}{G}{G}{G}{U}{U}",
+      "cmc": 7.0,
       "text": "Search your library for up to three monocolored cards with different names and exile them. An opponent chooses one of those cards. Shuffle that card into your library. You may cast the other cards without paying their mana costs. Exile Emergent Ultimatum.",
       "image": {
         "small": "https://cards.scryfall.io/small/front/3/a/3a6a52ab-6d38-4429-9969-90064e615152.jpg?1782707129",
@@ -97,6 +110,12 @@
       "name_zh": "聚污三角洲",
       "name_printed": "Polluted Delta",
       "type_line": "Land",
+      "type_line_en": "Land",
+      "types": [
+        "land"
+      ],
+      "mana_cost": "",
+      "cmc": 0.0,
       "text": "{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.",
       "image": {
         "small": "https://cards.scryfall.io/small/front/6/e/6e288374-2b71-4ace-b1d2-a19fee6cb4af.jpg?1782691195",
@@ -126,6 +145,12 @@
       "name_zh": "Sol Ring",
       "name_printed": "Sol Ring",
       "type_line": "Artifact",
+      "type_line_en": "Artifact",
+      "types": [
+        "artifact"
+      ],
+      "mana_cost": "{1}",
+      "cmc": 1.0,
       "text": "{T}: Add {C}{C}.",
       "image": {
         "small": "https://cards.scryfall.io/small/front/9/1/91fdb56b-54d5-4272-8319-505ff987fe9b.jpg?1782682494",

@@ -28,6 +28,7 @@ from inventory_format import (  # noqa: E402
 )
 from build_data import (  # noqa: E402
     ScryfallClient,
+    enrich_fields_from_scryfall,
     load_site_config,
     pick_images,
     pick_text,
@@ -160,6 +161,10 @@ def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[
                     "name_zh": "",
                     "name_printed": "",
                     "type_line": "",
+                    "type_line_en": "",
+                    "types": [],
+                    "mana_cost": "",
+                    "cmc": 0,
                     "text": "",
                     "image": {"small": "", "normal": "", "large": ""},
                     "error": "not_found",
@@ -175,6 +180,7 @@ def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[
         else:
             name_zh = client.fetch_zh_name(e["set"], e["number"])
         text, type_line = pick_text(card)
+        meta = enrich_fields_from_scryfall(card)
         out.append(
             {
                 "id": wid,
@@ -196,6 +202,10 @@ def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[
                 "name_zh": name_zh,
                 "name_printed": name_printed,
                 "type_line": type_line,
+                "type_line_en": meta["type_line_en"],
+                "types": meta["types"],
+                "mana_cost": meta["mana_cost"],
+                "cmc": meta["cmc"],
                 "text": text,
                 "image": pick_images(card),
                 "scryfall_uri": card.get("scryfall_uri") or "",

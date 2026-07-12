@@ -563,6 +563,17 @@ main {
   color: var(--text-muted);
 }
 
+.card-meta-extra {
+  margin-top: 0.2rem;
+}
+
+.card-mana {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  opacity: 0.85;
+}
+
 .card-seller {
   margin: 0.4rem 0 0;
   font-size: 0.75rem;
