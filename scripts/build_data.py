@@ -637,6 +637,14 @@ def main() -> int:
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
+
+    # 静态资源的 cache buster 无论数据是否变化都要 bump
+    # （app.js / style.css 可能被手动修改但卡数据没变）
+    for static_file in ("app.js", "style.css"):
+        p = ROOT / "assets" / static_file
+        if p.exists():
+            bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())
+
     if payload_unchanged(args.output, payload):
         print(f"数据无变化，跳过写入 {args.output}")
         return 0
@@ -653,12 +661,6 @@ def main() -> int:
     js_path.write_text(f"window.__MTG_DATA__={compact};\n", encoding="utf-8")
     bump_cache_buster(ROOT / "index.html", "cards-data.js", js_path.read_bytes())
     print(f"已写入 {js_path}")
-
-    # 同步 bump 静态资源（app.js / style.css）的内容 hash
-    for static_file in ("app.js", "style.css"):
-        p = ROOT / "assets" / static_file
-        if p.exists():
-            bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())
     return 0
 
 
