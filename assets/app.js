@@ -596,10 +596,6 @@ const PLACEHOLDER_IMG =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 function cardImageSrc(card) {
-  // 窄屏用 small 省流量；无图时回退占位避免空 src 请求
-  if (isNarrow()) {
-    return card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
-  }
   return card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
 }
 
