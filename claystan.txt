@@ -1,3 +1,7 @@
+# seller: claystan
+# city: 武汉
+# contact: QQ 417592443
+
 2x2 94 e 0 2
 2x2 356 z 0 2
 neo 111 e 0 1

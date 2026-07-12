@@ -1,6 +1,6 @@
 # seller: claystan
-# city: 
-# contact: 
+# city: 武汉
+# contact: QQ 417592443
 #
 # 由 parse_excel_order_txt.py 从 claystan.txt 生成
 # 库存格式: [Nx] 系列 编号 语言 闪   （语言 e/z/j/o，闪 0/1）
