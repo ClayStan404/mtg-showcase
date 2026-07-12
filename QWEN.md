@@ -41,7 +41,6 @@ GitHub Pages → claystan.cc
 | `data/` | `cards.json` — 富化后的完整卡牌数据 |
 | `assets/` | 前端资源：`app.js`、`cards-data.js`、`style.css` |
 | `templates/` | WPS 协作模板 xlsx |
-| `docs/` | 卖家使用说明 |
 | `.cache/scryfall/` | Scryfall API 响应缓存（git-ignored） |
 
 ## Build & Run

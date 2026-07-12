@@ -5,8 +5,6 @@
 - **站点**：https://claystan.cc/  
 - **仓库**：https://github.com/ClayStan404/mtg-showcase  
 - **分支**：`master`  
-- **卖家填写说明**：[docs/卖家如何更新库存.md](./docs/卖家如何更新库存.md)  
-- **求购说明**：[docs/求购如何发布.md](./docs/求购如何发布.md)
 
 **不做站内下单/支付。** 库存以表格为准，网站为展示与沟通辅助。
 
