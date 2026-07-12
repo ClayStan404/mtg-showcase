@@ -58,6 +58,10 @@ QTY_RE = re.compile(r"^(?:(\d+)x|x(\d+))$", re.I)
 SLUG_RE = re.compile(r"[^a-zA-Z0-9\u4e00-\u9fff_-]+")
 
 
+# \u5185\u90e8 lang \u7801 -> txt \u7b80\u5199\uff08\u5199 inventory/wants txt \u65f6\u7528\uff0c\u4e0e LANG_INPUT_MAP \u4e92\u9006\uff09
+LANG_TOKEN = {"en": "e", "zhs": "z", "ja": "j", "other": "o"}
+
+
 class ParseError(Exception):
     def __init__(self, message: str, line: int | None = None):
         self.line = line
@@ -68,10 +72,17 @@ REQUIRED_META_FIELDS = ("seller", "city", "contact")
 _META_FIELD_LABELS = {"seller": "seller", "city": "city", "contact": "contact"}
 
 
-def validate_meta(meta: dict[str, str], source: str = "") -> list[str]:
-    """seller / city / contact 必填，返回缺失字段的错误消息列表。"""
+def validate_meta(
+    meta: dict[str, str],
+    source: str = "",
+    required: tuple[str, ...] = REQUIRED_META_FIELDS,
+) -> list[str]:
+    """校验必填元数据字段，返回缺失字段的错误消息列表。
+
+    required 默认为库存的 seller/city/contact；求购侧传 ("buyer", "city", "contact")。
+    """
     errors: list[str] = []
-    for field in REQUIRED_META_FIELDS:
+    for field in required:
         if not (meta.get(field) or "").strip():
             prefix = f"[{source}] " if source else ""
             errors.append(f"{prefix}缺少必填项 # {field}:")

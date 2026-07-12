@@ -21,7 +21,7 @@ from parse_excel_order_txt import (  # noqa: E402
     merge_cards,
     parse_file,
 )
-from inventory_format import validate_meta  # noqa: E402
+from inventory_format import LANG_TOKEN, validate_meta  # noqa: E402
 
 try:
     import openpyxl
@@ -63,7 +63,7 @@ def build_sheet(ws, meta: dict[str, str], cards: list[dict]) -> None:
         ws.cell(row=8, column=col, value=header).font = Font(name=FONT, size=11, bold=True)
 
     # Row 9+: data
-    lang_token = {"en": "e", "zhs": "z", "ja": "j", "other": "o"}
+    lang_token = LANG_TOKEN
     for i, c in enumerate(cards):
         row = 9 + i
         ws.cell(row=row, column=1, value=c["set"]).font = Font(name=FONT, size=11)

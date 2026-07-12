@@ -105,7 +105,7 @@ python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
 python3 scripts/build_data.py
 python3 scripts/build_wants.py
 # 提交
-git add inventory/*.txt wants/*.txt data/ assets/cards-data.js assets/wants-data.js
+git add -A inventory/ data/ assets/cards-data.js assets/wants-data.js
 git commit -m "Update inventory/wants"
 git push origin master
 
@@ -184,8 +184,8 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 
 - 分支 `master`，push 后 GitHub Pages 自动部署
 - **GitHub Actions**：每小时整点 cron 触发，self-hosted runner 执行
-- 上线产物：`inventory/*.txt` + `data/cards.json` + `assets/cards-data.js`（+ `wants/*.txt` + `assets/wants-data.js`）
-- 前端 CSS/JS 有版本号参数（`?v=N`），修改前端文件后需 bump 版本号强制缓存刷新
+- 上线产物：`inventory/*.txt` + `data/cards.json` + `assets/cards-data.js`（+ `data/wants.json` + `assets/wants-data.js`；`wants/*.txt` 是中间产物，不入库）
+- 前端 CSS/JS 有版本号参数（`?v=N`）：`cards-data.js` / `wants-data.js` 由构建脚本用内容哈希自动 bump；`style.css` / `app.js` 仍需手动 bump 强制缓存刷新
 - `.gitignore`：`.venv/`、`.cache/`、`__pycache__/`、WPS lock files（`**/.~*`）、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`（生成的临时文件）
 
 ## WPS Share IDs

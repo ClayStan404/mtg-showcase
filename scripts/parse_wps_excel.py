@@ -23,6 +23,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from inventory_format import (  # noqa: E402
+    LANG_TOKEN,
     ParseError,
     cell_str,
     normalize_foil,
@@ -191,7 +192,7 @@ def cards_to_txt(meta: dict[str, str], cards: list[dict[str, Any]]) -> str:
     for c in cards:
         # 内部 txt：与 build_data 兼容
         # lang: en→e, zhs→z, ja→j, other→o
-        lang_token = {"en": "e", "zhs": "z", "ja": "j", "other": "o"}.get(c["lang"], "e")
+        lang_token = LANG_TOKEN.get(c["lang"], "e")
         foil_token = "1" if c["foil"] else "0"
         qty = c["quantity"]
         prefix = f"{qty}x " if qty != 1 else ""

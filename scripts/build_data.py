@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -40,6 +41,22 @@ META_RE = re.compile(
 
 REQUEST_GAP = 0.12
 USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
+
+
+def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> None:
+    """用内容 md5 前 8 位更新 index.html 里 assets/<asset_filename>?v=... 的版本号。
+
+    让自动部署的 cards-data.js / wants-data.js 内容变化即自动击穿浏览器缓存，
+    无需手动 bump index.html 里的 ?v=N。style.css / app.js 不由脚本生成，仍需手动 bump。
+    """
+    if not html_path.exists():
+        return
+    digest = hashlib.md5(content).hexdigest()[:8]
+    text = html_path.read_text(encoding="utf-8")
+    pattern = re.compile(rf"(assets/{re.escape(asset_filename)}\?v=)[^\"'\s]+")
+    new_text, n = pattern.subn(rf"\g<1>{digest}", text)
+    if n and new_text != text:
+        html_path.write_text(new_text, encoding="utf-8")
 
 
 def load_site_config() -> dict[str, Any]:
@@ -208,7 +225,11 @@ class ScryfallClient:
                     continue
                 raise
 
-        if data is not None and self.use_disk_cache:
+        # 仅当返回数据的 lang 与请求 lang 一致时才缓存到 api_lang 路径。
+        # 回退场景（如 ja 卡无日文印刷 -> 404 -> 取 en）下 data.lang != api_lang，
+        # 不缓存，避免把英文数据写入 ja 缓存路径造成键与内容不符、且 Scryfall
+        # 日后新增该印刷后无法自动刷新。
+        if data is not None and self.use_disk_cache and data.get("lang") == api_lang:
             cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         return data
 
@@ -431,6 +452,7 @@ def enrich(
                         "cmc": 0,
                         "text": "",
                         "image": pick_images({}),
+                        "scryfall_uri": "",
                         "error": "not_found",
                     }
                 )
@@ -586,6 +608,7 @@ def main() -> int:
     js_path.parent.mkdir(parents=True, exist_ok=True)
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     js_path.write_text(f"window.__MTG_DATA__={compact};\n", encoding="utf-8")
+    bump_cache_buster(ROOT / "index.html", "cards-data.js", js_path.read_bytes())
     print(f"已写入 {js_path}")
     return 0
 

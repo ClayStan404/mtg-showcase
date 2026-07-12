@@ -30,6 +30,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from inventory_format import (  # noqa: E402
+    LANG_TOKEN,
     ParseError,
     cell_str,
     normalize_foil,
@@ -125,7 +126,7 @@ def cards_to_inventory_txt(meta: dict[str, str], cards: list[dict[str, Any]], so
         "# 库存格式: [Nx] 系列 编号 语言 闪   （语言 e/z/j/o，闪 0/1）",
         "",
     ]
-    lang_token = {"en": "e", "zhs": "z", "ja": "j", "other": "o"}
+    lang_token = LANG_TOKEN
     for c in cards:
         lt = lang_token.get(c["lang"], "e")
         ft = "1" if c["foil"] else "0"

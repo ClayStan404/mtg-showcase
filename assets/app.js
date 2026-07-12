@@ -62,7 +62,13 @@ function loadCart() {
     const raw = localStorage.getItem(CART_KEY);
     if (!raw) return {};
     const data = JSON.parse(raw);
-    return data && typeof data === "object" ? data : {};
+    if (!data || typeof data !== "object") return {};
+    const clean = {};
+    for (const [k, v] of Object.entries(data)) {
+      // 仅保留正整数，防止 localStorage 损坏导致 cartCount 拼接成字符串
+      if (typeof v === "number" && v > 0) clean[k] = Math.floor(v);
+    }
+    return clean;
   } catch {
     return {};
   }
@@ -299,10 +305,10 @@ function renderCartList() {
         }
       </header>`;
     for (const { card, want } of group) {
-      const img = card.image?.small || card.image?.normal || "";
+      const img = card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
       html += `
         <article class="cart-item" data-id="${escapeAttr(card.id)}">
-          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" />
+          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'" />
           <div class="cart-item-main">
             <p class="cart-item-name">${escapeHtml(displayName(card))}</p>
             <p class="cart-item-meta">
@@ -451,7 +457,12 @@ function matches(card) {
   const q = state.query.trim().toLowerCase();
   if (!q) return true;
 
-  const hay = [
+  const hay = card._hay || (card._hay = buildHay(card));
+  return q.split(/\s+/).every((token) => hay.includes(token));
+}
+
+function buildHay(card) {
+  return [
     card.name_en,
     card.name_zh,
     card.name_printed,
@@ -479,8 +490,6 @@ function matches(card) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
-
-  return q.split(/\s+/).every((token) => hay.includes(token));
 }
 
 function sellerLine(card) {
@@ -582,12 +591,16 @@ function syncScrim() {
   }
 }
 
+// 1x1 透明占位图，避免 src="" 触发对当前页 URL 的多余请求
+const PLACEHOLDER_IMG =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
 function cardImageSrc(card) {
-  // 手机列表用 normal 足够；省流量可退 small
+  // 窄屏用 small 省流量；无图时回退占位避免空 src 请求
   if (isNarrow()) {
-    return card.image?.normal || card.image?.small || "";
+    return card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
   }
-  return card.image?.normal || card.image?.small || "";
+  return card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
 }
 
 function renderGrid() {
@@ -625,6 +638,7 @@ function renderGrid() {
               alt="${escapeAttr(displayName(c))}"
               loading="lazy"
               decoding="async"
+              onerror="this.style.visibility='hidden'"
             />
           </div>
         </button>
@@ -680,7 +694,7 @@ function openModal(card) {
   const must = isWant && (card.must === true || card.kind === "exact");
   const flex = isWant && (card.must === false || card.kind === "flex");
 
-  $("#modal-img").src = card.image?.large || card.image?.normal || "";
+  $("#modal-img").src = card.image?.large || card.image?.normal || PLACEHOLDER_IMG;
   $("#modal-img").alt = displayName(card);
   $("#modal-title").textContent = displayName(card);
   $("#modal-en").textContent = secondaryName(card);
@@ -1085,9 +1099,11 @@ function bindEvents() {
     setView(tab.dataset.view);
   });
 
+  let searchTimer = null;
   $("#search").addEventListener("input", (e) => {
     state.query = e.target.value;
-    renderGrid();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderGrid, 150);
   });
   $("#search").addEventListener("focus", () => {
     $("#toolbar")?.classList.remove("is-collapsed");
@@ -1139,7 +1155,7 @@ function bindEvents() {
     }
     const hit = e.target.closest(".card-hit");
     if (!hit) return;
-    const card = state.cards.find((c) => c.id === hit.dataset.id);
+    const card = activeList().find((c) => c.id === hit.dataset.id);
     if (card) openModal(card);
   });
 
@@ -1305,9 +1321,11 @@ async function main() {
   state.cards = data.sell.cards || [];
   state.site = data.sell.site || data.wants.site || {};
   state.wants = data.wants.wants || [];
-  // 清理清单里已不存在的卡
+  // 清理清单里已不存在的卡，并按当前库存上限 clamp 数量
   for (const id of Object.keys(state.cart)) {
-    if (!state.cards.some((c) => c.id === id)) delete state.cart[id];
+    const card = state.cards.find((c) => c.id === id);
+    if (!card) delete state.cart[id];
+    else state.cart[id] = Math.min(state.cart[id], maxWant(card));
   }
   saveCart();
   renderSiteMeta();
@@ -1319,5 +1337,5 @@ async function main() {
 main().catch((err) => {
   console.error(err);
   const detail = err && err.message ? err.message : String(err);
-  showLoadError(`加载失败：${detail}。可试 http://127.0.0.1:8080/ 或检查网络/代理。`);
+  showLoadError(`加载失败：${detail}。请检查网络后刷新页面，或稍后重试。`);
 });

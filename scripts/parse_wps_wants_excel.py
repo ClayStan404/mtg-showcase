@@ -24,6 +24,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from inventory_format import (  # noqa: E402
+    LANG_TOKEN,
     ParseError,
     cell_str,
     normalize_foil,
@@ -31,6 +32,7 @@ from inventory_format import (  # noqa: E402
     normalize_qty,
     normalize_strict,
     slugify,
+    validate_meta,
 )
 
 try:
@@ -78,15 +80,6 @@ def find_meta(ws) -> dict[str, str]:
         if label in key_map and val:
             meta[key_map[label]] = val
     return meta
-
-
-def validate_meta(meta: dict[str, str], source: str = "") -> list[str]:
-    errors: list[str] = []
-    for field in ("buyer", "city", "contact"):
-        if not (meta.get(field) or "").strip():
-            prefix = f"[{source}] " if source else ""
-            errors.append(f"{prefix}缺少必填项 # {field}:")
-    return errors
 
 
 def find_header_row(ws) -> tuple[int, dict[str, int]] | None:
@@ -179,7 +172,7 @@ def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any
         except ParseError as e:
             errors.append(f"[{sheet_name}] 第{r_idx}行：{e}")
 
-    errors.extend(validate_meta(meta, sheet_name))
+    errors.extend(validate_meta(meta, sheet_name, required=("buyer", "city", "contact")))
     return meta, wants, errors
 
 
@@ -204,12 +197,14 @@ def wants_to_txt(meta: dict[str, str], wants: list[dict[str, Any]]) -> str:
         "",
     ]
     for w in wants:
-        lang_token = {"en": "e", "zhs": "z", "ja": "j", "other": "o"}.get(w["lang"], "e")
+        lang_token = LANG_TOKEN.get(w["lang"], "e")
         foil_token = "1" if w["foil"] else "0"
         must_token = "1" if w["must"] else "0"
         qty = w["quantity"]
         prefix = f"{qty}x " if qty != 1 else ""
-        note = f" | {w['note']}" if w["note"] else ""
+        # 清洗 note 中的换行（WPS 单元格 Alt+Enter 会被读为 \n），避免断行破坏 txt 格式
+        note_raw = (w.get("note") or "").replace("\r", " ").replace("\n", " ").strip()
+        note = f" | {note_raw}" if note_raw else ""
         line = f"{prefix}{w['set']} {w['number']} {lang_token} {foil_token} {must_token}{note}"
         lines.append(line)
     lines.append("")

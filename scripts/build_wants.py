@@ -24,10 +24,12 @@ from inventory_format import (  # noqa: E402
     ParseError,
     lang_label,
     slugify,
+    validate_meta,
     want_line_to_fields,
 )
 from build_data import (  # noqa: E402
     ScryfallClient,
+    bump_cache_buster,
     enrich_fields_from_scryfall,
     load_site_config,
     pick_images,
@@ -108,6 +110,12 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
                 }
             )
 
+    meta_errors = validate_meta(
+        {"buyer": buyer, "city": city, "contact": contact}, path.name
+    )
+    if meta_errors:
+        raise ParseError("; ".join(meta_errors))
+
     return entries
 
 
@@ -118,10 +126,19 @@ def parse_all_wants(wants_dir: Path) -> list[dict[str, Any]]:
         p for p in wants_dir.glob("*.txt") if p.is_file() and not p.name.startswith("_")
     )
     all_e: list[dict[str, Any]] = []
+    errors: list[str] = []
     for p in files:
-        es = parse_want_file(p)
-        print(f"  · {p.name}: {len(es)} 条")
-        all_e.extend(es)
+        try:
+            es = parse_want_file(p)
+            print(f"  · {p.name}: {len(es)} 条")
+            all_e.extend(es)
+        except ParseError as e:
+            errors.append(str(e))
+    if errors:
+        print(f"\n❌ 校验失败（{len(errors)} 个问题）：", file=sys.stderr)
+        for e in errors:
+            print(f"  · {e}", file=sys.stderr)
+        raise SystemExit(1)
     return all_e
 
 
@@ -167,6 +184,7 @@ def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[
                     "cmc": 0,
                     "text": "",
                     "image": {"small": "", "normal": "", "large": ""},
+                    "scryfall_uri": "",
                     "error": "not_found",
                     "source_file": e["source_file"],
                 }
@@ -258,6 +276,7 @@ def main() -> int:
     OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     OUT_JS.write_text(f"window.__MTG_WANTS__={compact};\n", encoding="utf-8")
+    bump_cache_buster(ROOT / "index.html", "wants-data.js", OUT_JS.read_bytes())
     print(f"已写入 {OUT_JSON} 与 {OUT_JS} （{payload['count']} 条）")
     return 0
 

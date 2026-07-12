@@ -14,5 +14,8 @@ claystan.xlsx
 wps_inventory.xlsx
 wps_wants.xlsx
 
+# wants/*.txt 是中间产物（parse_wps_wants_excel 生成，不入库）
+wants/
+
 # WPS / Office lock files
 **/.~*

@@ -31,7 +31,7 @@ git commit & push -> GitHub Pages
 
 - self-hosted runner(Debian),cron `0 * * * *`,也支持 `workflow_dispatch` 手动触发。
 - `fetch_wps_share.py` 靠 WPS session Cookie 认证;Cookie 文件查找顺序:项目根 `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> 环境变量 `WPS_COOKIES`。runner 上放在 `~/.config/wps_cookies.txt`,过期需从浏览器复制新值覆盖(无需重启 runner)。
-- Actions 只 `git add` 富化产物:`inventory/*.txt` + `data/cards.json` + `assets/cards-data.js`,以及(若存在)`data/wants.json` + `assets/wants-data.js`。**`wants/*.txt` 是中间产物,不入库**(与 `inventory/*.txt` 不同)。
+- Actions 只 `git add` 富化产物:`inventory/*.txt` + `data/cards.json` + `assets/cards-data.js`,以及(若存在)`data/wants.json` + `assets/wants-data.js`。`inventory/` 用 `git add -A` 以 stage 已删除卖家的 txt,解析前先 `rm -f inventory/*.txt wants/*.txt` 清残留;有 `concurrency` 防重叠,失败时创建/评论 GitHub issue 通知。**`wants/*.txt` 是中间产物,不入库**(与 `inventory/*.txt` 不同)。
 
 ### ClayStan 个人本地流程(不依赖 WPS 下载)
 
@@ -54,7 +54,7 @@ claystan.txt(手写,Excel 列顺序:系列 编号 语言 闪 数量)
 
 `assets/app.js` 的 `loadData()` 优先读 `window.__MTG_DATA__`(内嵌的 `cards-data.js`);只有在未生成时才回退 `fetch data/cards.json`。求购数据同理走 `window.__MTG_WANTS__`(`wants-data.js`)。这是刻意设计--代理 / DNS 环境下 `fetch` 本地 json 会失败,内嵌更稳。**改了 `cards.json` 必须重跑 `build_data.py` 让 `cards-data.js` 跟上**(求购同理重跑 `build_wants.py`),否则前端看不到变化。
 
-前端无构建步骤、无框架:`index.html` + `assets/app.js` + `assets/style.css`,纯 vanilla JS。首页有「在售 / 求购」两个视图 tab。意向清单持久化在 `localStorage`(key `mtg-wishlist-v1`)。`index.html` 里 CSS/JS 用 `?v=N` 做缓存击穿(当前 `style.css` / `app.js` 为 `?v=17`,`cards-data.js` / `wants-data.js` 为 `?v=16`),改静态资源时记得 bump。用户可控内容一律走 `escapeHtml()` / `escapeAttr()`。
+前端无构建步骤、无框架:`index.html` + `assets/app.js` + `assets/style.css`,纯 vanilla JS。首页有「在售 / 求购」两个视图 tab。意向清单持久化在 `localStorage`(key `mtg-wishlist-v1`)。`index.html` 里 CSS/JS 用 `?v=N` 做缓存击穿。`cards-data.js` / `wants-data.js` 由 `build_data.py` / `build_wants.py` 写完后用内容哈希自动 bump(`bump_cache_buster`);`style.css` / `app.js`(当前 `?v=17` / `?v=18`)仍需手动 bump。用户可控内容一律走 `escapeHtml()` / `escapeAttr()`。
 
 ## 脚本一览
 
@@ -123,7 +123,7 @@ python3 scripts/build_data.py --no-cache        # 忽略 .cache/scryfall 强拉
 - **mtgch API**:`https://mtgch.com/api/v1/card/{set}/{number}/`,仅取非中文卡中文名。
 - **WPS 分享下载**:`fetch_wps_share.py` 走 `https://www.kdocs.cn/api/v3/office/file/{share_id}/download?format=xlsx`,302 重定向与 JSON 两种响应都处理。分享 ID:在售 `cgyl3WizNfp7`、求购 `cvvaN21e3gm8`(也写在 `site_config.json` 的 `wps_inventory_url` / `wps_wants_url`)。
 - **WPS 开放平台 API**(待审核):`test_wps_api.py` 走 OAuth + 读单元格两条路,凭证在 `appid_and_key`(gitignore)。审核通过后可取代 Cookie 方案。
-- `build_data.py` / `build_wants.py` 会复用上一份 JSON 里同 `set|number|lang` 的元数据加速重建--**清缓存或改了卡时首次构建会慢**(两层增量:JSON 复用 + Scryfall 磁盘缓存)。
+- `build_data.py` 会复用上一份 `cards.json` 里同 `set|number|lang` 的元数据加速重建(两层增量:JSON 复用 + Scryfall 磁盘缓存);`build_wants.py` 暂无此层 JSON 复用,仅有 Scryfall 磁盘缓存。**清缓存或改了卡时首次构建会慢**。
 - `site_config.json`:站点标题 / 副标题 / 两个 WPS 文档 URL / 联系方式,会被 `build_data.py` / `build_wants.py` 内嵌进 JSON 的 `site` 字段供前端渲染。
 - `templates/WPS库存协作模板.xlsx`、`templates/WPS求购模板.xlsx`:卖家 / 买家协作模板本地副本,线上主入口见 `site_config.json`。
 
@@ -132,5 +132,5 @@ python3 scripts/build_data.py --no-cache        # 忽略 .cache/scryfall 强拉
 - 两条部署路径:(1) Actions 每小时自动从 WPS 拉取并 commit;(2) 本地 `update.sh` 直接 commit。两者产物一致。
 - 日常库存提交三件套:`inventory/*.txt` + `data/cards.json` + `assets/cards-data.js`(`build_data.py` 一次生成后两者)。求购对应:`data/wants.json` + `assets/wants-data.js`(`wants/*.txt` 不入库)。
 - `.gitignore`:`.venv/`、`.cache/`、`__pycache__/`、`appid_and_key`、`wps_cookies.txt`、生成的 `*.xlsx`(`claystan.xlsx` / `wps_*.xlsx` / `wps_download_test.xlsx`)、WPS lock files(`**/.~*`)。
-- 前端 CSS/JS 用 `?v=N` 缓存击穿,改静态资源要 bump `index.html` 里的版本号。
+- 前端 CSS/JS 用 `?v=N` 缓存击穿:`cards-data.js` / `wants-data.js` 由构建脚本用内容哈希自动 bump,无需手动;`style.css` / `app.js` 仍需手动 bump `index.html` 里的版本号。
 - 全局规则:commit message 与 PR 描述用英文;本机不主动 `git commit` / `git push`,需用户明确指示。

@@ -8,6 +8,13 @@ on:
 
 permissions:
   contents: write  # 允许 push commit
+  issues: write     # 失败时创建/评论 issue 通知
+
+# 防止 cron 与手动触发重叠，避免在同一 self-hosted runner 上并发操作
+# 同一 checkout 导致 git push 冲突或工作区污染
+concurrency:
+  group: auto-update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -27,30 +34,35 @@ jobs:
           echo "✅ 求购 xlsx 下载完成"
 
       - name: Parse inventory
-        run: python3 scripts/parse_wps_excel.py wps_inventory.xlsx
+        # 先清空旧产物，避免卖家从 WPS 删除工作表后旧 txt 残留导致站点展示已下架的卡
+        run: |
+          rm -f inventory/*.txt
+          python3 scripts/parse_wps_excel.py wps_inventory.xlsx
 
       - name: Parse wants
-        run: python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
+        # 同上：清空旧 wants txt，避免已退出的买家残留
+        run: |
+          rm -f wants/*.txt
+          python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
 
       - name: Build data (Scryfall enrichment)
         run: python3 scripts/build_data.py
 
       - name: Build wants data
-        run: |
-          if ls wants/*.txt >/dev/null 2>&1; then
-            python3 scripts/build_wants.py
-          else
-            echo "No wants files, skipping"
-          fi
+        # 始终执行：build_wants.py 自身有空数据保护（写 count:0），
+        # 跳过会让站点在求购文档清空后展示过期数据
+        run: python3 scripts/build_wants.py
 
       - name: Commit & push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add inventory/*.txt data/cards.json assets/cards-data.js
+          # git add -A 让已删除的卖家 txt 也被 stage（git add inventory/*.txt 的 glob
+          # 只展开现存文件，不会 stage 删除操作）
+          git add -A inventory/ data/cards.json assets/cards-data.js
           if [ -f assets/wants-data.js ]; then
-            git add data/wants.json assets/wants-data.js
+            git add -A data/wants.json assets/wants-data.js
           fi
 
           if git diff --staged --quiet; then
@@ -63,3 +75,26 @@ jobs:
           git commit -m "Auto update: ${COUNT} cards / ${TOTAL} total (WPS sync)"
           git push
           echo "✅ 已提交并推送：${COUNT} 种 / ${TOTAL} 张"
+
+      - name: Notify on failure
+        # Cookie 过期是最高频故障；默认无通知会导致站点静默展示过期数据数天
+        # 复用同一 open issue 评论，避免刷屏
+        if: failure()
+        run: |
+          REPO="${{ github.repository }}"
+          TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          RUN_URL="https://github.com/${REPO}/actions/runs/${{ github.run_id }}"
+          BODY="自动更新失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：${RUN_URL}"
+          API="https://api.github.com/repos/${REPO}/issues"
+          EXISTING=$(curl -s -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
+            "${API}?state=open&per_page=100" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); m=[i['number'] for i in d if i.get('title')=='Auto-update failed']; print(m[0] if m else '')" 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
+              "${API}/${EXISTING}/comments" -d "{\"body\":\"${BODY}\"}" >/dev/null
+            echo "已评论现有 issue #${EXISTING}"
+          else
+            curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
+              "${API}" -d "{\"title\":\"Auto-update failed\",\"body\":\"${BODY}\"}" >/dev/null
+            echo "已创建新 issue"
+          fi
