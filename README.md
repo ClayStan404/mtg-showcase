@@ -38,7 +38,8 @@
 
 ### 求购
 - 买家发布想买的牌，卖家浏览后联系买家  
-- 统一格式（见 `wants/` 或 [`templates/WPS求购模板.xlsx`](./templates/WPS求购模板.xlsx)）：  
+- 云文档：**[WPS求购模板](https://www.kdocs.cn/l/cvvaN21e3gm8)**  
+- 统一格式（见 `wants/` 或本地 [`templates/WPS求购模板.xlsx`](./templates/WPS求购模板.xlsx)）：  
   `系列 编号 [语言] [闪] [必须]`  
   - 必须 `1` = 只要此印刷  
   - 必须 `0`/空 = 其他版本也可以（以该印刷为参考）  
