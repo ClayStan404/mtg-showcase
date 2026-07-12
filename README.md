@@ -10,23 +10,7 @@
 
 卖家/买家使用说明已内嵌在网站上（首页「使用说明」折叠面板）。
 
----
-
-## 数据流
-
-```
-WPS 在售协作文档 ──→ fetch_wps_share.py ──→ parse_wps_excel.py ──→ inventory/*.txt
-WPS 求购协作文档 ──→ fetch_wps_share.py ──→ parse_wps_wants_excel.py ──→ wants/*.txt
-                                                                              │
-                                    build_data.py / build_wants.py ←──────────┘
-                                          (Scryfall 元数据富化)
-                                              │
-                                    data/*.json + assets/*-data.js
-                                              │
-                                    git commit & push → GitHub Pages
-```
-
-**GitHub Actions 每小时自动同步**：self-hosted runner 从 WPS 分享链接下载最新 xlsx → 解析 → Scryfall 富化 → 部署到 claystan.cc。
+GitHub Actions 每小时自动同步：self-hosted runner 从 WPS 分享链接下载最新 xlsx → 解析 → Scryfall 富化 → 部署到 claystan.cc。
 
 详见 [QWEN.md](QWEN.md)。
 
