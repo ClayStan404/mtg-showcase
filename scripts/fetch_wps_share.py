@@ -82,7 +82,7 @@ def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
         dl_url = resp.headers.get("location", "")
         print(f"获取到 CDN 地址: {dl_url[:100]}...")
         resp = requests.get(dl_url, headers={"User-Agent": ua}, timeout=60)
-        if resp.status_code == 200 and len(resp.content) > 100:
+        if resp.status_code == 200 and len(resp.content) > 100 and resp.content[:4] == b"PK\x03\x04":
             output.write_bytes(resp.content)
             print(f"✓ 已下载: {output} ({len(resp.content):,} bytes)")
             return True
@@ -99,7 +99,7 @@ def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
                 dl_url = data["download_url"]
                 print(f"获取到 CDN 地址: {dl_url[:100]}...")
                 resp = requests.get(dl_url, headers={"User-Agent": ua}, timeout=60)
-                if resp.status_code == 200 and len(resp.content) > 100:
+                if resp.status_code == 200 and len(resp.content) > 100 and resp.content[:4] == b"PK\x03\x04":
                     output.write_bytes(resp.content)
                     print(f"✓ 已下载: {output} ({len(resp.content):,} bytes)")
                     return True
@@ -107,10 +107,10 @@ def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
                 return False
             # Error response
             print(f"❌ API 返回错误: {json.dumps(data, ensure_ascii=False)[:300]}")
-            if "未登陆" in resp.text:
+            if "未登陆" in resp.text or "未登录" in resp.text:
                 print("Cookie 已过期，请重新获取")
             return False
-        if len(resp.content) > 100:
+        if len(resp.content) > 100 and resp.content[:4] == b"PK\x03\x04":
             output.write_bytes(resp.content)
             print(f"✓ 已下载: {output} ({len(resp.content):,} bytes)")
             return True
@@ -119,7 +119,7 @@ def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
 
     if resp.status_code == 403:
         print(f"❌ 认证失败: {resp.text[:200]}")
-        if "未登陆" in resp.text:
+        if "未登陆" in resp.text or "未登录" in resp.text:
             print("Cookie 已过期，请重新获取")
         return False
 

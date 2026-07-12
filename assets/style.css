@@ -19,6 +19,11 @@
   box-sizing: border-box;
 }
 
+/* 全局 [hidden] 优先级：避免 .btn/.cart-fab 的 display:inline-flex 覆盖 [hidden] */
+[hidden] {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }

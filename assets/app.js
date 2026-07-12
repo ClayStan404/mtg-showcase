@@ -78,7 +78,8 @@ function saveCart() {
   try {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
   } catch {
-    /* ignore quota */
+    // 配额满或隐私模式，清单无法持久化
+    showToast("清单保存失败（本地存储已满或被禁用）");
   }
 }
 
@@ -110,9 +111,12 @@ function addToCart(cardId, delta = 1) {
     state.cart[cardId] = next;
   }
   saveCart();
-  updateCartChrome();
   renderCartList();
   // 刷新当前可见卡片按钮状态
+  refreshCardButton(cardId);
+}
+
+function refreshCardButton(cardId) {
   const esc =
     window.CSS && typeof CSS.escape === "function"
       ? CSS.escape(cardId)
@@ -137,15 +141,13 @@ function setCartQty(cardId, qty) {
   if (next <= 0) delete state.cart[cardId];
   else state.cart[cardId] = next;
   saveCart();
-  updateCartChrome();
   renderCartList();
-  renderGrid();
+  refreshCardButton(cardId);
 }
 
 function clearCart() {
   state.cart = {};
   saveCart();
-  updateCartChrome();
   renderCartList();
   renderGrid();
   showToast("清单已清空");
@@ -177,6 +179,22 @@ function showToast(msg) {
   }, 1800);
 }
 
+function trapFocus(container, e) {
+  const focusable = container.querySelectorAll(
+    'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 function openCart() {
   closeAllDropdowns();
   closeModal();
@@ -187,6 +205,7 @@ function openCart() {
   setScrollLock(true);
   renderCartList();
   updateCartChrome();
+  $("#cart-close")?.focus();
 }
 
 function closeCart() {
@@ -877,7 +896,7 @@ function buildDropdownShell(filterId) {
 
 function mountFilters() {
   const host = $("#filters");
-  host.innerHTML = filterOrder().map(buildDropdownShell).join("");
+  // shell 由 populateFilters 构建（main 里 mountFilters 后立即调 populateFilters）
 
   host.addEventListener("click", (e) => {
     const trigger = e.target.closest(".dd-trigger");
@@ -1027,8 +1046,14 @@ function renderSiteMeta() {
 
   const invLink = $("#guide-wps-inv");
   const wantLink = $("#guide-wps-want");
-  if (invLink && site.wps_inventory_url) invLink.href = site.wps_inventory_url;
-  if (wantLink && site.wps_wants_url) wantLink.href = site.wps_wants_url;
+  if (invLink) {
+    if (site.wps_inventory_url) invLink.href = site.wps_inventory_url;
+    else invLink.hidden = true;
+  }
+  if (wantLink) {
+    if (site.wps_wants_url) wantLink.href = site.wps_wants_url;
+    else wantLink.hidden = true;
+  }
 
   const list = activeList();
   $("#total-kinds").textContent = String(list.length);
@@ -1136,6 +1161,32 @@ function bindEvents() {
       closeAllDropdowns();
       if (state.cartOpen) closeCart();
       else closeModal();
+      return;
+    }
+    if (e.key === "Tab") {
+      const container = state.cartOpen
+        ? $("#cart-panel")
+        : state.modalCardId
+        ? document.querySelector(".modal-panel")
+        : null;
+      if (container) trapFocus(container, e);
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      const openMenu =
+        document.querySelector(".dd-menu.is-portal") ||
+        document.querySelector(".dd.open .dd-menu");
+      if (openMenu) {
+        e.preventDefault();
+        const opts = [...openMenu.querySelectorAll('[role="option"]')];
+        if (!opts.length) return;
+        const curIdx = opts.findIndex(
+          (o) => o === document.activeElement || o.contains(document.activeElement)
+        );
+        const nextIdx =
+          curIdx < 0 ? 0 : (curIdx + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
+        opts[nextIdx]?.focus();
+      }
     }
   });
 
@@ -1158,9 +1209,10 @@ function bindEvents() {
   $("#modal-close").addEventListener("click", closeModal);
   $("#modal-backdrop").addEventListener("click", closeModal);
   $("#modal-add")?.addEventListener("click", () => {
-    if (!state.modalCardId) return;
+    if (!state.modalCardId || state.view === "want") return;
+    const was = inCart(state.modalCardId);
     addToCart(state.modalCardId, 1);
-    showToast("已加入意向清单");
+    if (!was && inCart(state.modalCardId)) showToast("已加入意向清单");
   });
 
   $("#cart-fab")?.addEventListener("click", openCart);
@@ -1313,6 +1365,11 @@ async function loadData() {
 async function main() {
   mountFilters();
   bindEvents();
+  const empty = $("#empty");
+  if (empty) {
+    empty.textContent = "加载中…";
+    empty.hidden = false;
+  }
   const data = await loadData();
   state.cards = data.sell.cards || [];
   state.site = data.sell.site || data.wants.site || {};

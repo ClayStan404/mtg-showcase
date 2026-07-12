@@ -32,6 +32,7 @@ from build_data import (  # noqa: E402
     bump_cache_buster,
     enrich_fields_from_scryfall,
     load_site_config,
+    payload_unchanged,
     pick_images,
     pick_text,
 )
@@ -153,7 +154,12 @@ def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[
             f"{'必须' if e['must'] else '可替'}",
             flush=True,
         )
-        card = client.fetch_card(e["set"], e["number"], e["lang"])
+        try:
+            card = client.fetch_card(e["set"], e["number"], e["lang"])
+        except Exception as exc:
+            # 捕获 JSONDecodeError 等异常，避免单卡崩溃整个 wants 构建
+            print(f"  ! 获取失败 {e['set']} {e['number']} {e['lang']}: {exc}", file=sys.stderr)
+            card = None
         wid = (
             f"{e['buyer_id']}-{e['set']}-{e['number']}-{e['lang']}-"
             f"{'f' if e['foil'] else 'nf'}-{'1' if e['must'] else '0'}"
@@ -275,6 +281,9 @@ def main() -> int:
         }
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    if payload_unchanged(OUT_JSON, payload):
+        print(f"数据无变化，跳过写入 {OUT_JSON}")
+        return 0
     OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     OUT_JS.write_text(f"window.__MTG_WANTS__={compact};\n", encoding="utf-8")

@@ -59,6 +59,23 @@ def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> N
         html_path.write_text(new_text, encoding="utf-8")
 
 
+def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
+    """比较新 payload 与已存在的 output（忽略 generated_at 时间戳）。
+
+    避免每小时 Actions 因 generated_at 变化产生无意义 commit，以及
+    bump_cache_buster 哈希随时间戳抖动。前端不使用 generated_at 字段。
+    """
+    if not output_path.exists():
+        return False
+    try:
+        old = json.loads(output_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return False
+    old_wo_ts = {k: v for k, v in old.items() if k != "generated_at"}
+    new_wo_ts = {k: v for k, v in new_payload.items() if k != "generated_at"}
+    return old_wo_ts == new_wo_ts
+
+
 def load_site_config() -> dict[str, Any]:
     if SITE_CONFIG.exists():
         return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
@@ -192,9 +209,10 @@ class ScryfallClient:
             time.sleep(REQUEST_GAP - elapsed)
         self._last = time.monotonic()
 
-    def get(self, url: str, **kwargs: Any) -> requests.Response:
+    def get(self, url: str, *, throttle: bool = True, **kwargs: Any) -> requests.Response:
         for attempt in range(3):
-            self._throttle()
+            if throttle:
+                self._throttle()
             try:
                 resp = self.session.get(url, timeout=30, **kwargs)
                 resp.raise_for_status()
@@ -257,7 +275,7 @@ class ScryfallClient:
 
         url = f"https://mtgch.com/api/v1/card/{set_code}/{number}/"
         try:
-            data = self.get(url).json()
+            data = self.get(url, throttle=False).json()
             name = (
                 data.get("zhs_name")
                 or data.get("atomic_official_name")
@@ -619,6 +637,9 @@ def main() -> int:
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    if payload_unchanged(args.output, payload):
+        print(f"数据无变化，跳过写入 {args.output}")
+        return 0
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(
         f"已写入 {args.output} （{payload['count']} 种 / 共 {payload['total_quantity']} 张 · "
