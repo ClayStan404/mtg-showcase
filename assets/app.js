@@ -86,6 +86,37 @@ function sellerLine(card) {
   return parts.join(" · ");
 }
 
+function isNarrow() {
+  return window.matchMedia("(max-width: 720px)").matches;
+}
+
+function setScrollLock(locked) {
+  document.body.classList.toggle("scroll-lock", locked);
+}
+
+function syncScrim() {
+  const open = document.querySelector(".dd.open");
+  const scrim = $("#dd-scrim");
+  if (!scrim) return;
+  if (open && isNarrow()) {
+    scrim.hidden = false;
+  } else {
+    scrim.hidden = true;
+  }
+  // 窄屏打开下拉时锁滚动；详情弹层另算
+  if (!$("#modal")?.classList.contains("open")) {
+    setScrollLock(Boolean(open && isNarrow()));
+  }
+}
+
+function cardImageSrc(card) {
+  // 手机列表用 normal 足够；省流量可退 small
+  if (isNarrow()) {
+    return card.image?.normal || card.image?.small || "";
+  }
+  return card.image?.normal || card.image?.small || "";
+}
+
 function renderGrid() {
   const grid = $("#grid");
   const empty = $("#empty");
@@ -105,7 +136,12 @@ function renderGrid() {
       (c) => `
     <button type="button" class="card" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
       <div class="card-img-wrap">
-        <img src="${escapeAttr(c.image?.normal || c.image?.small || "")}" alt="${escapeAttr(displayName(c))}" loading="lazy" />
+        <img
+          src="${escapeAttr(cardImageSrc(c))}"
+          alt="${escapeAttr(displayName(c))}"
+          loading="lazy"
+          decoding="async"
+        />
         <div class="badges">
           ${c.foil ? '<span class="badge foil">FOIL</span>' : ""}
           ${c.quantity > 1 ? `<span class="badge qty">×${c.quantity}</span>` : ""}
@@ -126,7 +162,9 @@ function renderGrid() {
 }
 
 function openModal(card) {
+  closeAllDropdowns();
   const modal = $("#modal");
+  // 手机详情用 large 清晰；桌面同样
   $("#modal-img").src = card.image?.large || card.image?.normal || "";
   $("#modal-img").alt = displayName(card);
   $("#modal-title").textContent = displayName(card);
@@ -158,13 +196,19 @@ function openModal(card) {
 
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
-  $("#modal-close").focus();
+  setScrollLock(true);
+  // 抽屉打开时滚到顶部，避免上次浏览位置
+  const panel = modal.querySelector(".modal-panel");
+  if (panel) panel.scrollTop = 0;
+  $("#modal-close").focus({ preventScroll: true });
 }
 
 function closeModal() {
   const modal = $("#modal");
   modal.classList.remove("open");
   modal.setAttribute("aria-hidden", "true");
+  setScrollLock(false);
+  syncScrim();
 }
 
 function closeAllDropdowns(exceptId = null) {
@@ -174,6 +218,7 @@ function closeAllDropdowns(exceptId = null) {
     const btn = el.querySelector(".dd-trigger");
     if (btn) btn.setAttribute("aria-expanded", "false");
   });
+  syncScrim();
 }
 
 function currentLabel(filterId) {
@@ -245,6 +290,7 @@ function mountFilters() {
       closeAllDropdowns(willOpen ? dd.id : null);
       dd.classList.toggle("open", willOpen);
       trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      syncScrim();
       return;
     }
 
@@ -258,6 +304,7 @@ function mountFilters() {
       dd.classList.remove("open");
       dd.querySelector(".dd-trigger").setAttribute("aria-expanded", "false");
       renderDropdown(filterId);
+      syncScrim();
       renderGrid();
     }
   });
@@ -343,7 +390,16 @@ function bindEvents() {
     renderGrid();
   });
 
-  document.addEventListener("click", () => closeAllDropdowns());
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".dd") || e.target.closest("#dd-scrim")) return;
+    closeAllDropdowns();
+  });
+
+  const scrim = $("#dd-scrim");
+  if (scrim) {
+    scrim.addEventListener("click", () => closeAllDropdowns());
+  }
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAllDropdowns();

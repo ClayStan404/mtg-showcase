@@ -2,10 +2,15 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f1218" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="description" content="实体万智牌库存展示" />
     <title>万智牌库存</title>
-    <link rel="stylesheet" href="assets/style.css?v=3" />
+    <link rel="stylesheet" href="assets/style.css?v=4" />
   </head>
   <body>
     <header class="site-header wrap">
@@ -14,7 +19,7 @@
       <div class="stats">
         <span>种类 <strong id="total-kinds">0</strong></span>
         <span>张数 <strong id="total-qty">0</strong></span>
-        <span>当前显示 <strong id="visible-count">0</strong></span>
+        <span>显示 <strong id="visible-count">0</strong></span>
       </div>
     </header>
 
@@ -25,15 +30,20 @@
           <input
             id="search"
             type="search"
-            placeholder="搜索：牌名、系列、编号、出售人、城市…"
+            enterkeyhint="search"
+            placeholder="搜索牌名 / 系列 / 出售人…"
             autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
           />
         </label>
         <div class="filters" id="filters">
-          <!-- 自定义下拉由 app.js 填充，避免原生 select 系统菜单白底浅字 -->
+          <!-- 自定义下拉由 app.js 填充 -->
         </div>
       </div>
     </div>
+    <div class="dd-scrim" id="dd-scrim" hidden></div>
 
     <main class="wrap">
       <p id="empty" class="empty" hidden>没有匹配的卡牌</p>
@@ -54,9 +64,10 @@
     <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
       <div class="modal-backdrop" id="modal-backdrop"></div>
       <div class="modal-panel">
+        <div class="modal-handle" aria-hidden="true"></div>
         <button type="button" class="modal-close" id="modal-close" aria-label="关闭">×</button>
         <div class="modal-art">
-          <img id="modal-img" src="" alt="" />
+          <img id="modal-img" src="" alt="" decoding="async" />
         </div>
         <div class="modal-content">
           <h2 id="modal-title"></h2>
@@ -77,13 +88,13 @@
             <dd id="modal-type"></dd>
           </dl>
           <div class="oracle" id="modal-text"></div>
-          <p style="margin-top: 1rem">
+          <p class="modal-links">
             <a id="modal-scryfall" href="#" target="_blank" rel="noopener">在 Scryfall 查看</a>
           </p>
         </div>
       </div>
     </div>
 
-    <script src="assets/app.js?v=3"></script>
+    <script src="assets/app.js?v=4"></script>
   </body>
 </html>
