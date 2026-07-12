@@ -1015,6 +1015,11 @@ function renderSiteMeta() {
     ? "买家求购 · 卖家可按联系方式对接"
     : site.subtitle || "";
 
+  const invLink = $("#guide-wps-inv");
+  const wantLink = $("#guide-wps-want");
+  if (invLink && site.wps_inventory_url) invLink.href = site.wps_inventory_url;
+  if (wantLink && site.wps_wants_url) wantLink.href = site.wps_wants_url;
+
   const list = activeList();
   $("#total-kinds").textContent = String(list.length);
   $("#total-qty").textContent = String(list.reduce((sum, c) => sum + (c.quantity || 0), 0));

@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="description" content="万智牌 Sales List" />
     <title>万智牌 Sales List</title>
-    <link rel="stylesheet" href="assets/style.css?v=16" />
+    <link rel="stylesheet" href="assets/style.css?v=17" />
   </head>
   <body>
     <header class="site-header wrap">
@@ -26,6 +26,36 @@
         <span>显示</span> <strong id="visible-count">0</strong>
       </div>
     </header>
+
+    <details class="guide wrap" id="guide">
+      <summary>使用说明</summary>
+      <div class="guide-body">
+        <section class="guide-section">
+          <h3>卖家必读</h3>
+          <ol>
+            <li>打开 <a id="guide-wps-inv" href="#" target="_blank" rel="noopener">WPS 库存</a>（金山文档）</li>
+            <li>在「模板」工作表上右键 → 创建副本，重命名为自己的名字</li>
+            <li>若没有编辑权限，联系 QQ 417592443 申请</li>
+            <li>在自己的表里填：昵称 / 城市 / 联系 + 卡牌行，保存即可</li>
+            <li>每天固定时间汇总后更新网站</li>
+          </ol>
+          <table class="guide-table">
+            <thead><tr><th>字段</th><th>规则</th></tr></thead>
+            <tbody>
+              <tr><td>语言</td><td><code>e</code>=英文 · <code>z</code>=中文 · <code>j</code>=日文 · <code>o</code>=其他（空默认 <code>e</code>）</td></tr>
+              <tr><td>闪</td><td>空或 <code>0</code>=非闪 · <code>1</code>=闪</td></tr>
+              <tr><td>数量</td><td>空=<code>1</code></td></tr>
+            </tbody>
+          </table>
+          <p class="guide-note">卖光请删行。</p>
+        </section>
+        <section class="guide-section">
+          <h3>买家</h3>
+          <p><strong>在售：</strong>搜索、筛选：出售人 / 城市 / 语言 / 闪卡。意向清单：加入卡牌 → 复制文本或截图模式 → 发给对应卖家。</p>
+          <p><strong>求购：</strong>打开 <a id="guide-wps-want" href="#" target="_blank" rel="noopener">WPS 求购</a>（金山文档），在「模板」上右键 → 创建副本，重命名为自己的名字，无权限时联系 QQ 417592443。填写后保存。</p>
+        </section>
+      </div>
+    </details>
 
     <div class="toolbar" id="toolbar">
       <div class="toolbar-inner wrap">
@@ -151,8 +181,8 @@
       </div>
     </div>
 
-    <script src="assets/cards-data.js?v=15"></script>
-    <script src="assets/wants-data.js?v=15"></script>
-    <script src="assets/app.js?v=16"></script>
+    <script src="assets/cards-data.js?v=16"></script>
+    <script src="assets/wants-data.js?v=16"></script>
+    <script src="assets/app.js?v=17"></script>
   </body>
 </html>
