@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T13:39:24Z",
+  "generated_at": "2026-07-12T13:43:53Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -723,38 +723,6 @@
         "large": "https://cards.scryfall.io/large/front/3/c/3c133908-9e85-49fd-9fb0-06634841db03.jpg?1782818213"
       },
       "scryfall_uri": "https://scryfall.com/card/cmm/55/ja/%E3%82%BB%E3%83%B4%E3%82%A3%E3%83%B3%E3%81%AE%E5%86%8D%E5%88%A9%E7%94%A8-(sevinnes-reclamation)?utm_source=api"
-    },
-    {
-      "id": "claystan-cmm-267-en-nf",
-      "set": "cmm",
-      "set_name": "Commander Masters",
-      "number": "267",
-      "lang": "en",
-      "lang_label": "英文",
-      "foil": false,
-      "quantity": 1,
-      "seller": "claystan",
-      "seller_id": "claystan",
-      "city": "武汉",
-      "contact": "QQ 417592443",
-      "source_file": "claystan.txt",
-      "name_en": "Vandalblast",
-      "name_zh": "蛮野冲击",
-      "name_printed": "Vandalblast",
-      "type_line": "Sorcery",
-      "type_line_en": "Sorcery",
-      "types": [
-        "sorcery"
-      ],
-      "mana_cost": "{R}",
-      "cmc": 1.0,
-      "text": "Destroy target artifact you don't control.\nOverload {4}{R} (You may cast this spell for its overload cost. If you do, change \"target\" in its text to \"each.\")",
-      "image": {
-        "small": "https://cards.scryfall.io/small/front/e/8/e8afc402-ddc4-4819-bc2a-584a43b9b60e.jpg?1782733122",
-        "normal": "https://cards.scryfall.io/normal/front/e/8/e8afc402-ddc4-4819-bc2a-584a43b9b60e.jpg?1782733122",
-        "large": "https://cards.scryfall.io/large/front/e/8/e8afc402-ddc4-4819-bc2a-584a43b9b60e.jpg?1782733122"
-      },
-      "scryfall_uri": "https://scryfall.com/card/cmm/267/vandalblast?utm_source=api"
     },
     {
       "id": "claystan-cmm-308-ja-nf",
@@ -2291,6 +2259,38 @@
         "large": "https://cards.scryfall.io/large/front/9/a/9adee464-91f6-43d2-818f-a425f3230650.jpg?1782793145"
       },
       "scryfall_uri": "https://scryfall.com/card/mh3/190/zhs/%E6%9E%81%E6%80%A7%E5%8F%8D%E8%BD%AC-(invert-polarity)?utm_source=api"
+    },
+    {
+      "id": "claystan-mh3-267-en-nf",
+      "set": "mh3",
+      "set_name": "Modern Horizons 3",
+      "number": "267",
+      "lang": "en",
+      "lang_label": "英文",
+      "foil": false,
+      "quantity": 1,
+      "seller": "claystan",
+      "seller_id": "claystan",
+      "city": "武汉",
+      "contact": "QQ 417592443",
+      "source_file": "claystan.txt",
+      "name_en": "Sevinne's Reclamation",
+      "name_zh": "瑟纹的复还",
+      "name_printed": "Sevinne's Reclamation",
+      "type_line": "Sorcery",
+      "type_line_en": "Sorcery",
+      "types": [
+        "sorcery"
+      ],
+      "mana_cost": "{2}{W}",
+      "cmc": 3.0,
+      "text": "Return target permanent card with mana value 3 or less from your graveyard to the battlefield. If this spell was cast from a graveyard, you may copy this spell and may choose a new target for the copy.\nFlashback {4}{W} (You may cast this card from your graveyard for its flashback cost. Then exile it.)",
+      "image": {
+        "small": "https://cards.scryfall.io/small/front/0/f/0f055754-58cf-474a-a3a9-59490dbf9dce.jpg?1782691139",
+        "normal": "https://cards.scryfall.io/normal/front/0/f/0f055754-58cf-474a-a3a9-59490dbf9dce.jpg?1782691139",
+        "large": "https://cards.scryfall.io/large/front/0/f/0f055754-58cf-474a-a3a9-59490dbf9dce.jpg?1782691139"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/267/sevinnes-reclamation?utm_source=api"
     },
     {
       "id": "claystan-mh3-331-zhs-nf",
