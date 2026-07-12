@@ -16,13 +16,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fetch xlsx from WPS
+      - name: Fetch inventory xlsx from WPS
         run: |
-          python3 scripts/fetch_wps_share.py --output wps_inventory.xlsx
-          echo "✅ xlsx 下载完成"
+          python3 scripts/fetch_wps_share.py --share-id cgyl3WizNfp7 --output wps_inventory.xlsx
+          echo "✅ 在售 xlsx 下载完成"
+
+      - name: Fetch wants xlsx from WPS
+        run: |
+          python3 scripts/fetch_wps_share.py --share-id cvvaN21e3gm8 --output wps_wants.xlsx
+          echo "✅ 求购 xlsx 下载完成"
 
       - name: Parse inventory
         run: python3 scripts/parse_wps_excel.py wps_inventory.xlsx
+
+      - name: Parse wants
+        run: python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
 
       - name: Build data (Scryfall enrichment)
         run: python3 scripts/build_data.py
