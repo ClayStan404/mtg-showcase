@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T13:34:27Z",
+  "generated_at": "2026-07-12T13:36:27Z",
   "site": {
     "title": "万智牌 Sales List",
     "subtitle": "实体卡展示 · 站外联系成交",
@@ -3253,10 +3253,10 @@
       "scryfall_uri": "https://scryfall.com/card/plst/DD2-23/daze?utm_source=api"
     },
     {
-      "id": "claystan-plst-172-en-nf",
+      "id": "claystan-plst-USG-172-en-nf",
       "set": "plst",
-      "set_name": "PLST",
-      "number": "172",
+      "set_name": "The List",
+      "number": "USG-172",
       "lang": "en",
       "lang_label": "英文",
       "foil": false,
@@ -3266,21 +3266,23 @@
       "city": "武汉",
       "contact": "QQ 417592443",
       "source_file": "claystan.txt",
-      "name_en": "",
-      "name_zh": "",
-      "name_printed": "",
-      "type_line": "",
-      "type_line_en": "",
-      "types": [],
-      "mana_cost": "",
-      "cmc": 0,
-      "text": "",
+      "name_en": "Acidic Soil",
+      "name_zh": "酸土",
+      "name_printed": "Acidic Soil",
+      "type_line": "Sorcery",
+      "type_line_en": "Sorcery",
+      "types": [
+        "sorcery"
+      ],
+      "mana_cost": "{2}{R}",
+      "cmc": 3.0,
+      "text": "Acidic Soil deals damage to each player equal to the number of lands they control.",
       "image": {
-        "small": "",
-        "normal": "",
-        "large": ""
+        "small": "https://cards.scryfall.io/small/front/b/2/b2c34caf-edb4-49cf-b274-ef6075d6f4df.jpg?1782736261",
+        "normal": "https://cards.scryfall.io/normal/front/b/2/b2c34caf-edb4-49cf-b274-ef6075d6f4df.jpg?1782736261",
+        "large": "https://cards.scryfall.io/large/front/b/2/b2c34caf-edb4-49cf-b274-ef6075d6f4df.jpg?1782736261"
       },
-      "error": "not_found"
+      "scryfall_uri": "https://scryfall.com/card/plst/USG-172/acidic-soil?utm_source=api"
     },
     {
       "id": "claystan-rtr-194-zhs-f",
