@@ -16,10 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          python3 -m pip install -r requirements.txt
-
       - name: Fetch xlsx from WPS
         run: |
           python3 scripts/fetch_wps_share.py --output wps_inventory.xlsx
