@@ -81,7 +81,6 @@ Edit directly in the WPS collaborative spreadsheet — no local setup needed.
 | `inventory_format.py` | Shared field conventions: lang/foil/qty normalization, slugify, ParseError, validate_meta |
 | `build_common.py` | Shared by build_data/build_wants: ScryfallClient, base_from_cached/base_from_card, bump_cache_buster, payload_unchanged, load_site_config (decoupled) |
 | `wps_excel_common.py` | Shared by parse_wps_*: sheet skip rules, meta/header lookup, workbook traversal, file writing with conflict detection |
-| `test_wps_api.py` | WPS Open Platform API test (OAuth + cell read; pending app approval) |
 
 ## Build & Run
 
@@ -135,14 +134,6 @@ Local preview: open `index.html` in a browser, or run `python3 -m http.server` a
 # Copy new Cookie from browser, write directly to file — no runner restart needed
 cat newcookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 ```
-
-## WPS Open Platform API (pending approval)
-
-An app has been registered at `developer.kdocs.cn` but is not yet approved. Once approved, the OAuth flow can replace manual Cookie maintenance.
-
-- Test script: `scripts/test_wps_api.py`
-- Credentials file: `appid_and_key` (git-ignored)
-- API docs: https://developer.kdocs.cn
 
 ## Conventions
 
@@ -199,7 +190,7 @@ Site-level config: title, subtitle, WPS document URLs, contact info. Read by `bu
 - **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within the last 2h; if stale, opens/comments on an issue; auto-closes when recovered (GitHub doesn't notify on skipped cron runs)
 - Artifacts: `inventory/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/*.txt` are all intermediate/generated products, not committed
 - Frontend CSS/JS cache busting (`?v=N`): `cards-data.js` / `wants-data.js` / `app.js` / `style.css` are all auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash; bumping only happens in the deploy artifact, never written back to master
-- `.gitignore`: `.venv/`, `.cache/`, `__pycache__/`, WPS lock files (`**/.~*`), `appid_and_key`, `wps_cookies.txt`, `*.xlsx` (`!templates/*.xlsx` preserves templates), `site/`, `.qwen/`, `.claude/`, plus generated products `inventory/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/`
+- `.gitignore`: `.venv/`, `.cache/`, `__pycache__/`, WPS lock files (`**/.~*`), `wps_cookies.txt`, `*.xlsx` (`!templates/*.xlsx` preserves templates), `site/`, `.qwen/`, `.claude/`, plus generated products `inventory/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/`
 
 ### auto-update workflow steps
 

@@ -75,7 +75,6 @@ ruff check scripts/ tests/
 - **Scryfall API**: `https://api.scryfall.com/cards/{set}/{number}/{lang}` - rate-limited (`REQUEST_GAP=0.12s`), disk-cached (`.cache/scryfall/`, `CACHE_TTL=30 days`), 429 respects `Retry-After`. Card images are hotlinked from Scryfall CDN (no download/store/transform). All constants in `build_common.py`.
 - **mtgch API**: `https://mtgch.com/api/v1/card/{set}/{number}/` - Chinese name lookup for non-Chinese cards; negative results cached too.
 - **WPS share download**: `fetch_wps_share.py` handles 302 redirect + JSON responses, 3 retries with backoff. Share IDs read from `site_config.json` (single source). Cookie auth: project root `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> env `WPS_COOKIES`.
-- **WPS Open Platform API** (pending approval): `test_wps_api.py` tests OAuth + cell read. Credentials in `appid_and_key` (git-ignored).
 
 ## Git / deploy notes
 
@@ -83,5 +82,5 @@ ruff check scripts/ tests/
 - Checkout uses `clean: false` to preserve `.cache/scryfall` and previous `data/*.json` for incremental rebuild speed.
 - Heartbeat workflow (`heartbeat.yml`): runs on `ubuntu-latest` every 30min, checks auto-update freshness, opens issue if > 2h stale, auto-closes on recovery.
 - Cache busting (`?v=N`) is auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash - only in the deploy artifact, never written back to master.
-- `.gitignore`: `*.xlsx` (with `!templates/*.xlsx`), `site/`, `.qwen/`, `.claude/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `appid_and_key`, `wps_cookies.txt`, `.cache/`, `.venv/`.
+- `.gitignore`: `*.xlsx` (with `!templates/*.xlsx`), `site/`, `.qwen/`, `.claude/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wps_cookies.txt`, `.cache/`, `.venv/`.
 - Global rule: commit messages and PR descriptions in English. Don't `git commit` / `git push` unless explicitly asked.
