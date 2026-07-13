@@ -23,6 +23,7 @@ const state = {
   filtersOpen: false,
   visibleCount: 60, // 分页：当前已渲染卡片数
   generatedAt: "", // 数据最后更新时间
+  _filtered: null, // renderGrid 缓存的过滤结果，供 loadMore 复用
 };
 
 const PAGE_SIZE = 60;
@@ -486,6 +487,13 @@ function displayName(card) {
   return card.name_printed || card.name_zh || card.name_en || card.id;
 }
 
+/** 卡图实际语言（非 en 卡回退 en 图时与 card.lang 不同）；相同则返回空 */
+function imageLangLabel(card) {
+  if (!card.image_lang || card.image_lang === card.lang) return "";
+  const m = { en: "英文", zhs: "简中", ja: "日文", other: "其他" };
+  return m[card.image_lang] || card.image_lang;
+}
+
 function secondaryName(card) {
   const primary = displayName(card);
   if (card.name_en && card.name_en !== primary) return card.name_en;
@@ -741,6 +749,7 @@ function renderGrid() {
   const grid = $("#grid");
   const empty = $("#empty");
   const filtered = activeList().filter(matches);
+  state._filtered = filtered; // 缓存供 loadMore 复用，避免重新过滤全量
   const isWant = state.view === "want";
 
   $("#visible-count").textContent = String(filtered.length);
@@ -764,7 +773,7 @@ function renderGrid() {
 
 /** 增量加载下一页，不重建已渲染的卡片 DOM（只追加新页 + 刷新按钮） */
 function loadMore() {
-  const filtered = activeList().filter(matches);
+  const filtered = state._filtered || activeList().filter(matches);
   const oldCount = state.visibleCount;
   state.visibleCount += PAGE_SIZE;
   const newCards = filtered.slice(oldCount, state.visibleCount);
@@ -815,10 +824,12 @@ function openModal(card) {
 
   const typeShort = typeLabelShort(card);
   const mana = formatManaCost(card);
+  const imgLang = imageLangLabel(card);
   $("#modal-tags").innerHTML = [
     isWant
       ? `<span class="tag">${must ? "必须此版" : "可替其他版"}</span>`
       : `<span class="tag">${escapeHtml(card.lang_label || card.lang)}</span>`,
+    imgLang ? `<span class="tag">图:${escapeHtml(imgLang)}</span>` : "",
     card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
     typeShort ? `<span class="tag">${escapeHtml(typeShort)}</span>` : "",
     mana ? `<span class="tag">${escapeHtml(mana)}</span>` : "",
