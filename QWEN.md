@@ -59,8 +59,12 @@ claystan.txt（手写，Excel 列顺序：系列 编号 语言 闪 数量）
 | `inventory/` | 卖家库存 txt 文件（由 `parse_wps_excel.py` 自动生成，不入库） |
 | `wants/` | 求购 txt 文件（由 `parse_wps_wants_excel.py` 自动生成，不入库） |
 | `data/` | `cards.json` / `wants.json` - 富化后的完整数据（不入库） |
-| `assets/` | 前端资源：`app.js`、`style.css`（源码）+ `cards-data.js`、`wants-data.js`（生成产物，不入库） |
+| `assets/` | 前端资源：`app.js`、`style.css`（源码）+ `cards-data.js`、`wants-data.js`（生成产物，不入库）+ `favicon.svg`、`og-image.png`（社交分享） |
 | `templates/` | WPS 协作模板 xlsx |
+| `tests/` | `test_inventory_format.py` - 核心解析函数单元测试（pytest） |
+| `pyproject.toml` | ruff + pytest 配置 |
+| `requirements-dev.txt` | 开发依赖：`ruff` + `pytest` |
+| `robots.txt` | 搜索引擎爬虫指引（部署时 cp 到 site/） |
 | `.cache/scryfall/` | Scryfall API 响应缓存（git-ignored，runner 工作区持久） |
 
 ### 脚本一览
@@ -110,6 +114,7 @@ python3 scripts/build_wants.py
 # 产物不入库；本地调试生成后用 python3 -m http.server 预览，上线靠 push master 触发 workflow
 
 # ── 测试 + lint（需 pip install -r requirements-dev.txt）──
+pip install -r requirements-dev.txt
 python3 -m pytest tests/ -q
 ruff check scripts/ tests/
 ```
@@ -163,22 +168,29 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 - 卡牌数据内嵌在 `assets/cards-data.js`（`window.__MTG_DATA__`），`index.html` 通过 `<script>` 加载
 - 意向清单存储在 `localStorage`（key: `mtg-wishlist-v1`）
 - `app.js` 中所有 DOM 查询用 `$()` 简写，渲染靠 `innerHTML` 模板字符串
-- HTML 转义：`escapeHtml()` / `escapeAttr()` 用于所有用户可控内容
-- CSP meta（`script-src 'self'`，inline `onerror` 改用 `addEventListener`）+ OG/Twitter 分享卡片 + `favicon.svg` + `<noscript>`
-- `style.css` 有 `prefers-reduced-motion` 降级（含 scroll-behavior）；卡片列表分页（PAGE_SIZE=60，加载更多）；footer 展示「最后更新」时间
+- HTML 转义：`escapeHtml()` / `escapeAttr()` 用于所有用户可控内容（`escapeHtml` 转义单引号 `&#39;`）
+- CSP meta（`script-src 'self'`，inline `onerror` 改用 `addEventListener` `bindImgErrors`）+ OG/Twitter 分享卡片（`og-image.png` 1200x630）+ `favicon.svg` + noscript 降级
+- `style.css` 有 `prefers-reduced-motion` 降级（含 `scroll-behavior`）；卡片列表分页（`PAGE_SIZE=60`，「加载更多」增量追加不重建 DOM）；footer 展示「最后更新」时间
+- 可访问性：模态/清单打开时背景加 `inert`；焦点保存/恢复（`_lastFocus`）；`role="tablist"/"tab"` + `aria-selected`
+- 安全：`setHrefSafe()` 校验 `http(s)://` 防 `javascript:` 注入；图片加载失败 CSS `.img-failed::after` 显示「图加载失败」
+- 数据字段：`image_lang`（卡图实际语言，与 `lang` 不同时在 modal 显示「图:英文」标签）
+- 求购视图也有 `lang` / `foil` 筛选器（与在售视图一致）
 
 ### Python 脚本约定
 
-- 共享逻辑在 `scripts/inventory_format.py`（语言/闪/数量归一化、slugify、ParseError、`validate_meta()` 必填校验）
-- Scryfall 请求有限速（`REQUEST_GAP = 0.12s`）和磁盘缓存（`.cache/scryfall/`）
-- `build_data.py` / `build_wants.py` 都有两层增量缓存（已有 JSON 的富化数据复用 + Scryfall 磁盘缓存）；Scryfall 429 读 `Retry-After`，缓存 TTL 30 天；workflow 用 `clean: false` 保留 runner 工作区这两层缓存
+- 共享逻辑：`scripts/inventory_format.py`（语言/闪/数量归一化、slugify、ParseError、`validate_meta()` 必填校验）+ `scripts/build_common.py`（`ScryfallClient`、`base_from_cached` / `base_from_card`、`bump_cache_buster`、`payload_unchanged`、`load_site_config` 等富化/缓存/payload 工具）+ `scripts/wps_excel_common.py`（工作表跳过 / meta / header 查找 / 写入含冲突检测）
+- `REQUEST_GAP`、`CACHE_TTL`、`bump_cache_buster` 等常量/函数均定义在 `build_common.py` 中（不在 `build_data.py`）
+- Scryfall 请求有限速（`REQUEST_GAP = 0.12s`）和磁盘缓存（`.cache/scryfall/`，`CACHE_TTL = 30 天`）；429 读 `Retry-After`；mtgch 负结果也缓存
+- `build_data.py` / `build_wants.py` 都有两层增量缓存（已有 JSON 的富化数据复用 + Scryfall 磁盘缓存）；workflow 用 `clean: false` 保留 runner 工作区这两层缓存
 - `build_data.py --validate-only` 可只校验不联网（用于 PR 校验）
 - `build_data.py --no-cache` 禁用磁盘缓存
-- `fetch_wps_share.py` Cookie 查找顺序：项目根目录 `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> 环境变量 `WPS_COOKIES`（fallback）
+- `fetch_wps_share.py` 有 3 次重试 + 5s/10s 退避；Cookie 查找顺序：项目根目录 `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> 环境变量 `WPS_COOKIES`（fallback）
+- `normalize_qty` strict 模式拒绝非整数浮点（如 `1.9`），非 strict 回退 1（不静默截断）
+- Workflow sanity check：error 卡比例 > 20% 则中止部署，触发 issue 通知
 
 ## site_config.json
 
-站点级配置：标题、副标题、WPS 文档链接、联系方式。`build_data.py` 会读取并写入 `cards.json` 的 `site` 字段，前端从中渲染。
+站点级配置：标题、副标题、WPS 文档链接、联系方式。`build_common.py` 的 `load_site_config()` 读取，`build_data.py` / `build_wants.py` 各自写入 JSON 的 `site` 字段供前端渲染。Workflow 也从 `site_config.json` 读取 WPS share ID（不再硬编码在 workflow 中）。
 
 ## Git & Deploy
 
@@ -186,8 +198,17 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 - **GitHub Actions**：`push master` / 每小时 cron / `workflow_dispatch` 触发 -> 现场从 WPS 拉取生成产物 -> 组装 `site/`（含 `CNAME` / `robots.txt` / `og-image.png`）-> `upload-pages-artifact` -> `deploy-pages`
 - **heartbeat workflow**（`heartbeat.yml`）：GitHub-hosted runner 每 30min 检查 auto-update 新鲜度，超 2h 无成功部署开 issue，恢复自动关闭（GitHub 不对跳过的 cron 发通知）
 - 产物：`inventory/*.txt`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/*.txt` 均为中间/生成产物，不入库
-- 前端 CSS/JS 版本号（`?v=N`）：`cards-data.js` / `wants-data.js` / `app.js` / `style.css` 均由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump，bump 只发生在部署 artifact 里，不回写 master
-- `.gitignore`：`.venv/`、`.cache/`、`__pycache__/`、WPS lock files（`**/.~*`）、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`（生成的临时文件），以及生成产物 `inventory/`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/`
+- 前端 CSS/JS 版本号（`?v=N`）：`cards-data.js` / `wants-data.js` / `app.js` / `style.css` 均由 `build_common.py` 的 `bump_cache_buster` 用内容哈希自动 bump，bump 只发生在部署 artifact 里，不回写 master
+- `.gitignore`：`.venv/`、`.cache/`、`__pycache__/`、WPS lock files（`**/.~*`）、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`（`!templates/*.xlsx` 保留模板）、`site/`、`.qwen/`、`.claude/`，以及生成产物 `inventory/`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/`
+
+### auto-update workflow 新增步骤
+
+- `timeout-minutes: 30`：防止挂起进程锁死 runner
+- Verify Python deps：预检 `import requests, openpyxl`，包丢失早失败
+- Lint & test（仅 push 触发）：`ruff check` + `pytest`（cron 不跑，省时）
+- Read WPS share IDs from `site_config.json`：单一来源，workflow 不再硬编码
+- Sanity check enrichment：error 卡比例 > 20% 则中止部署
+- Issue 通知改用 Python `urllib.request`（不再用 curl + JSON 拼接）
 
 ## WPS Share IDs
 
