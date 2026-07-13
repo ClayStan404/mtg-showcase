@@ -39,6 +39,12 @@ jobs:
           # 供 load_previous_enrichment 复用 + Scryfall 磁盘缓存加速重建。
           # 默认 clean: true 会 git clean -ffdx 删掉这些 gitignored 缓存。
           clean: false
+          # self-hosted runner 以 claystan 运行，checkout 出来的目录 owner 同为
+          # claystan，不会触发 git dubious-ownership，set-safe-directory 多余。
+          # 且 ~/.gitconfig 是软链，checkout 复制 gitconfig 时不 follow symlink
+          # (actions/checkout#1706)，开启会写穿软链、每次 --add 累积重复条目
+          # 污染 dotfiles 仓库。从源头关掉。
+          set-safe-directory: false
 
       - name: Verify Python deps
         # 预检 runner apt 装的依赖；包丢失则早失败，避免半途 ImportError
