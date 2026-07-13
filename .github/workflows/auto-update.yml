@@ -27,6 +27,7 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: self-hosted
+    timeout-minutes: 30  # 防止挂起进程锁死 runner（默认 360min 太长）
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -39,14 +40,29 @@ jobs:
           # 默认 clean: true 会 git clean -ffdx 删掉这些 gitignored 缓存。
           clean: false
 
+      - name: Verify Python deps
+        # 预检 runner apt 装的依赖；包丢失则早失败，避免半途 ImportError
+        run: python3 -c "import requests, openpyxl; print('deps ok')"
+
+      - name: Read WPS share IDs from site_config.json
+        # 单一来源：share ID 只在 site_config.json 维护，workflow 不再硬编码
+        id: cfg
+        run: |
+          INV=$(python3 -c "import json;print(json.load(open('site_config.json'))['wps_inventory_url'].rstrip('/').split('/')[-1])")
+          WANTS=$(python3 -c "import json;print(json.load(open('site_config.json'))['wps_wants_url'].rstrip('/').split('/')[-1])")
+          echo "inventory share: $INV"
+          echo "wants share: $WANTS"
+          echo "inv_share=$INV" >> "$GITHUB_OUTPUT"
+          echo "wants_share=$WANTS" >> "$GITHUB_OUTPUT"
+
       - name: Fetch inventory xlsx from WPS
         run: |
-          python3 scripts/fetch_wps_share.py --share-id cgyl3WizNfp7 --output wps_inventory.xlsx
+          python3 scripts/fetch_wps_share.py --share-id ${{ steps.cfg.outputs.inv_share }} --output wps_inventory.xlsx
           echo "✅ 在售 xlsx 下载完成"
 
       - name: Fetch wants xlsx from WPS
         run: |
-          python3 scripts/fetch_wps_share.py --share-id cvvaN21e3gm8 --output wps_wants.xlsx
+          python3 scripts/fetch_wps_share.py --share-id ${{ steps.cfg.outputs.wants_share }} --output wps_wants.xlsx
           echo "✅ 求购 xlsx 下载完成"
 
       - name: Parse inventory
@@ -68,6 +84,26 @@ jobs:
         # 始终执行：build_wants.py 自身有空数据保护（写 count:0），
         # 跳过会让站点在求购文档清空后展示过期数据
         run: python3 scripts/build_wants.py
+
+      - name: Sanity check enrichment
+        # 防止 Scryfall/mtgch 宕机时静默部署降级数据（缺图/缺名）：
+        # error 卡比例超 20% 则失败，触发 issue 通知
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          for f, label in [('data/cards.json', 'inventory'), ('data/wants.json', 'wants')]:
+              d = json.load(open(f))
+              cards = d.get('cards', [])
+              if not cards:
+                  print(f'{label}: empty')
+                  continue
+              errs = sum(1 for c in cards if c.get('error'))
+              ratio = errs / len(cards)
+              print(f'{label}: {errs}/{len(cards)} error ({ratio:.0%})')
+              if ratio > 0.2:
+                  raise SystemExit(f'{label} error ratio {ratio:.0%} > 20%, aborting deploy')
+          print('sanity check passed')
+          PYEOF
 
       - name: Assemble site
         # 组装干净站点目录：源码 + 产物 + CNAME（自定义域名 claystan.cc 必需）。
@@ -100,21 +136,40 @@ jobs:
         # Cookie 过期是最高频故障；默认无通知会导致站点静默展示过期数据数天
         # 复用同一 open issue 评论，避免刷屏
         if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          REPO="${{ github.repository }}"
-          TOKEN="${{ secrets.GITHUB_TOKEN }}"
-          RUN_URL="https://github.com/${REPO}/actions/runs/${{ github.run_id }}"
-          BODY="自动部署失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：${RUN_URL}"
-          API="https://api.github.com/repos/${REPO}/issues"
-          EXISTING=$(curl -s -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
-            "${API}?state=open&per_page=100" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); m=[i['number'] for i in d if i.get('title')=='Auto-update failed']; print(m[0] if m else '')" 2>/dev/null || echo "")
-          if [ -n "$EXISTING" ]; then
-            curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
-              "${API}/${EXISTING}/comments" -d "{\"body\":\"${BODY}\"}" >/dev/null
-            echo "已评论现有 issue #${EXISTING}"
-          else
-            curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
-              "${API}" -d "{\"title\":\"Auto-update failed\",\"body\":\"${BODY}\"}" >/dev/null
-            echo "已创建新 issue"
-          fi
+          python3 - <<'PYEOF'
+          import json, os, urllib.request
+          repo = os.environ["REPO"]
+          token = os.environ["GITHUB_TOKEN"]
+          run_url = f"https://github.com/{repo}/actions/runs/{os.environ['RUN_ID']}"
+          body = f"自动部署失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：{run_url}"
+          api = f"https://api.github.com/repos/{repo}/issues"
+          headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+          existing = ""
+          try:
+              req = urllib.request.Request(f"{api}?state=open&per_page=100", headers=headers)
+              issues = json.load(urllib.request.urlopen(req))
+              existing = next((str(i["number"]) for i in issues if i.get("title") == "Auto-update failed"), "")
+          except Exception as e:
+              print(f"list issues failed: {e}")
+          if existing:
+              payload = json.dumps({"body": body}).encode()
+              try:
+                  creq = urllib.request.Request(f"{api}/{existing}/comments", data=payload, headers=headers, method="POST")
+                  urllib.request.urlopen(creq)
+                  print(f"已评论现有 issue #{existing}")
+              except Exception as e:
+                  print(f"comment failed: {e}")
+          else:
+              payload = json.dumps({"title": "Auto-update failed", "body": body}).encode()
+              try:
+                  creq = urllib.request.Request(api, data=payload, headers=headers, method="POST")
+                  urllib.request.urlopen(creq)
+                  print("已创建新 issue")
+              except Exception as e:
+                  print(f"create issue failed: {e}")
+          PYEOF

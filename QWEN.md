@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-静态 **万智牌在售清单** 网站，用于多人展示实体卡牌库存。买家可搜索、筛选、加入意向清单后截图/复制文本站外联系卖家。**不做站内下单/支付。**
+静态 **万智牌在售 + 求购清单** 网站，用于多人展示实体卡牌库存与求购。买家可搜索、筛选、加入意向清单后截图/复制文本站外联系卖家。**不做站内下单/支付。**
 
 - **站点**：https://claystan.cc/
 - **仓库**：https://github.com/ClayStan404/mtg-showcase
@@ -13,7 +13,7 @@
 ## Tech Stack
 
 - **前端**：原生 HTML / CSS / JS（无框架），`index.html` + `assets/app.js` + `assets/style.css`
-- **数据**：`assets/cards-data.js`（`window.__MTG_DATA__` 内嵌，避免额外 fetch）与 `data/cards.json` 同源
+- **数据**：`assets/cards-data.js`（`window.__MTG_DATA__` 内嵌）+ `assets/wants-data.js`（`window.__MTG_WANTS__`），分别与 `data/cards.json` / `data/wants.json` 同源
 - **后端脚本**：Python 3（`requests` + `openpyxl`），职责是解析 WPS Excel -> 拉取 Scryfall 元数据 -> 生成站点数据
 - **自动化**：GitHub Actions + self-hosted runner（Debian），cron 每小时触发 + push 触发
 - **数据来源**：WPS 金山文档在线协作表格（在售 + 求购各一个文档），通过分享链接 + Cookie 自动下载

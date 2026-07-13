@@ -69,7 +69,6 @@ class ParseError(Exception):
 
 
 REQUIRED_META_FIELDS = ("seller", "city", "contact")
-_META_FIELD_LABELS = {"seller": "seller", "city": "city", "contact": "contact"}
 
 
 def validate_meta(
@@ -133,11 +132,18 @@ def normalize_qty(raw: Any, *, strict: bool = True) -> int:
     if m:
         return int(m.group(1) or m.group(2))
     try:
-        n = int(float(s))
-    except ValueError as e:
+        n = int(s)
+    except ValueError:
+        # 非整数（如 1.9）：strict 报错，非 strict 回退 1（不静默截断）
+        try:
+            float(s)
+        except ValueError as e:
+            if not strict:
+                return 1
+            raise ParseError(f"数量无效「{raw}」") from e
         if not strict:
             return 1
-        raise ParseError(f"数量无效「{raw}」") from e
+        raise ParseError(f"数量须为整数，得到「{raw}」")
     if n < 1:
         if not strict:
             return 1
@@ -153,14 +159,14 @@ def scryfall_lang(lang: str) -> str:
     return SCRYFALL_LANG.get(lang, "en")
 
 
-def normalize_strict(raw: Any, *, strict_mode: bool = True) -> bool:
+def normalize_strict(raw: Any, *, strict: bool = True) -> bool:
     """求购：是否必须此印刷。空/0=其他版本也可，1=必须此版本。"""
     s = cell_str(raw).lower()
     if s in ("", "0", "no", "n", "否", "可替", "任意"):
         return False
     if s in ("1", "yes", "y", "是", "指定", "必须"):
         return True
-    if not strict_mode:
+    if not strict:
         return False
     raise ParseError(f"版本要求无效「{raw}」（空/0=可替，1=必须此版）")
 
@@ -196,11 +202,6 @@ def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
 
     lang = normalize_lang(lang_raw)
     foil = normalize_foil(foil_raw) if foil_raw != "" else False
-    if not foil:
-        for token in parts[2:]:
-            if cell_str(token).lower() in FOIL_TRUE:
-                foil = True
-                break
 
     return set_code, number, lang, foil, qty
 

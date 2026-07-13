@@ -16,9 +16,9 @@
     <header class="site-header wrap">
       <h1 id="site-title">万智牌 Sales List</h1>
       <p class="subtitle" id="site-subtitle">实体卡展示 · 站外联系成交</p>
-      <nav class="view-tabs" id="view-tabs" aria-label="在售与求购">
-        <button type="button" class="view-tab active" data-view="sell">在售</button>
-        <button type="button" class="view-tab" data-view="want">求购</button>
+      <nav class="view-tabs" id="view-tabs" aria-label="在售与求购" role="tablist">
+        <button type="button" class="view-tab active" data-view="sell" role="tab" aria-selected="true">在售</button>
+        <button type="button" class="view-tab" data-view="want" role="tab" aria-selected="false">求购</button>
       </nav>
       <div class="stats">
         <span id="stat-kinds-label">种类</span> <strong id="total-kinds">0</strong>
@@ -92,7 +92,7 @@
     <div class="dd-scrim" id="dd-scrim" hidden></div>
 
     <main class="wrap">
-      <p id="empty" class="empty" hidden>没有匹配的卡牌</p>
+      <p id="empty" class="empty" role="status" aria-live="polite" hidden>没有匹配的卡牌</p>
       <div id="grid" class="grid"></div>
     </main>
 
@@ -142,13 +142,13 @@
 
     <div class="toast" id="toast" hidden role="status"></div>
 
-    <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-backdrop" id="modal-backdrop"></div>
       <div class="modal-panel">
         <div class="modal-handle" aria-hidden="true"></div>
         <button type="button" class="modal-close" id="modal-close" aria-label="关闭">×</button>
         <div class="modal-art">
-          <img id="modal-img" src="" alt="" decoding="async" onerror="this.style.visibility='hidden'" />
+          <img id="modal-img" src="" alt="" decoding="async" onerror="onImgError(this)" />
         </div>
         <div class="modal-content">
           <h2 id="modal-title"></h2>

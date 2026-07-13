@@ -270,12 +270,22 @@ def main() -> int:
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     # 仅写入本次 xlsx 中的卖家；不删除其他 txt（避免误删）
+    used_fnames: set[str] = set()
     for name, (meta, cards) in sheets.items():
         seller = meta.get("seller") or name
         fname = slugify(seller, slugify(name, "seller")) + ".txt"
         # 工作表名若是英文 id 优先用表名
         if re.fullmatch(r"[A-Za-z0-9_-]+", name.strip()):
             fname = name.strip() + ".txt"
+        # 冲突检测：同名卖家 slugify 后相同会静默覆盖丢数据，加后缀避免
+        if fname in used_fnames:
+            stem, _, ext = fname.rpartition(".")
+            i = 2
+            while f"{stem}_{i}.{ext}" in used_fnames:
+                i += 1
+            fname = f"{stem}_{i}.{ext}"
+            print(f"  ⚠ 工作表「{name}」文件名冲突，改用 {fname}", file=sys.stderr)
+        used_fnames.add(fname)
         path = args.out_dir / fname
         path.write_text(cards_to_txt(meta, cards), encoding="utf-8")
         print(f"  写入 {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")

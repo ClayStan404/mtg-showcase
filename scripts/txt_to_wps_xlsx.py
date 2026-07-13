@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -111,8 +112,11 @@ def main() -> int:
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = sheet_name[:31]  # Excel sheet name max 31 chars
+    # Excel 工作表名最长 31 字符，且禁用 [ ] : * ? / \，替换为 _
+    safe_name = re.sub(r"[\[\]:*?/\\]", "_", sheet_name)[:31] or "Sheet"
+    ws.title = safe_name
     build_sheet(ws, meta, cards)
+    output.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output)
     print(f"已写入 {output}")
     return 0

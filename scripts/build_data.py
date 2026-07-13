@@ -39,7 +39,10 @@ META_RE = re.compile(
     re.I,
 )
 
+# Scryfall 建议最小 0.1s/请求；0.12 含安全余量
 REQUEST_GAP = 0.12
+# Scryfall/mtgch 磁盘缓存 TTL（秒），超期则重拉，让 Oracle 文本/规则面更新后自动刷新
+CACHE_TTL = 30 * 24 * 3600
 USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
 
 
@@ -227,10 +230,18 @@ class ScryfallClient:
                 status = e.response.status_code if e.response is not None else 0
                 if status == 404 or attempt == 2:
                     raise
+                # 429 限流：优先遵守 Retry-After 头，避免被封 IP
                 wait = 2 ** attempt
+                if status == 429 and e.response is not None:
+                    ra = e.response.headers.get("Retry-After")
+                    if ra:
+                        try:
+                            wait = max(wait, float(ra))
+                        except ValueError:
+                            pass
                 print(f"  ⚠ HTTP {status}，{wait}s 后重试", file=sys.stderr)
                 time.sleep(wait)
-        raise requests.HTTPError("unreachable")
+        raise RuntimeError("unreachable")  # 逻辑不可达：循环内必然 return 或 raise
 
     def _cache_path(self, set_code: str, number: str, lang: str) -> Path:
         safe_num = re.sub(r"[^\w.-]", "_", number)
@@ -240,10 +251,12 @@ class ScryfallClient:
         api_lang = scryfall_lang(lang)
         cache_path = self._cache_path(set_code, number, api_lang)
         if self.use_disk_cache and cache_path.exists():
-            try:
-                return json.loads(cache_path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                pass
+            # TTL：超期则忽略缓存重拉，让 Scryfall 数据更新（Oracle 文本/规则面）后刷新
+            if time.time() - cache_path.stat().st_mtime < CACHE_TTL:
+                try:
+                    return json.loads(cache_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    pass
 
         urls = [f"https://api.scryfall.com/cards/{set_code}/{number}/{api_lang}"]
         if api_lang != "en":
@@ -271,7 +284,9 @@ class ScryfallClient:
     def fetch_zh_name(self, set_code: str, number: str) -> str:
         cache_path = CACHE_DIR / f"zhname_{set_code}_{re.sub(r'[^\w.-]', '_', number)}.txt"
         if self.use_disk_cache and cache_path.exists():
-            return cache_path.read_text(encoding="utf-8").strip()
+            # 负结果也缓存（空文件作哨兵），避免每次重试失败的 mtgch 请求；同样受 TTL
+            if time.time() - cache_path.stat().st_mtime < CACHE_TTL:
+                return cache_path.read_text(encoding="utf-8").strip()
 
         url = f"https://mtgch.com/api/v1/card/{set_code}/{number}/"
         try:
@@ -282,16 +297,22 @@ class ScryfallClient:
                 or data.get("atomic_translated_name")
                 or ""
             )
-        except Exception:
+        except (requests.RequestException, json.JSONDecodeError, ValueError):
             name = ""
 
-        if self.use_disk_cache and name:
+        if self.use_disk_cache:
+            # 缓存正/负结果：有名字写名字，无名字写空文件作哨兵
             cache_path.write_text(name, encoding="utf-8")
         return name
 
 
-def load_previous_enrichment(output_path: Path) -> dict[str, dict[str, Any]]:
-    """用已有 cards.json 按 set|number|lang 复用元数据（加速重建）。"""
+def load_previous_enrichment(
+    output_path: Path, list_key: str = "cards"
+) -> dict[str, dict[str, Any]]:
+    """用已有 output 按 set|number|lang 复用元数据（加速重建）。
+
+    list_key: cards.json 用 'cards'，wants.json 用 'wants'。
+    """
     if not output_path.exists():
         return {}
     try:
@@ -299,7 +320,7 @@ def load_previous_enrichment(output_path: Path) -> dict[str, dict[str, Any]]:
     except json.JSONDecodeError:
         return {}
     cache: dict[str, dict[str, Any]] = {}
-    for c in data.get("cards") or []:
+    for c in data.get(list_key) or []:
         if c.get("error"):
             continue
         key = f"{(c.get('set') or '').lower()}|{c.get('number')}|{c.get('lang')}"
@@ -456,12 +477,13 @@ def enrich(
                 "set_name": cached.get("set_name") or set_code.upper(),
                 "number": cached.get("number") or number,
                 "lang": cached.get("lang") or lang,
+                "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
             }
 
         if base is None:
             try:
                 card = client.fetch_card(set_code, number, lang)
-            except Exception as exc:
+            except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
                 # 捕获 JSONDecodeError 等非 HTTPError 异常，避免单卡崩溃整个构建
                 print(f"  ! 获取失败 {set_code} {number} {lang}: {exc}", file=sys.stderr)
                 card = None
@@ -526,6 +548,7 @@ def enrich(
                 "set_name": card.get("set_name") or set_code.upper(),
                 "number": card.get("collector_number") or number,
                 "lang": card.get("lang") or lang,
+                "image_lang": card.get("lang") or lang,
             }
 
         results.append(
@@ -555,6 +578,7 @@ def enrich(
                 "text": base["text"],
                 "image": base["image"],
                 "scryfall_uri": base["scryfall_uri"],
+                "image_lang": base.get("image_lang") or entry["lang"],
             }
         )
 
@@ -645,6 +669,15 @@ def main() -> int:
         if p.exists():
             bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())
 
+    # 先写前端内嵌 JS（即使 JSON 无变化也写，防 JS 被误删后不重建）
+    js_path = ROOT / "assets" / "cards-data.js"
+    js_path.parent.mkdir(parents=True, exist_ok=True)
+    compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    js_bytes = f"window.__MTG_DATA__={compact};\n".encode("utf-8")
+    js_path.write_bytes(js_bytes)
+    bump_cache_buster(ROOT / "index.html", "cards-data.js", js_bytes)
+    print(f"已写入 {js_path}")
+
     if payload_unchanged(args.output, payload):
         print(f"数据无变化，跳过写入 {args.output}")
         return 0
@@ -653,14 +686,6 @@ def main() -> int:
         f"已写入 {args.output} （{payload['count']} 种 / 共 {payload['total_quantity']} 张 · "
         f"{len(sellers)} 位出售人 · {len(cities)} 个城市）"
     )
-
-    # 同步生成前端内嵌数据，减少浏览器额外请求 cards.json（代理/DNS 环境下更稳）
-    js_path = ROOT / "assets" / "cards-data.js"
-    js_path.parent.mkdir(parents=True, exist_ok=True)
-    compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    js_path.write_text(f"window.__MTG_DATA__={compact};\n", encoding="utf-8")
-    bump_cache_buster(ROOT / "index.html", "cards-data.js", js_path.read_bytes())
-    print(f"已写入 {js_path}")
     return 0
 
 

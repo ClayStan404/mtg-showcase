@@ -104,6 +104,10 @@ function addToCart(cardId, delta = 1) {
   if (!card) return;
   const max = maxWant(card);
   const cur = state.cart[cardId] || 0;
+  if (delta > 0 && cur >= max) {
+    showToast("已达库存上限");
+    return;
+  }
   const next = Math.min(max, cur + delta);
   if (next <= 0) {
     delete state.cart[cardId];
@@ -195,14 +199,53 @@ function trapFocus(container, e) {
   }
 }
 
+let _lastFocus = null;
+
+/** 模态/清单打开时给背景加 inert，关闭时移除（键盘/读屏用户无法触达背景） */
+function setBackgroundInert(inert) {
+  document
+    .querySelectorAll("main, header.site-header, details.guide, .toolbar, footer, .cart-fab")
+    .forEach((el) => {
+      if (inert) el.setAttribute("inert", "");
+      else el.removeAttribute("inert");
+    });
+}
+
+function anyOverlayOpen() {
+  return state.cartOpen || state.modalCardId !== null;
+}
+
+function syncInert() {
+  setBackgroundInert(anyOverlayOpen());
+}
+
+/** 只允许 http(s) 的 href 赋值，防 javascript: 等 scheme 注入 */
+function setHrefSafe(el, url) {
+  if (el && /^https?:\/\//i.test(url || "")) {
+    el.href = url;
+    el.hidden = false;
+  } else if (el) {
+    el.hidden = true;
+  }
+}
+
+/** 图片加载失败：隐藏 img 并给父容器加降级文案标记（CSS 显示「图加载失败」） */
+function onImgError(img) {
+  img.onerror = null;
+  img.style.visibility = "hidden";
+  img.parentElement?.classList.add("img-failed");
+}
+
 function openCart() {
   closeAllDropdowns();
   closeModal();
+  _lastFocus = document.activeElement;
   const cart = $("#cart");
   cart.classList.add("open");
   cart.setAttribute("aria-hidden", "false");
   state.cartOpen = true;
   setScrollLock(true);
+  syncInert();
   renderCartList();
   updateCartChrome();
   $("#cart-close")?.focus();
@@ -217,7 +260,14 @@ function closeCart() {
   state.shotMode = false;
   const btn = $("#cart-shot-mode");
   if (btn) btn.textContent = "截图模式";
-  setScrollLock(false);
+  if (!anyOverlayOpen()) {
+    setScrollLock(false);
+    syncInert();
+    _lastFocus?.focus?.({ preventScroll: true });
+    _lastFocus = null;
+  } else {
+    syncInert();
+  }
 }
 
 function toggleShotMode() {
@@ -327,7 +377,7 @@ function renderCartList() {
       const img = card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
       html += `
         <article class="cart-item" data-id="${escapeAttr(card.id)}">
-          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'" />
+          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" onerror="onImgError(this)" />
           <div class="cart-item-main">
             <p class="cart-item-name">${escapeHtml(displayName(card))}</p>
             <p class="cart-item-meta">
@@ -653,7 +703,7 @@ function renderGrid() {
               alt="${escapeAttr(displayName(c))}"
               loading="lazy"
               decoding="async"
-              onerror="this.style.visibility='hidden'"
+              onerror="onImgError(this)"
             />
           </div>
         </button>
@@ -790,12 +840,7 @@ function openModal(card) {
   }
 
   const link = $("#modal-scryfall");
-  if (card.scryfall_uri) {
-    link.href = card.scryfall_uri;
-    link.hidden = false;
-  } else {
-    link.hidden = true;
-  }
+  setHrefSafe(link, card.scryfall_uri);
 
   const modalAdd = $("#modal-add");
   if (modalAdd) {
@@ -809,9 +854,11 @@ function openModal(card) {
     }
   }
 
+  _lastFocus = document.activeElement;
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
   setScrollLock(true);
+  syncInert();
   const panel = modal.querySelector(".modal-panel");
   if (panel) panel.scrollTop = 0;
   $("#modal-close").focus({ preventScroll: true });
@@ -819,10 +866,18 @@ function openModal(card) {
 
 function closeModal() {
   const modal = $("#modal");
+  if (!modal.classList.contains("open")) return;
   modal.classList.remove("open");
   modal.setAttribute("aria-hidden", "true");
   state.modalCardId = null;
-  if (!state.cartOpen) setScrollLock(false);
+  if (!anyOverlayOpen()) {
+    setScrollLock(false);
+    syncInert();
+    _lastFocus?.focus?.({ preventScroll: true });
+    _lastFocus = null;
+  } else {
+    syncInert();
+  }
   syncScrim();
 }
 
@@ -1062,16 +1117,8 @@ function renderSiteMeta() {
     ? "买家求购 · 卖家可按联系方式对接"
     : site.subtitle || "";
 
-  const invLink = $("#guide-wps-inv");
-  const wantLink = $("#guide-wps-want");
-  if (invLink) {
-    if (site.wps_inventory_url) invLink.href = site.wps_inventory_url;
-    else invLink.hidden = true;
-  }
-  if (wantLink) {
-    if (site.wps_wants_url) wantLink.href = site.wps_wants_url;
-    else wantLink.hidden = true;
-  }
+  setHrefSafe($("#guide-wps-inv"), site.wps_inventory_url);
+  setHrefSafe($("#guide-wps-want"), site.wps_wants_url);
 
   const list = activeList();
   $("#total-kinds").textContent = String(list.length);
@@ -1107,7 +1154,9 @@ function setView(view) {
   const search = $("#search");
   if (search) search.value = "";
   document.querySelectorAll(".view-tab").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.view === view);
+    const on = btn.dataset.view === view;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
   });
   setFiltersOpen(false);
   closeModal();
@@ -1122,7 +1171,8 @@ function escapeHtml(str) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function escapeAttr(str) {

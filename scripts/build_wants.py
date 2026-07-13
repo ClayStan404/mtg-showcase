@@ -19,6 +19,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import requests
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from inventory_format import (  # noqa: E402
     ParseError,
@@ -31,6 +33,7 @@ from build_data import (  # noqa: E402
     ScryfallClient,
     bump_cache_buster,
     enrich_fields_from_scryfall,
+    load_previous_enrichment,
     load_site_config,
     payload_unchanged,
     pick_images,
@@ -145,68 +148,128 @@ def parse_all_wants(wants_dir: Path) -> list[dict[str, Any]]:
     return all_e
 
 
-def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[dict[str, Any]]:
+def enrich_wants(
+    entries: list[dict[str, Any]],
+    client: ScryfallClient,
+    prev: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     total = len(entries)
     for i, e in enumerate(entries, 1):
+        set_code = e["set"]
+        number = e["number"]
+        lang = e["lang"]
+        prev_key = f"{set_code}|{number}|{lang}"
         print(
-            f"[{i}/{total}] {e['buyer']} · {e['set']} {e['number']} "
-            f"{'必须' if e['must'] else '可替'}",
+            f"[{i}/{total}] {e['buyer']} · {set_code} {number} {lang}"
+            f"{' 必须' if e['must'] else ' 可替'}",
             flush=True,
         )
-        try:
-            card = client.fetch_card(e["set"], e["number"], e["lang"])
-        except Exception as exc:
-            # 捕获 JSONDecodeError 等异常，避免单卡崩溃整个 wants 构建
-            print(f"  ! 获取失败 {e['set']} {e['number']} {e['lang']}: {exc}", file=sys.stderr)
-            card = None
         wid = (
-            f"{e['buyer_id']}-{e['set']}-{e['number']}-{e['lang']}-"
+            f"{e['buyer_id']}-{set_code}-{number}-{lang}-"
             f"{'f' if e['foil'] else 'nf'}-{'1' if e['must'] else '0'}"
         )
-        if not card:
-            out.append(
-                {
-                    "id": wid,
-                    "kind": e["kind"],
-                    "must": e["must"],
-                    "buyer": e["buyer"],
-                    "buyer_id": e["buyer_id"],
-                    "city": e["city"],
-                    "contact": e["contact"],
-                    "quantity": e["quantity"],
-                    "note": e.get("note") or "",
-                    "set": e["set"],
-                    "set_name": e["set"].upper(),
-                    "number": e["number"],
-                    "lang": e["lang"],
-                    "lang_label": lang_label(e["lang"]),
-                    "foil": e["foil"],
-                    "name_en": "",
-                    "name_zh": "",
-                    "name_printed": "",
-                    "type_line": "",
-                    "type_line_en": "",
-                    "types": [],
-                    "mana_cost": "",
-                    "cmc": 0,
-                    "text": "",
-                    "image": {"small": "", "normal": "", "large": ""},
-                    "scryfall_uri": "",
-                    "error": "not_found",
-                    "source_file": e["source_file"],
-                }
-            )
-            continue
 
-        name_en = card.get("name") or ""
-        name_printed = card.get("printed_name") or name_en
-        if e["lang"] == "zhs":
-            name_zh = name_printed or name_en
-        else:
-            name_zh = client.fetch_zh_name(e["set"], e["number"])
-        text, type_line = pick_text(card)
-        meta = enrich_fields_from_scryfall(card)
+        # 复用上一份 wants.json 的富化结果（加速重建，对齐 build_data 的两层增量）
+        base: dict[str, Any] | None = None
+        cached = prev.get(prev_key)
+        if (
+            cached
+            and not cached.get("error")
+            and "types" in cached
+            and "cmc" in cached
+            and "mana_cost" in cached
+        ):
+            base = {
+                "name_en": cached.get("name_en", ""),
+                "name_zh": cached.get("name_zh", ""),
+                "name_printed": cached.get("name_printed", ""),
+                "type_line": cached.get("type_line", ""),
+                "type_line_en": cached.get("type_line_en", ""),
+                "types": list(cached.get("types") or []),
+                "mana_cost": cached.get("mana_cost", ""),
+                "cmc": cached.get("cmc", 0),
+                "text": cached.get("text", ""),
+                "image": cached.get("image") or pick_images({}),
+                "scryfall_uri": cached.get("scryfall_uri", ""),
+                "set": cached.get("set") or set_code,
+                "set_name": cached.get("set_name") or set_code.upper(),
+                "number": cached.get("number") or number,
+                "lang": cached.get("lang") or lang,
+                "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
+            }
+
+        if base is None:
+            try:
+                card = client.fetch_card(set_code, number, lang)
+            except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
+                # 捕获网络/解析异常，避免单卡崩溃整个 wants 构建
+                print(f"  ! 获取失败 {set_code} {number} {lang}: {exc}", file=sys.stderr)
+                card = None
+            if not card:
+                print(f"  ! 未找到: {set_code} {number} {lang}", file=sys.stderr)
+                out.append(
+                    {
+                        "id": wid,
+                        "kind": e["kind"],
+                        "must": e["must"],
+                        "buyer": e["buyer"],
+                        "buyer_id": e["buyer_id"],
+                        "city": e["city"],
+                        "contact": e["contact"],
+                        "quantity": e["quantity"],
+                        "note": e.get("note") or "",
+                        "set": set_code,
+                        "set_name": set_code.upper(),
+                        "number": number,
+                        "lang": lang,
+                        "lang_label": lang_label(lang),
+                        "foil": e["foil"],
+                        "name_en": "",
+                        "name_zh": "",
+                        "name_printed": "",
+                        "type_line": "",
+                        "type_line_en": "",
+                        "types": [],
+                        "mana_cost": "",
+                        "cmc": 0,
+                        "text": "",
+                        "image": {"small": "", "normal": "", "large": ""},
+                        "scryfall_uri": "",
+                        "image_lang": lang,
+                        "error": "not_found",
+                        "source_file": e["source_file"],
+                    }
+                )
+                continue
+
+            name_en = card.get("name") or ""
+            name_printed = card.get("printed_name") or name_en
+            if lang == "zhs":
+                name_zh = name_printed or name_en
+            else:
+                name_zh = client.fetch_zh_name(set_code, number)
+            text, type_line = pick_text(card)
+            meta = enrich_fields_from_scryfall(card)
+            base = {
+                "name_en": name_en,
+                "name_zh": name_zh,
+                "name_printed": name_printed or name_en,
+                "type_line": type_line,
+                "type_line_en": meta["type_line_en"],
+                "types": meta["types"],
+                "mana_cost": meta["mana_cost"],
+                "cmc": meta["cmc"],
+                "text": text,
+                "image": pick_images(card),
+                "scryfall_uri": card.get("scryfall_uri") or "",
+                "set": card.get("set") or set_code,
+                "set_name": card.get("set_name") or set_code.upper(),
+                "number": card.get("collector_number") or number,
+                "lang": card.get("lang") or lang,
+                "image_lang": card.get("lang") or lang,
+            }
+
         out.append(
             {
                 "id": wid,
@@ -218,23 +281,24 @@ def enrich_wants(entries: list[dict[str, Any]], client: ScryfallClient) -> list[
                 "contact": e["contact"],
                 "quantity": e["quantity"],
                 "note": e.get("note") or "",
-                "set": card.get("set") or e["set"],
-                "set_name": card.get("set_name") or e["set"].upper(),
-                "number": card.get("collector_number") or e["number"],
+                "set": base["set"],
+                "set_name": base["set_name"],
+                "number": base["number"],
                 "lang": e["lang"],
                 "lang_label": lang_label(e["lang"]),
                 "foil": e["foil"],
-                "name_en": name_en,
-                "name_zh": name_zh,
-                "name_printed": name_printed,
-                "type_line": type_line,
-                "type_line_en": meta["type_line_en"],
-                "types": meta["types"],
-                "mana_cost": meta["mana_cost"],
-                "cmc": meta["cmc"],
-                "text": text,
-                "image": pick_images(card),
-                "scryfall_uri": card.get("scryfall_uri") or "",
+                "name_en": base["name_en"],
+                "name_zh": base["name_zh"],
+                "name_printed": base["name_printed"],
+                "type_line": base["type_line"],
+                "type_line_en": base.get("type_line_en") or "",
+                "types": list(base.get("types") or []),
+                "mana_cost": base.get("mana_cost") or "",
+                "cmc": base.get("cmc") if base.get("cmc") is not None else 0,
+                "text": base["text"],
+                "image": base["image"],
+                "scryfall_uri": base["scryfall_uri"],
+                "image_lang": base.get("image_lang") or e["lang"],
                 "source_file": e["source_file"],
             }
         )
@@ -268,8 +332,9 @@ def main() -> int:
         if args.validate_only:
             print("校验通过（未联网）")
             return 0
+        prev = load_previous_enrichment(OUT_JSON, list_key="wants")
         client = ScryfallClient(use_disk_cache=not args.no_cache)
-        wants = enrich_wants(entries, client)
+        wants = enrich_wants(entries, client, prev)
         payload = {
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "site": load_site_config(),
@@ -281,13 +346,24 @@ def main() -> int:
         }
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+
+    # 静态资源 cache buster（独立运行 build_wants 时也能刷新 app.js/style.css）
+    for static_file in ("app.js", "style.css"):
+        p = ROOT / "assets" / static_file
+        if p.exists():
+            bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())
+
+    # 先写前端内嵌 JS（即使 JSON 无变化也写，防 JS 被误删后不重建）
+    OUT_JS.parent.mkdir(parents=True, exist_ok=True)
+    compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    js_bytes = f"window.__MTG_WANTS__={compact};\n".encode("utf-8")
+    OUT_JS.write_bytes(js_bytes)
+    bump_cache_buster(ROOT / "index.html", "wants-data.js", js_bytes)
+
     if payload_unchanged(OUT_JSON, payload):
         print(f"数据无变化，跳过写入 {OUT_JSON}")
         return 0
     OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    OUT_JS.write_text(f"window.__MTG_WANTS__={compact};\n", encoding="utf-8")
-    bump_cache_buster(ROOT / "index.html", "wants-data.js", OUT_JS.read_bytes())
     print(f"已写入 {OUT_JSON} 与 {OUT_JS} （{payload['count']} 条）")
     return 0
 

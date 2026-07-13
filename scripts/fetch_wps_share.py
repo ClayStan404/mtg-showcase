@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 import requests
@@ -31,7 +32,7 @@ COOKIE_PATHS = [
     Path.home() / ".config" / "wps_cookies.txt",
 ]
 DEFAULT_SHARE_ID = "cgyl3WizNfp7"
-DEFAULT_OUTPUT = ROOT / "wps_download_test.xlsx"
+DEFAULT_OUTPUT = ROOT / "wps_download.xlsx"
 DOWNLOAD_API = "https://www.kdocs.cn/api/v3/office/file/{share_id}/download?format=xlsx"
 SHARE_PAGE = "https://www.kdocs.cn/l/{share_id}"
 
@@ -140,7 +141,17 @@ def main():
     cookie = load_cookies(Path(args.cookie_file) if args.cookie_file else None)
     print(f"已加载 Cookie ({len(cookie)} chars)")
 
-    success = download_xlsx(args.share_id, cookie, Path(args.output))
+    # 重试：transient 网络抖动/超时不至于让整轮部署失败（要等下个整点）
+    output = Path(args.output)
+    success = False
+    for attempt in range(3):
+        if attempt > 0:
+            wait = 5 * attempt
+            print(f"⚠ 第 {attempt + 1} 次尝试，{wait}s 后重试…", file=sys.stderr)
+            time.sleep(wait)
+        if download_xlsx(args.share_id, cookie, output):
+            success = True
+            break
     sys.exit(0 if success else 1)
 
 

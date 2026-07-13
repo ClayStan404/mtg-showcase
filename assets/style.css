@@ -1621,3 +1621,21 @@ footer {
     max-width: 100%;
   }
 }
+
+/* 图片加载失败降级文案（onImgError 给父容器加 .img-failed） */
+.card-img-wrap.img-failed::after,
+.modal-art.img-failed::after {
+  content: "图加载失败";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: #8b94a7;
+  pointer-events: none;
+}
+
+.modal-art.img-failed {
+  position: relative;
+}

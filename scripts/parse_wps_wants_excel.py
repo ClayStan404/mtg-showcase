@@ -270,11 +270,21 @@ def main() -> int:
         return 0
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    used_fnames: set[str] = set()
     for name, (meta, wants) in sheets.items():
         buyer = meta.get("buyer") or name
         fname = slugify(buyer, slugify(name, "buyer")) + ".txt"
         if re.fullmatch(r"[A-Za-z0-9_-]+", name.strip()):
             fname = name.strip() + ".txt"
+        # 冲突检测：同名买家 slugify 后相同会静默覆盖丢数据，加后缀避免
+        if fname in used_fnames:
+            stem, _, ext = fname.rpartition(".")
+            i = 2
+            while f"{stem}_{i}.{ext}" in used_fnames:
+                i += 1
+            fname = f"{stem}_{i}.{ext}"
+            print(f"  ⚠ 工作表「{name}」文件名冲突，改用 {fname}", file=sys.stderr)
+        used_fnames.add(fname)
         path = args.out_dir / fname
         path.write_text(wants_to_txt(meta, wants), encoding="utf-8")
         print(f"  写入 {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
