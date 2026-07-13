@@ -1660,3 +1660,13 @@ footer {
   color: #061018;
   border-color: transparent;
 }
+
+/* 偏好减少动效的用户：禁用动画/过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

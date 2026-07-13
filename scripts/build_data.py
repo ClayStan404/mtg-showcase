@@ -17,13 +17,13 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_common import (  # noqa: E402
     ScryfallClient,
+    base_from_cached,
+    base_from_card,
     bump_cache_buster,
-    enrich_fields_from_scryfall,
     load_previous_enrichment,
     load_site_config,
     payload_unchanged,
     pick_images,
-    pick_text,
 )
 from inventory_format import (  # noqa: E402
     ParseError,
@@ -192,24 +192,7 @@ def enrich(
             and "cmc" in cached
             and "mana_cost" in cached
         ):
-            base = {
-                "name_en": cached.get("name_en", ""),
-                "name_zh": cached.get("name_zh", ""),
-                "name_printed": cached.get("name_printed", ""),
-                "type_line": cached.get("type_line", ""),
-                "type_line_en": cached.get("type_line_en", ""),
-                "types": list(cached.get("types") or []),
-                "mana_cost": cached.get("mana_cost", ""),
-                "cmc": cached.get("cmc", 0),
-                "text": cached.get("text", ""),
-                "image": cached.get("image") or pick_images({}),
-                "scryfall_uri": cached.get("scryfall_uri", ""),
-                "set": cached.get("set") or set_code,
-                "set_name": cached.get("set_name") or set_code.upper(),
-                "number": cached.get("number") or number,
-                "lang": cached.get("lang") or lang,
-                "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
-            }
+            base = base_from_cached(cached, set_code, number, lang)
 
         if base is None:
             try:
@@ -252,36 +235,7 @@ def enrich(
                 )
                 continue
 
-            name_en = card.get("name") or ""
-            name_printed = card.get("printed_name") or ""
-            if not name_printed and card.get("card_faces"):
-                name_printed = card["card_faces"][0].get("printed_name") or ""
-
-            if lang == "zhs":
-                name_zh = name_printed or name_en
-            else:
-                name_zh = client.fetch_zh_name(set_code, number)
-
-            text, type_line = pick_text(card)
-            meta = enrich_fields_from_scryfall(card)
-            base = {
-                "name_en": name_en,
-                "name_zh": name_zh,
-                "name_printed": name_printed or name_en,
-                "type_line": type_line,
-                "type_line_en": meta["type_line_en"],
-                "types": meta["types"],
-                "mana_cost": meta["mana_cost"],
-                "cmc": meta["cmc"],
-                "text": text,
-                "image": pick_images(card),
-                "scryfall_uri": card.get("scryfall_uri") or "",
-                "set": card.get("set") or set_code,
-                "set_name": card.get("set_name") or set_code.upper(),
-                "number": card.get("collector_number") or number,
-                "lang": card.get("lang") or lang,
-                "image_lang": card.get("lang") or lang,
-            }
+            base = base_from_card(card, client, set_code, number, lang)
 
         results.append(
             {

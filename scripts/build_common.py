@@ -303,3 +303,61 @@ def enrich_fields_from_scryfall(card: dict[str, Any]) -> dict[str, Any]:
         "mana_cost": mana_cost,
         "cmc": cmc,
     }
+
+
+def base_from_cached(
+    cached: dict[str, Any], set_code: str, number: str, lang: str
+) -> dict[str, Any]:
+    """从上一份 enrichment 缓存构建 base（inventory / wants 共用）。"""
+    return {
+        "name_en": cached.get("name_en", ""),
+        "name_zh": cached.get("name_zh", ""),
+        "name_printed": cached.get("name_printed", ""),
+        "type_line": cached.get("type_line", ""),
+        "type_line_en": cached.get("type_line_en", ""),
+        "types": list(cached.get("types") or []),
+        "mana_cost": cached.get("mana_cost", ""),
+        "cmc": cached.get("cmc", 0),
+        "text": cached.get("text", ""),
+        "image": cached.get("image") or pick_images({}),
+        "scryfall_uri": cached.get("scryfall_uri", ""),
+        "set": cached.get("set") or set_code,
+        "set_name": cached.get("set_name") or set_code.upper(),
+        "number": cached.get("number") or number,
+        "lang": cached.get("lang") or lang,
+        "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
+    }
+
+
+def base_from_card(
+    card: dict[str, Any], client: ScryfallClient, set_code: str, number: str, lang: str
+) -> dict[str, Any]:
+    """从 Scryfall 卡对象构建 base（inventory / wants 共用，含中文名 fetch）。"""
+    name_en = card.get("name") or ""
+    name_printed = card.get("printed_name") or ""
+    if not name_printed and card.get("card_faces"):
+        name_printed = card["card_faces"][0].get("printed_name") or ""
+    if lang == "zhs":
+        name_zh = name_printed or name_en
+    else:
+        name_zh = client.fetch_zh_name(set_code, number)
+    text, type_line = pick_text(card)
+    meta = enrich_fields_from_scryfall(card)
+    return {
+        "name_en": name_en,
+        "name_zh": name_zh,
+        "name_printed": name_printed or name_en,
+        "type_line": type_line,
+        "type_line_en": meta["type_line_en"],
+        "types": meta["types"],
+        "mana_cost": meta["mana_cost"],
+        "cmc": meta["cmc"],
+        "text": text,
+        "image": pick_images(card),
+        "scryfall_uri": card.get("scryfall_uri") or "",
+        "set": card.get("set") or set_code,
+        "set_name": card.get("set_name") or set_code.upper(),
+        "number": card.get("collector_number") or number,
+        "lang": card.get("lang") or lang,
+        "image_lang": card.get("lang") or lang,
+    }

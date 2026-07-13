@@ -457,7 +457,7 @@ const filters = {
 
 function filterOrder() {
   return state.view === "want"
-    ? ["seller", "city", "kind", "type", "cmc"]
+    ? ["seller", "city", "lang", "foil", "kind", "type", "cmc"]
     : ["seller", "city", "lang", "foil", "type", "cmc"];
 }
 
@@ -528,6 +528,9 @@ function matches(card) {
     if (state.seller !== "all" && personId(card) !== state.seller && card.buyer !== state.seller) {
       return false;
     }
+    if (state.lang !== "all" && card.lang !== state.lang) return false;
+    if (state.foil === "foil" && !card.foil) return false;
+    if (state.foil === "nf" && card.foil) return false;
   } else {
     if (state.lang !== "all" && card.lang !== state.lang) return false;
     if (state.foil === "foil" && !card.foil) return false;
@@ -1101,11 +1104,9 @@ function populateFilters() {
     .sort((a, b) => a.localeCompare(b, "zh"))
     .map((c) => ({ value: c, label: c }));
 
-  if (!isWant) {
-    const langs = [...new Set(list.map((c) => c.lang).filter(Boolean))].sort();
-    const labelOf = (lang) => list.find((c) => c.lang === lang)?.lang_label || lang;
-    filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
-  }
+  const langs = [...new Set(list.map((c) => c.lang).filter(Boolean))].sort();
+  const labelOf = (lang) => list.find((c) => c.lang === lang)?.lang_label || lang;
+  filters.lang.options = langs.map((l) => ({ value: l, label: labelOf(l) }));
 
   // rebuild filter shells for current view
   const host = $("#filters");
@@ -1124,6 +1125,8 @@ function activeFilterCount() {
   if (state.cmc !== "all") n += 1;
   if (state.view === "want") {
     if (state.kind !== "all") n += 1;
+    if (state.lang !== "all") n += 1;
+    if (state.foil !== "all") n += 1;
   } else {
     if (state.lang !== "all") n += 1;
     if (state.foil !== "all") n += 1;

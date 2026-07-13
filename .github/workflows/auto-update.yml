@@ -126,6 +126,7 @@ jobs:
           cp -r data/. site/data/
           cp CNAME site/
           cp LICENSE site/ 2>/dev/null || true
+          cp robots.txt site/ 2>/dev/null || true
           echo "✅ 站点目录组装完成："
           ls -la site/ site/assets/ site/data/
 
