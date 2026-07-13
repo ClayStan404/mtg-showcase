@@ -26,16 +26,18 @@ parse_wps_wants_excel.py  -> wants/*.txt
 build_data.py   -> data/cards.json + assets/cards-data.js
 build_wants.py  -> data/wants.json + assets/wants-data.js
    ↓
-assemble site/（源码 + 产物 + CNAME）-> upload-pages-artifact -> deploy-pages
+assemble site/（源码 + 产物 + CNAME + robots.txt + og-image.png）-> upload-pages-artifact -> deploy-pages
 ```
 
 产物不入 git,每条 workflow run 现场生成并打包发布;`master` 历史只有源码提交。
 
 - self-hosted runner(Debian),cron `0 * * * *`,也支持 `workflow_dispatch` 手动触发;`push` 到 master 也触发部署(代码改动立即上线,纯文档改动除外)。
 - `fetch_wps_share.py` 靠 WPS session Cookie 认证;Cookie 文件查找顺序:项目根 `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> 环境变量 `WPS_COOKIES`。runner 上放在 `~/.config/wps_cookies.txt`,过期需从浏览器复制新值覆盖(无需重启 runner)。
-- **产物不入 git**:Actions 不再 commit 到 master,而是现场生成产物后组装 `site/` 目录(源码 + 产物 + `CNAME`),用 `actions/upload-pages-artifact` + `actions/deploy-pages` 直接发布到 Pages。解析前先 `rm -f inventory/*.txt wants/*.txt` 清残留;有 `concurrency` 防重叠,失败时创建/评论 GitHub issue 通知。
+- **产物不入 git**:Actions 不再 commit 到 master,而是现场生成产物后组装 `site/` 目录(源码 + 产物 + `CNAME` + `robots.txt` + `og-image.png`),用 `actions/upload-pages-artifact` + `actions/deploy-pages` 直接发布到 Pages。解析前先 `rm -f inventory/*.txt wants/*.txt` 清残留;有 `concurrency` 防重叠,失败时创建/评论 GitHub issue 通知。
 - `checkout` 用 `clean: false`,保留 runner 工作区的 `.cache/scryfall` 与上一份 `data/*.json`(供 `load_previous_enrichment` 复用 + Scryfall 磁盘缓存加速重建)。
 - **`inventory/*.txt` 与 `wants/*.txt` 都是中间产物,不入库**。
+- **heartbeat workflow**(`.github/workflows/heartbeat.yml`):GitHub-hosted runner 每 30min 检查 auto-update 最近成功 run,超 2h 开 issue 通知(runner 离线 / Cookie 过期 / WPS 不可达),恢复自动关闭。GitHub 不对跳过的 cron 发通知,这是唯一主动告警。
+- workflow 还有 `timeout-minutes: 30`、Python 依赖预检、share ID 从 `site_config.json` 读取(单一来源)、build 后 sanity check(error >20% 中止部署)、push 时跑 ruff + pytest。
 
 ### ClayStan 个人本地流程(数据只从 WPS 取)
 
@@ -50,7 +52,7 @@ claystan.txt(手写,Excel 列顺序:系列 编号 语言 闪 数量)
 ### 数据流水线(两段,库存与求购对称)
 
 1. **xlsx -> `*.txt`**:`parse_wps_excel.py`(在售)/ `parse_wps_wants_excel.py`(求购,多一列「必须」)解析 WPS 导出的 `.xlsx`(每个卖家 / 买家一个工作表),写成 `inventory/<seller>.txt` / `wants/<buyer>.txt`。文件头用 `# seller: / # city: / # contact:`(求购用 `# buyer:`)。卡行格式 `[Nx] set number [lang] [foil]`(求购再追加 `[must]`)。
-2. **`*.txt` -> 站点数据**:`build_data.py` / `build_wants.py` 解析 txt,按 `seller_id|set|number|lang|foil`(`build_wants` 再加 `must`)合并重复行,调 Scryfall 取卡图 / 英文名 / 规则面,非中文卡再调 mtgch 取中文名。**各写两份产物**:缩进 JSON(`data/cards.json` / `data/wants.json`)+ 内嵌 JS(`assets/cards-data.js` = `window.__MTG_DATA__` / `assets/wants-data.js` = `window.__MTG_WANTS__`)。`build_wants.py` 复用 `build_data.py` 的 `ScryfallClient` 与富化函数。
+2. **`*.txt` -> 站点数据**:`build_data.py` / `build_wants.py` 解析 txt,按 `seller_id|set|number|lang|foil`(`build_wants` 再加 `must`)合并重复行,调 Scryfall 取卡图 / 英文名 / 规则面,非中文卡再调 mtgch 取中文名。**各写两份产物**:缩进 JSON(`data/cards.json` / `data/wants.json`)+ 内嵌 JS(`assets/cards-data.js` = `window.__MTG_DATA__` / `assets/wants-data.js` = `window.__MTG_WANTS__`)。两脚本共用 `build_common.py`(`ScryfallClient`、`base_from_cached` / `base_from_card`、payload 工具,解耦)。非 en 卡回退 en 图时输出 `image_lang` 标注实际图语言。
 
 `scripts/inventory_format.py` 是两段共用的字段约定库(语言 / 闪 / 数量 / `must` 归一化、`slugify`、`ParseError`、`validate_meta`、`card_line_to_fields`、`want_line_to_fields`)。改字段语义时所有脚本都要兼顾。
 
@@ -58,7 +60,7 @@ claystan.txt(手写,Excel 列顺序:系列 编号 语言 闪 数量)
 
 `assets/app.js` 的 `loadData()` 优先读 `window.__MTG_DATA__`(内嵌的 `cards-data.js`);只有在未生成时才回退 `fetch data/cards.json`。求购数据同理走 `window.__MTG_WANTS__`(`wants-data.js`)。这是刻意设计--代理 / DNS 环境下 `fetch` 本地 json 会失败,内嵌更稳。`cards.json` / `cards-data.js` 不在 git,由 workflow 部署时 `build_data.py` 生成并打包进 artifact;本地改源码后 push `master` 触发部署即可,无需手动跑 build。
 
-前端无构建步骤、无框架:`index.html` + `assets/app.js` + `assets/style.css`,纯 vanilla JS。首页有「在售 / 求购」两个视图 tab。意向清单持久化在 `localStorage`(key `mtg-wishlist-v1`)。`index.html` 里 CSS/JS 用 `?v=N` 做缓存击穿;`?v=` 由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump,**bump 只发生在部署 artifact 里,不回写 master**。用户可控内容一律走 `escapeHtml()` / `escapeAttr()`。
+前端无构建步骤、无框架:`index.html` + `assets/app.js` + `assets/style.css`,纯 vanilla JS。首页有「在售 / 求购」两个视图 tab(求购也有 lang/foil 筛选)。意向清单持久化在 `localStorage`(key `mtg-wishlist-v1`)。`index.html` 里 CSS/JS 用 `?v=N` 做缓存击穿;`?v=` 由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump,**bump 只发生在部署 artifact 里,不回写 master**。用户可控内容一律走 `escapeHtml()` / `escapeAttr()`。`index.html` 有 CSP meta(`script-src 'self'`,inline `onerror` 改用 `addEventListener` `bindImgErrors`)+ Open Graph / Twitter 分享卡片(`og-image.png` 1200×630)+ `favicon.svg` + `<noscript>` 降级;style.css 有 `prefers-reduced-motion` 降级(含 `scroll-behavior`)。卡片列表分页(`PAGE_SIZE=60`,「加载更多」增量追加不重建 DOM);footer 展示「最后更新」时间(`generated_at` 北京时间)。
 
 ## 脚本一览
 
@@ -100,9 +102,13 @@ python3 scripts/build_data.py          # 生成 cards.json + cards-data.js
 python3 scripts/build_wants.py         # 生成 wants.json + wants-data.js
 python3 scripts/build_data.py --validate-only   # 只校验不联网(PR/CI 友好)
 python3 scripts/build_data.py --no-cache        # 忽略 .cache/scryfall 强拉
+
+# ── 测试 + lint（需 pip install -r requirements-dev.txt）──
+python3 -m pytest tests/ -q                     # 单元测试
+ruff check scripts/ tests/                       # lint
 ```
 
-无单元测试、无 lint、无前端构建。验证手段:`--dry-run` / `--validate-only`,以及本地打开 `index.html`(或 `python3 -m http.server`)肉眼检查。
+有 pytest 单元测试(`tests/test_inventory_format.py`,覆盖 inventory_format 解析边界)与 ruff lint(`pyproject.toml` 配置,push 时 CI 跑)。无前端构建。验证手段:`--dry-run` / `--validate-only`、`pytest tests/`、`ruff check scripts/ tests/`,以及本地打开 `index.html`(或 `python3 -m http.server`)肉眼检查。
 
 ## 字段约定(贯穿表格 / txt / 脚本,勿拆散)
 
@@ -126,7 +132,7 @@ python3 scripts/build_data.py --no-cache        # 忽略 .cache/scryfall 强拉
 - **mtgch API**:`https://mtgch.com/api/v1/card/{set}/{number}/`,仅取非中文卡中文名。
 - **WPS 分享下载**:`fetch_wps_share.py` 走 `https://www.kdocs.cn/api/v3/office/file/{share_id}/download?format=xlsx`,302 重定向与 JSON 两种响应都处理。分享 ID:在售 `cgyl3WizNfp7`、求购 `cvvaN21e3gm8`(也写在 `site_config.json` 的 `wps_inventory_url` / `wps_wants_url`)。
 - **WPS 开放平台 API**(待审核):`test_wps_api.py` 走 OAuth + 读单元格两条路,凭证在 `appid_and_key`(gitignore)。审核通过后可取代 Cookie 方案。
-- `build_data.py` 会复用上一份 `cards.json` 里同 `set|number|lang` 的元数据加速重建(两层增量:JSON 复用 + Scryfall 磁盘缓存);`build_wants.py` 暂无此层 JSON 复用,仅有 Scryfall 磁盘缓存。workflow 用 `clean: false` 保留 runner 工作区的这两层缓存;**清缓存或改了卡时首次构建会慢**。
+- `build_data.py` / `build_wants.py` 都复用上一份 JSON 里同 `set|number|lang` 的元数据加速重建(两层增量:JSON 复用 + Scryfall 磁盘缓存);Scryfall 429 读 `Retry-After` 头,缓存 TTL 30 天,mtgch 负结果也缓存。workflow 用 `clean: false` 保留 runner 工作区的这两层缓存;**清缓存或改了卡时首次构建会慢**。
 - `site_config.json`:站点标题 / 副标题 / 两个 WPS 文档 URL / 联系方式,会被 `build_data.py` / `build_wants.py` 内嵌进 JSON 的 `site` 字段供前端渲染。
 - `templates/WPS库存协作模板.xlsx`、`templates/WPS求购模板.xlsx`:卖家 / 买家协作模板本地副本,线上主入口见 `site_config.json`。
 

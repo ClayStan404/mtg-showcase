@@ -32,7 +32,7 @@ parse_wps_wants_excel.py  ->  wants/*.txt
 build_data.py             ->  data/cards.json + assets/cards-data.js
 build_wants.py            ->  data/wants.json + assets/wants-data.js
   ↓
-assemble site/ -> upload-pages-artifact -> deploy-pages（产物不入 git）
+assemble site/（+CNAME +robots.txt +og-image.png）-> upload-pages-artifact -> deploy-pages（产物不入 git）
 ```
 
 ### ClayStan 个人流程（数据走 WPS，无本地上线）
@@ -55,7 +55,7 @@ claystan.txt（手写，Excel 列顺序：系列 编号 语言 闪 数量）
 | 路径 | 用途 |
 |------|------|
 | `scripts/` | Python 脚本（见下表） |
-| `.github/workflows/` | GitHub Actions workflow（`auto-update.yml`） |
+| `.github/workflows/` | GitHub Actions workflow（`auto-update.yml` 部署 + `heartbeat.yml` 监控） |
 | `inventory/` | 卖家库存 txt 文件（由 `parse_wps_excel.py` 自动生成，不入库） |
 | `wants/` | 求购 txt 文件（由 `parse_wps_wants_excel.py` 自动生成，不入库） |
 | `data/` | `cards.json` / `wants.json` - 富化后的完整数据（不入库） |
@@ -108,6 +108,10 @@ python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
 python3 scripts/build_data.py
 python3 scripts/build_wants.py
 # 产物不入库；本地调试生成后用 python3 -m http.server 预览，上线靠 push master 触发 workflow
+
+# ── 测试 + lint（需 pip install -r requirements-dev.txt）──
+python3 -m pytest tests/ -q
+ruff check scripts/ tests/
 ```
 
 本地预览：直接用浏览器打开 `index.html`，或 `python3 -m http.server` 后访问 `localhost:8000`。
@@ -160,12 +164,14 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 - 意向清单存储在 `localStorage`（key: `mtg-wishlist-v1`）
 - `app.js` 中所有 DOM 查询用 `$()` 简写，渲染靠 `innerHTML` 模板字符串
 - HTML 转义：`escapeHtml()` / `escapeAttr()` 用于所有用户可控内容
+- CSP meta（`script-src 'self'`，inline `onerror` 改用 `addEventListener`）+ OG/Twitter 分享卡片 + `favicon.svg` + `<noscript>`
+- `style.css` 有 `prefers-reduced-motion` 降级（含 scroll-behavior）；卡片列表分页（PAGE_SIZE=60，加载更多）；footer 展示「最后更新」时间
 
 ### Python 脚本约定
 
 - 共享逻辑在 `scripts/inventory_format.py`（语言/闪/数量归一化、slugify、ParseError、`validate_meta()` 必填校验）
 - Scryfall 请求有限速（`REQUEST_GAP = 0.12s`）和磁盘缓存（`.cache/scryfall/`）
-- `build_data.py` 有两层增量缓存：已有 `cards.json` 的富化数据复用 + Scryfall 磁盘缓存；workflow 用 `clean: false` 保留 runner 工作区这两层缓存
+- `build_data.py` / `build_wants.py` 都有两层增量缓存（已有 JSON 的富化数据复用 + Scryfall 磁盘缓存）；Scryfall 429 读 `Retry-After`，缓存 TTL 30 天；workflow 用 `clean: false` 保留 runner 工作区这两层缓存
 - `build_data.py --validate-only` 可只校验不联网（用于 PR 校验）
 - `build_data.py --no-cache` 禁用磁盘缓存
 - `fetch_wps_share.py` Cookie 查找顺序：项目根目录 `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> 环境变量 `WPS_COOKIES`（fallback）
@@ -177,7 +183,8 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 ## Git & Deploy
 
 - 分支 `master` 只放源码，**生成产物不入库**；部署走 GitHub Actions（workflow 模式，`build_type: workflow`）
-- **GitHub Actions**：`push master` / 每小时 cron / `workflow_dispatch` 触发 -> 现场从 WPS 拉取生成产物 -> 组装 `site/`（含 `CNAME`）-> `upload-pages-artifact` -> `deploy-pages`
+- **GitHub Actions**：`push master` / 每小时 cron / `workflow_dispatch` 触发 -> 现场从 WPS 拉取生成产物 -> 组装 `site/`（含 `CNAME` / `robots.txt` / `og-image.png`）-> `upload-pages-artifact` -> `deploy-pages`
+- **heartbeat workflow**（`heartbeat.yml`）：GitHub-hosted runner 每 30min 检查 auto-update 新鲜度，超 2h 无成功部署开 issue，恢复自动关闭（GitHub 不对跳过的 cron 发通知）
 - 产物：`inventory/*.txt`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/*.txt` 均为中间/生成产物，不入库
 - 前端 CSS/JS 版本号（`?v=N`）：`cards-data.js` / `wants-data.js` / `app.js` / `style.css` 均由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump，bump 只发生在部署 artifact 里，不回写 master
 - `.gitignore`：`.venv/`、`.cache/`、`__pycache__/`、WPS lock files（`**/.~*`）、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`（生成的临时文件），以及生成产物 `inventory/`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/`
