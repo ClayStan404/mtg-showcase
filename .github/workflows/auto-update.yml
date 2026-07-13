@@ -32,7 +32,7 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # 保留 .cache/scryfall 与上一份 data/*.json（未跟踪文件），
           # 供 load_previous_enrichment 复用 + Scryfall 磁盘缓存加速重建。
