@@ -69,11 +69,6 @@ def load_site_config() -> dict[str, Any]:
     return {
         "title": "万智牌 Sales List",
         "subtitle": "实体卡展示 · 站外联系成交",
-        "contact": {
-            "wechat": "",
-            "email": "",
-            "note": "",
-        },
     }
 
 

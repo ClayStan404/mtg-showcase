@@ -10,7 +10,7 @@
 
 卖家/买家使用说明已内嵌在网站上（首页「使用说明」折叠面板）。
 
-GitHub Actions 每小时自动同步：self-hosted runner 从 WPS 分享链接下载最新 xlsx → 解析 → Scryfall 富化 → 部署到 claystan.cc。
+GitHub Actions 每小时自动同步：self-hosted runner 从 WPS 分享链接下载最新 xlsx → 解析 → Scryfall 富化 → 部署到 claystan.cc。另有 heartbeat workflow 每 30min 检查部署新鲜度，超 2h 无成功部署自动开 issue 告警。
 
 ---
 
