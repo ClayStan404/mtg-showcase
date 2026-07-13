@@ -1639,3 +1639,24 @@ footer {
 .modal-art.img-failed {
   position: relative;
 }
+
+/* 分页：加载更多按钮 */
+.load-more {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin: 1.2rem 0;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 12, 20, 0.78);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.load-more:hover {
+  background: rgba(110, 168, 254, 0.92);
+  color: #061018;
+  border-color: transparent;
+}

@@ -69,6 +69,7 @@ class ParseError(Exception):
 
 
 REQUIRED_META_FIELDS = ("seller", "city", "contact")
+_META_LABELS = {"seller": "昵称", "buyer": "买家", "city": "城市", "contact": "联系"}
 
 
 def validate_meta(
@@ -84,7 +85,8 @@ def validate_meta(
     for field in required:
         if not (meta.get(field) or "").strip():
             prefix = f"[{source}] " if source else ""
-            errors.append(f"{prefix}缺少必填项 # {field}:")
+            label = _META_LABELS.get(field, field)
+            errors.append(f"{prefix}缺少必填项「{label}」（工作表前 15 行内填写 # {field}:）")
     return errors
 
 

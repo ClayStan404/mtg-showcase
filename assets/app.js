@@ -21,7 +21,11 @@ const state = {
   shotMode: false,
   modalCardId: null,
   filtersOpen: false,
+  visibleCount: 60, // 分页：当前已渲染卡片数
+  generatedAt: "", // 数据最后更新时间
 };
+
+const PAGE_SIZE = 60;
 
 const TYPE_LABELS = {
   creature: "生物",
@@ -668,32 +672,16 @@ function cardImageSrc(card) {
   return card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
 }
 
-function renderGrid() {
-  const grid = $("#grid");
-  const empty = $("#empty");
-  const filtered = activeList().filter(matches);
+function cardHtml(c) {
   const isWant = state.view === "want";
-
-  $("#visible-count").textContent = String(filtered.length);
-  empty.textContent = isWant ? "没有匹配的求购" : "没有匹配的卡牌";
-
-  if (!filtered.length) {
-    grid.innerHTML = "";
-    empty.hidden = false;
-    return;
-  }
-  empty.hidden = true;
-
-  grid.innerHTML = filtered
-    .map((c) => {
-      const added = !isWant && inCart(c.id);
-      const must = isWant && (c.must === true || c.kind === "exact");
-      const flex = isWant && (c.must === false || c.kind === "flex");
-      const metaLeft = `${(c.set || "").toUpperCase()} #${c.number || ""}`;
-      const metaRight = c.lang_label || c.lang || "";
-      const mana = formatManaCost(c);
-      const typeShort = typeLabelShort(c);
-      return `
+  const added = !isWant && inCart(c.id);
+  const must = isWant && (c.must === true || c.kind === "exact");
+  const flex = isWant && (c.must === false || c.kind === "flex");
+  const metaLeft = `${(c.set || "").toUpperCase()} #${c.number || ""}`;
+  const metaRight = c.lang_label || c.lang || "";
+  const mana = formatManaCost(c);
+  const typeShort = typeLabelShort(c);
+  return `
     <div class="card" data-id="${escapeAttr(c.id)}">
       <div class="card-media">
         <button type="button" class="card-hit" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))} 图片">
@@ -747,8 +735,50 @@ function renderGrid() {
         </div>
       </button>
     </div>`;
-    })
-    .join("");
+}
+
+function renderGrid() {
+  const grid = $("#grid");
+  const empty = $("#empty");
+  const filtered = activeList().filter(matches);
+  const isWant = state.view === "want";
+
+  $("#visible-count").textContent = String(filtered.length);
+  empty.textContent = isWant ? "没有匹配的求购" : "没有匹配的卡牌";
+
+  if (!filtered.length) {
+    grid.innerHTML = "";
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+
+  // 分页：只渲染前 visibleCount 张，避免上千卡全量重建 DOM 卡顿
+  const shown = filtered.slice(0, state.visibleCount);
+  let html = shown.map(cardHtml).join("");
+  if (filtered.length > shown.length) {
+    html += `<button type="button" class="load-more" id="load-more">加载更多（还有 ${filtered.length - shown.length} 张）</button>`;
+  }
+  grid.innerHTML = html;
+}
+
+/** 增量加载下一页，不重建已渲染的卡片 DOM（只追加新页 + 刷新按钮） */
+function loadMore() {
+  const filtered = activeList().filter(matches);
+  const oldCount = state.visibleCount;
+  state.visibleCount += PAGE_SIZE;
+  const newCards = filtered.slice(oldCount, state.visibleCount);
+  const grid = $("#grid");
+  $("#load-more")?.remove();
+  if (newCards.length) {
+    grid.insertAdjacentHTML("beforeend", newCards.map(cardHtml).join(""));
+  }
+  if (filtered.length > state.visibleCount) {
+    grid.insertAdjacentHTML(
+      "beforeend",
+      `<button type="button" class="load-more" id="load-more">加载更多（还有 ${filtered.length - state.visibleCount} 张）</button>`
+    );
+  }
 }
 
 function openModal(card) {
@@ -1009,6 +1039,7 @@ function mountFilters() {
     const filterId = dd.dataset.filter;
     const conf = filters[filterId];
     state[conf.key] = option.dataset.value;
+    state.visibleCount = PAGE_SIZE;
 
     dd.classList.remove("open");
     dd.querySelector(".dd-trigger")?.setAttribute("aria-expanded", "false");
@@ -1137,6 +1168,17 @@ function renderSiteMeta() {
       ? "搜索牌名 / 买家 / 备注…"
       : "搜索牌名 / 系列 / 出售人…";
   }
+
+  const lastUpd = $("#last-updated");
+  if (lastUpd) {
+    if (state.generatedAt) {
+      const d = new Date(state.generatedAt);
+      lastUpd.textContent = `最后更新：${d.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`;
+      lastUpd.hidden = false;
+    } else {
+      lastUpd.hidden = true;
+    }
+  }
 }
 
 function setView(view) {
@@ -1151,6 +1193,7 @@ function setView(view) {
   state.type = "all";
   state.cmc = "all";
   state.filtersOpen = false;
+  state.visibleCount = PAGE_SIZE;
   const search = $("#search");
   if (search) search.value = "";
   document.querySelectorAll(".view-tab").forEach((btn) => {
@@ -1191,6 +1234,7 @@ function bindEvents() {
   let searchTimer = null;
   $("#search").addEventListener("input", (e) => {
     state.query = e.target.value;
+    state.visibleCount = PAGE_SIZE;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(renderGrid, 150);
   });
@@ -1259,6 +1303,10 @@ function bindEvents() {
   });
 
   $("#grid").addEventListener("click", (e) => {
+    if (e.target.closest("#load-more")) {
+      loadMore();
+      return;
+    }
     const addBtn = e.target.closest(".card-add");
     if (addBtn) {
       e.preventDefault();
@@ -1442,6 +1490,7 @@ async function main() {
   state.cards = data.sell.cards || [];
   state.site = data.sell.site || data.wants.site || {};
   state.wants = data.wants.wants || [];
+  state.generatedAt = data.sell.generated_at || data.wants.generated_at || "";
   // 清理清单里已不存在的卡，并按当前库存上限 clamp 数量
   for (const id of Object.keys(state.cart)) {
     const card = state.cards.find((c) => c.id === id);
