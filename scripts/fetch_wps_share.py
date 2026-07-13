@@ -61,7 +61,7 @@ def load_cookies(cookie_file: Path | None = None) -> str:
     print("1. 浏览器打开 https://www.kdocs.cn 并登录")
     print("2. F12 → Network → 刷新页面")
     print("3. 点任意请求 → Request Headers → 找 Cookie")
-    print(f"4. 复制完整值，保存到 ~/wps_cookies.txt")
+    print("4. 复制完整值，保存到 ~/wps_cookies.txt")
     sys.exit(1)
 
 

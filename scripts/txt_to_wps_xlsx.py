@@ -18,11 +18,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from inventory_format import LANG_TOKEN, validate_meta  # noqa: E402
 from parse_excel_order_txt import (  # noqa: E402
     merge_cards,
     parse_file,
 )
-from inventory_format import LANG_TOKEN, validate_meta  # noqa: E402
 
 try:
     import openpyxl

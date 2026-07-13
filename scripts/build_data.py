@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Parse inventory/*.txt → enrich via Scryfall (+ mtgch) → data/cards.json"""
+"""Parse inventory/*.txt -> enrich via Scryfall (+ mtgch) -> data/cards.json"""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -16,12 +15,20 @@ from typing import Any
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_common import (  # noqa: E402
+    ScryfallClient,
+    bump_cache_buster,
+    enrich_fields_from_scryfall,
+    load_previous_enrichment,
+    load_site_config,
+    payload_unchanged,
+    pick_images,
+    pick_text,
+)
 from inventory_format import (  # noqa: E402
-    LANG_LABEL,
     ParseError,
     card_line_to_fields,
     lang_label,
-    scryfall_lang,
     slugify,
     validate_meta,
 )
@@ -30,8 +37,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY_DIR = ROOT / "inventory"
 DEFAULT_INVENTORY_FILE = ROOT / "inventory.txt"  # 兼容旧单文件
 DEFAULT_OUTPUT = ROOT / "data" / "cards.json"
-SITE_CONFIG = ROOT / "site_config.json"
-CACHE_DIR = ROOT / ".cache" / "scryfall"
 
 # # seller: 昵称  /  # city: 上海  /  # contact: ...
 META_RE = re.compile(
@@ -39,58 +44,6 @@ META_RE = re.compile(
     re.I,
 )
 
-# Scryfall 建议最小 0.1s/请求；0.12 含安全余量
-REQUEST_GAP = 0.12
-# Scryfall/mtgch 磁盘缓存 TTL（秒），超期则重拉，让 Oracle 文本/规则面更新后自动刷新
-CACHE_TTL = 30 * 24 * 3600
-USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
-
-
-def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> None:
-    """用内容 md5 前 8 位更新 index.html 里 assets/<asset_filename>?v=... 的版本号。
-
-    让自动部署的 cards-data.js / wants-data.js 内容变化即自动击穿浏览器缓存，
-    无需手动 bump index.html 里的 ?v=N。app.js / style.css 也由 build_data.py 统一 bump。
-    """
-    if not html_path.exists():
-        return
-    digest = hashlib.md5(content).hexdigest()[:8]
-    text = html_path.read_text(encoding="utf-8")
-    pattern = re.compile(rf"(assets/{re.escape(asset_filename)}\?v=)[^\"'\s]+")
-    new_text, n = pattern.subn(rf"\g<1>{digest}", text)
-    if n and new_text != text:
-        html_path.write_text(new_text, encoding="utf-8")
-
-
-def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
-    """比较新 payload 与已存在的 output（忽略 generated_at 时间戳）。
-
-    避免每小时 Actions 因 generated_at 变化产生无意义 commit，以及
-    bump_cache_buster 哈希随时间戳抖动。前端不使用 generated_at 字段。
-    """
-    if not output_path.exists():
-        return False
-    try:
-        old = json.loads(output_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return False
-    old_wo_ts = {k: v for k, v in old.items() if k != "generated_at"}
-    new_wo_ts = {k: v for k, v in new_payload.items() if k != "generated_at"}
-    return old_wo_ts == new_wo_ts
-
-
-def load_site_config() -> dict[str, Any]:
-    if SITE_CONFIG.exists():
-        return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
-    return {
-        "title": "万智牌 Sales List",
-        "subtitle": "实体卡展示 · 站外联系成交",
-        "contact": {
-            "wechat": "",
-            "email": "",
-            "note": "",
-        },
-    }
 
 def discover_inventory_files(inventory_dir: Path, legacy_file: Path) -> list[Path]:
     files: list[Path] = []
@@ -197,239 +150,17 @@ def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[s
     return all_entries
 
 
-class ScryfallClient:
-    def __init__(self, use_disk_cache: bool = True) -> None:
-        self.session = requests.Session()
-        self.session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
-        self._last = 0.0
-        self.use_disk_cache = use_disk_cache
-        if use_disk_cache:
-            CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    def _throttle(self) -> None:
-        elapsed = time.monotonic() - self._last
-        if elapsed < REQUEST_GAP:
-            time.sleep(REQUEST_GAP - elapsed)
-        self._last = time.monotonic()
-
-    def get(self, url: str, *, throttle: bool = True, **kwargs: Any) -> requests.Response:
-        for attempt in range(3):
-            if throttle:
-                self._throttle()
-            try:
-                resp = self.session.get(url, timeout=30, **kwargs)
-                resp.raise_for_status()
-                return resp
-            except (requests.ConnectionError, requests.Timeout) as e:
-                if attempt == 2:
-                    raise
-                wait = 2 ** attempt
-                print(f"  ⚠ 网络错误，{wait}s 后重试: {e}", file=sys.stderr)
-                time.sleep(wait)
-            except requests.HTTPError as e:
-                status = e.response.status_code if e.response is not None else 0
-                if status == 404 or attempt == 2:
-                    raise
-                # 429 限流：优先遵守 Retry-After 头，避免被封 IP
-                wait = 2 ** attempt
-                if status == 429 and e.response is not None:
-                    ra = e.response.headers.get("Retry-After")
-                    if ra:
-                        try:
-                            wait = max(wait, float(ra))
-                        except ValueError:
-                            pass
-                print(f"  ⚠ HTTP {status}，{wait}s 后重试", file=sys.stderr)
-                time.sleep(wait)
-        raise RuntimeError("unreachable")  # 逻辑不可达：循环内必然 return 或 raise
-
-    def _cache_path(self, set_code: str, number: str, lang: str) -> Path:
-        safe_num = re.sub(r"[^\w.-]", "_", number)
-        return CACHE_DIR / f"{set_code}_{safe_num}_{lang}.json"
-
-    def fetch_card(self, set_code: str, number: str, lang: str) -> dict[str, Any] | None:
-        api_lang = scryfall_lang(lang)
-        cache_path = self._cache_path(set_code, number, api_lang)
-        if self.use_disk_cache and cache_path.exists():
-            # TTL：超期则忽略缓存重拉，让 Scryfall 数据更新（Oracle 文本/规则面）后刷新
-            if time.time() - cache_path.stat().st_mtime < CACHE_TTL:
-                try:
-                    return json.loads(cache_path.read_text(encoding="utf-8"))
-                except json.JSONDecodeError:
-                    pass
-
-        urls = [f"https://api.scryfall.com/cards/{set_code}/{number}/{api_lang}"]
-        if api_lang != "en":
-            urls.append(f"https://api.scryfall.com/cards/{set_code}/{number}")
-
-        data = None
-        for url in urls:
-            try:
-                data = self.get(url).json()
-                break
-            except requests.HTTPError as e:
-                if e.response is not None and e.response.status_code == 404:
-                    continue
-                print(f"  ⚠ 无法获取 {set_code} {number} {lang}: {e}", file=sys.stderr)
-                return None
-
-        # 仅当返回数据的 lang 与请求 lang 一致时才缓存到 api_lang 路径。
-        # 回退场景（如 ja 卡无日文印刷 -> 404 -> 取 en）下 data.lang != api_lang，
-        # 不缓存，避免把英文数据写入 ja 缓存路径造成键与内容不符、且 Scryfall
-        # 日后新增该印刷后无法自动刷新。
-        if data is not None and self.use_disk_cache and data.get("lang") == api_lang:
-            cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        return data
-
-    def fetch_zh_name(self, set_code: str, number: str) -> str:
-        cache_path = CACHE_DIR / f"zhname_{set_code}_{re.sub(r'[^\w.-]', '_', number)}.txt"
-        if self.use_disk_cache and cache_path.exists():
-            # 负结果也缓存（空文件作哨兵），避免每次重试失败的 mtgch 请求；同样受 TTL
-            if time.time() - cache_path.stat().st_mtime < CACHE_TTL:
-                return cache_path.read_text(encoding="utf-8").strip()
-
-        url = f"https://mtgch.com/api/v1/card/{set_code}/{number}/"
-        try:
-            data = self.get(url, throttle=False).json()
-            name = (
-                data.get("zhs_name")
-                or data.get("atomic_official_name")
-                or data.get("atomic_translated_name")
-                or ""
-            )
-        except (requests.RequestException, json.JSONDecodeError, ValueError):
-            name = ""
-
-        if self.use_disk_cache:
-            # 缓存正/负结果：有名字写名字，无名字写空文件作哨兵
-            cache_path.write_text(name, encoding="utf-8")
-        return name
-
-
-def load_previous_enrichment(
-    output_path: Path, list_key: str = "cards"
-) -> dict[str, dict[str, Any]]:
-    """用已有 output 按 set|number|lang 复用元数据（加速重建）。
-
-    list_key: cards.json 用 'cards'，wants.json 用 'wants'。
-    """
-    if not output_path.exists():
-        return {}
-    try:
-        data = json.loads(output_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
-    cache: dict[str, dict[str, Any]] = {}
-    for c in data.get(list_key) or []:
-        if c.get("error"):
-            continue
-        key = f"{(c.get('set') or '').lower()}|{c.get('number')}|{c.get('lang')}"
-        cache[key] = c
-    return cache
-
-
-def pick_images(card: dict[str, Any]) -> dict[str, str]:
-    if card.get("image_uris"):
-        uris = card["image_uris"]
-        return {
-            "small": uris.get("small", ""),
-            "normal": uris.get("normal", ""),
-            "large": uris.get("large", ""),
-        }
-    faces = card.get("card_faces") or []
-    if faces and faces[0].get("image_uris"):
-        uris = faces[0]["image_uris"]
-        return {
-            "small": uris.get("small", ""),
-            "normal": uris.get("normal", ""),
-            "large": uris.get("large", ""),
-        }
-    return {"small": "", "normal": "", "large": ""}
-
-
-def pick_text(card: dict[str, Any]) -> tuple[str, str]:
-    if card.get("card_faces"):
-        texts = []
-        types = []
-        for face in card["card_faces"]:
-            t = face.get("printed_text") or face.get("oracle_text") or ""
-            if t:
-                texts.append(t)
-            ty = face.get("printed_type_line") or face.get("type_line") or ""
-            if ty:
-                types.append(ty)
-        return "\n//\n".join(texts), " // ".join(types)
-
-    text = card.get("printed_text") or card.get("oracle_text") or ""
-    type_line = card.get("printed_type_line") or card.get("type_line") or ""
-    return text, type_line
-
-
-# 主类型（英文 type_line 子串匹配；一张牌可多个，如 Artifact Creature）
-PRIMARY_TYPE_TAGS: list[tuple[str, str]] = [
-    ("planeswalker", "planeswalker"),
-    ("battle", "battle"),
-    ("creature", "creature"),
-    ("instant", "instant"),
-    ("sorcery", "sorcery"),
-    ("enchantment", "enchantment"),
-    ("artifact", "artifact"),
-    ("land", "land"),
-]
-
-
-def pick_type_line_en(card: dict[str, Any]) -> str:
-    """Scryfall 根级 type_line 一般为英文，双面用 // 拼接。"""
-    tl = (card.get("type_line") or "").strip()
-    if tl:
-        return tl
-    faces = card.get("card_faces") or []
-    parts = [(f.get("type_line") or "").strip() for f in faces]
-    return " // ".join(p for p in parts if p)
-
-
-def classify_types(type_line_en: str) -> list[str]:
-    """从英文 type_line 得到可筛主类型标签。"""
-    if not type_line_en:
-        return ["other"]
-    low = type_line_en.lower()
-    found = [tag for key, tag in PRIMARY_TYPE_TAGS if key in low]
-    return found or ["other"]
-
-
-def pick_mana(card: dict[str, Any]) -> tuple[str, float]:
-    """mana_cost 字符串 + cmc。双面/分体费用用 // 拼接（空面记为 —）。"""
-    mc = (card.get("mana_cost") or "").strip()
-    if not mc and card.get("card_faces"):
-        costs = [(f.get("mana_cost") or "").strip() for f in card["card_faces"]]
-        if any(costs):
-            mc = " // ".join(c if c else "—" for c in costs)
-    cmc_raw = card.get("cmc")
-    try:
-        cmc = float(cmc_raw) if cmc_raw is not None else 0.0
-    except (TypeError, ValueError):
-        cmc = 0.0
-    return mc, cmc
-
-
-def enrich_fields_from_scryfall(card: dict[str, Any]) -> dict[str, Any]:
-    """从 Scryfall 卡对象提取展示/筛选用类型与费用字段。"""
-    type_line_en = pick_type_line_en(card)
-    mana_cost, cmc = pick_mana(card)
-    return {
-        "type_line_en": type_line_en,
-        "types": classify_types(type_line_en),
-        "mana_cost": mana_cost,
-        "cmc": cmc,
-    }
-
-
 def card_id(entry: dict[str, Any]) -> str:
     return (
         f"{entry['seller_id']}-"
         f"{entry['set']}-{entry['number']}-{entry['lang']}-"
         f"{'f' if entry['foil'] else 'nf'}"
     )
+
+
+def _num_key(num: str) -> tuple:
+    m = re.match(r"^(\d+)", str(num))
+    return (int(m.group(1)) if m else 0, str(num))
 
 
 def enrich(
@@ -515,6 +246,7 @@ def enrich(
                         "text": "",
                         "image": pick_images({}),
                         "scryfall_uri": "",
+                        "image_lang": lang,
                         "error": "not_found",
                     }
                 )
@@ -595,11 +327,6 @@ def enrich(
     return results
 
 
-def _num_key(num: str) -> tuple:
-    m = re.match(r"^(\d+)", str(num))
-    return (int(m.group(1)) if m else 0, str(num))
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="从 inventory 生成网站用 cards.json")
     parser.add_argument(
@@ -673,7 +400,7 @@ def main() -> int:
     js_path = ROOT / "assets" / "cards-data.js"
     js_path.parent.mkdir(parents=True, exist_ok=True)
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    js_bytes = f"window.__MTG_DATA__={compact};\n".encode("utf-8")
+    js_bytes = f"window.__MTG_DATA__={compact};\n".encode()
     js_path.write_bytes(js_bytes)
     bump_cache_buster(ROOT / "index.html", "cards-data.js", js_bytes)
     print(f"已写入 {js_path}")

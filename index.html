@@ -9,10 +9,16 @@
     <meta name="theme-color" content="#0f1218" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="description" content="万智牌 Sales List" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io https://*.scryfall.io; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+    />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <title>万智牌 Sales List</title>
-    <link rel="stylesheet" href="assets/style.css?v=8b4d14cc" />
+    <link rel="stylesheet" href="assets/style.css?v=fef04aa9" />
   </head>
   <body>
+    <noscript><p style="text-align:center;padding:2rem">本站需要 JavaScript 才能运行，请启用后刷新。</p></noscript>
     <header class="site-header wrap">
       <h1 id="site-title">万智牌 Sales List</h1>
       <p class="subtitle" id="site-subtitle">实体卡展示 · 站外联系成交</p>
@@ -149,7 +155,7 @@
         <div class="modal-handle" aria-hidden="true"></div>
         <button type="button" class="modal-close" id="modal-close" aria-label="关闭">×</button>
         <div class="modal-art">
-          <img id="modal-img" src="" alt="" decoding="async" onerror="onImgError(this)" />
+          <img id="modal-img" src="" alt="" decoding="async" />
         </div>
         <div class="modal-content">
           <h2 id="modal-title"></h2>
@@ -183,7 +189,7 @@
     </div>
 
     <script src="assets/cards-data.js?v=803974c4"></script>
-    <script src="assets/wants-data.js?v=d90b055c"></script>
-    <script src="assets/app.js?v=97c6477f"></script>
+    <script src="assets/wants-data.js?v=7f4d81eb"></script>
+    <script src="assets/app.js?v=66dd1df1"></script>
   </body>
 </html>

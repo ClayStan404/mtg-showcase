@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import http.server
 import json
-import os
 import sys
 import time
 import urllib.parse
@@ -96,13 +95,13 @@ def catch_callback_local(port: int, timeout: int = OAUTH_TIMEOUT) -> str | None:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write("✅ 授权成功！可以关闭此页面。".encode("utf-8"))
+                self.wfile.write("✅ 授权成功！可以关闭此页面。".encode())
             else:
                 err = params.get("error", ["unknown"])[0]
                 self.send_response(400)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(f"❌ 授权失败: {err}".encode("utf-8"))
+                self.wfile.write(f"❌ 授权失败: {err}".encode())
 
         def log_message(self, fmt, *args):
             pass
@@ -229,11 +228,11 @@ def test_method_a(access_token: str, file_token: str | None = None) -> str | Non
     url = f"{WPS_API_BASE}/api/v1/openapi/personal/files/{file_token}/download"
     resp = requests.get(url, params={"access_token": access_token})
     data = resp.json()
-    print(f"\n下载接口响应:")
+    print("\n下载接口响应:")
     print(json.dumps(data, ensure_ascii=False, indent=2)[:600])
 
     if data.get("code") != 0:
-        print(f"❌ 获取下载地址失败")
+        print("❌ 获取下载地址失败")
         return file_token
 
     download_url = data.get("data", {}).get("url")
@@ -272,11 +271,11 @@ def test_method_b(access_token: str, file_token: str | None = None) -> None:
     url = f"{WPS_API_BASE}/api/v1/openapi/et/{file_token}/sheets"
     resp = requests.get(url, params={"access_token": access_token})
     data = resp.json()
-    print(f"Sheets 响应:")
+    print("Sheets 响应:")
     print(json.dumps(data, ensure_ascii=False, indent=2)[:800])
 
     if data.get("code") != 0:
-        print(f"❌ 获取 sheet 信息失败")
+        print("❌ 获取 sheet 信息失败")
         return
 
     sheets = data.get("data", {}).get("sheets", [])
@@ -310,7 +309,7 @@ def test_method_b(access_token: str, file_token: str | None = None) -> None:
 
         cells = data.get("data", {}).get("cells", [])
         if not cells:
-            print(f"  ❌ 无数据")
+            print("  ❌ 无数据")
             continue
 
         print(f"  ✓ 成功读取 {len(cells)} 行:")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""解析 WPS 求购协作 Excel → wants/*.txt（供 build_wants 使用）。
+"""解析 WPS 求购协作 Excel -> wants/*.txt（供 build_wants 使用）。
 
 约定（与 templates/WPS求购协作模板.xlsx 一致）：
   - 跳过工作表：说明、模板、名称以「模板」开头
@@ -15,14 +15,12 @@
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-
 from inventory_format import (  # noqa: E402
     LANG_TOKEN,
     ParseError,
@@ -31,99 +29,61 @@ from inventory_format import (  # noqa: E402
     normalize_lang,
     normalize_qty,
     normalize_strict,
-    slugify,
     validate_meta,
 )
-
-try:
-    from openpyxl import load_workbook
-except ImportError:
-    print("需要 openpyxl：pip install openpyxl", file=sys.stderr)
-    sys.exit(1)
+from wps_excel_common import (  # noqa: E402
+    find_header_row,
+    find_meta,
+    parse_workbook,
+    write_sheets,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
-SKIP_SHEET_NAMES = {"说明", "使用说明", "填写说明", "对照表（一般不用改）"}
-SKIP_SHEET_PREFIXES = ("模板", "template", "_")
 
-
-def should_skip_sheet(name: str) -> bool:
-    n = (name or "").strip()
-    if not n or n in SKIP_SHEET_NAMES:
-        return True
-    low = n.lower()
-    for p in SKIP_SHEET_PREFIXES:
-        if n.startswith(p) or low.startswith(p):
-            return True
-    return False
-
-
-def find_meta(ws) -> dict[str, str]:
-    """从工作表前 15 行找 买家昵称/城市/联系。"""
-    meta = {"buyer": "", "city": "", "contact": ""}
-    key_map = {
-        "昵称": "buyer",
-        "买家昵称": "buyer",
-        "买家": "buyer",
-        "buyer": "buyer",
-        "城市": "city",
-        "city": "city",
-        "联系": "contact",
-        "联系方式": "contact",
-        "contact": "contact",
-        "微信": "contact",
-    }
-    for row in ws.iter_rows(min_row=1, max_row=15, max_col=4, values_only=True):
-        if not row:
-            continue
-        label = cell_str(row[0])
-        val = cell_str(row[1]) if len(row) > 1 else ""
-        if label in key_map and val:
-            meta[key_map[label]] = val
-    return meta
-
-
-def find_header_row(ws) -> tuple[int, dict[str, int]] | None:
-    """返回 (1-based row, {field: col_index 0-based})。"""
-    aliases = {
-        "系列": "set",
-        "系列缩写": "set",
-        "set": "set",
-        "编号": "number",
-        "收集编号": "number",
-        "number": "number",
-        "语言": "lang",
-        "lang": "lang",
-        "闪": "foil",
-        "是否闪卡": "foil",
-        "闪卡": "foil",
-        "foil": "foil",
-        "必须": "must",
-        "必须此版": "must",
-        "must": "must",
-        "数量": "qty",
-        "qty": "qty",
-        "备注": "note",
-        "备注（可选）": "note",
-        "note": "note",
-    }
-    for r_idx, row in enumerate(ws.iter_rows(min_row=1, max_row=30, max_col=12, values_only=True), 1):
-        if not row:
-            continue
-        colmap: dict[str, int] = {}
-        for c_idx, cell in enumerate(row):
-            key = aliases.get(cell_str(cell))
-            if key:
-                colmap[key] = c_idx
-        if "set" in colmap and "number" in colmap:
-            return r_idx, colmap
-    return None
+# 买家昵称/城市/联系 标签 -> meta key
+KEY_MAP = {
+    "昵称": "buyer",
+    "买家昵称": "buyer",
+    "买家": "buyer",
+    "buyer": "buyer",
+    "城市": "city",
+    "city": "city",
+    "联系": "contact",
+    "联系方式": "contact",
+    "contact": "contact",
+    "微信": "contact",
+}
+# 求购多 must 列
+HEADER_ALIASES = {
+    "系列": "set",
+    "系列缩写": "set",
+    "set": "set",
+    "编号": "number",
+    "收集编号": "number",
+    "number": "number",
+    "语言": "lang",
+    "lang": "lang",
+    "闪": "foil",
+    "是否闪卡": "foil",
+    "闪卡": "foil",
+    "foil": "foil",
+    "必须": "must",
+    "必须此版": "must",
+    "must": "must",
+    "数量": "qty",
+    "qty": "qty",
+    "备注": "note",
+    "备注（可选）": "note",
+    "note": "note",
+}
+META_KEYS = ("buyer", "city", "contact")
 
 
 def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any]], list[str]]:
     """返回 (meta, wants, errors)。"""
     errors: list[str] = []
-    meta = find_meta(ws)
-    header = find_header_row(ws)
+    meta = find_meta(ws, KEY_MAP, META_KEYS)
+    header = find_header_row(ws, HEADER_ALIASES)
     if not header:
         errors.append(f"[{sheet_name}] 未找到表头（需要「系列」「编号」列）")
         return meta, [], errors
@@ -145,17 +105,11 @@ def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any
             if not set_code or not number:
                 raise ParseError("系列与编号须同时填写", r_idx)
 
-            lang_raw = row[colmap["lang"]] if "lang" in colmap else ""
-            foil_raw = row[colmap["foil"]] if "foil" in colmap else ""
-            must_raw = row[colmap["must"]] if "must" in colmap else ""
-            qty_raw = row[colmap["qty"]] if "qty" in colmap else ""
-            note_raw = row[colmap["note"]] if "note" in colmap else ""
-
-            lang = normalize_lang(lang_raw)
-            foil = normalize_foil(foil_raw)
-            must = normalize_strict(must_raw)
-            qty = normalize_qty(qty_raw)
-            note = cell_str(note_raw)
+            lang = normalize_lang(row[colmap["lang"]] if "lang" in colmap else "")
+            foil = normalize_foil(row[colmap["foil"]] if "foil" in colmap else "")
+            must = normalize_strict(row[colmap["must"]] if "must" in colmap else "")
+            qty = normalize_qty(row[colmap["qty"]] if "qty" in colmap else "")
+            note = cell_str(row[colmap["note"]] if "note" in colmap else "")
 
             wants.append(
                 {
@@ -193,7 +147,7 @@ def wants_to_txt(meta: dict[str, str], wants: list[dict[str, Any]]) -> str:
         f"# city: {meta.get('city') or ''}",
         f"# contact: {meta.get('contact') or ''}",
         "#",
-        "# 由 parse_wps_wants_excel.py 生成 — 语言 e/z/j/o  闪 0/1  必须 0/1  数量默认1",
+        "# 由 parse_wps_wants_excel.py 生成 - 语言 e/z/j/o  闪 0/1  必须 0/1  数量默认1",
         "",
     ]
     for w in wants:
@@ -205,33 +159,13 @@ def wants_to_txt(meta: dict[str, str], wants: list[dict[str, Any]]) -> str:
         # 清洗 note 中的换行（WPS 单元格 Alt+Enter 会被读为 \n），避免断行破坏 txt 格式
         note_raw = (w.get("note") or "").replace("\r", " ").replace("\n", " ").strip()
         note = f" | {note_raw}" if note_raw else ""
-        line = f"{prefix}{w['set']} {w['number']} {lang_token} {foil_token} {must_token}{note}"
-        lines.append(line)
+        lines.append(f"{prefix}{w['set']} {w['number']} {lang_token} {foil_token} {must_token}{note}")
     lines.append("")
     return "\n".join(lines)
 
 
-def parse_workbook(path: Path) -> tuple[dict[str, tuple[dict, list]], list[str]]:
-    wb = load_workbook(path, read_only=True, data_only=True)
-    result: dict[str, tuple[dict, list]] = {}
-    errors: list[str] = []
-    try:
-        for name in wb.sheetnames:
-            if should_skip_sheet(name):
-                continue
-            ws = wb[name]
-            meta, wants, errs = parse_sheet(ws, name)
-            errors.extend(errs)
-            if errs:
-                continue
-            result[name] = (meta, merge_wants(wants))
-    finally:
-        wb.close()
-    return result, errors
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser(description="WPS 求购 Excel → wants/*.txt")
+    parser = argparse.ArgumentParser(description="WPS 求购 Excel -> wants/*.txt")
     parser.add_argument("xlsx", type=Path, help="WPS 导出的求购 xlsx 路径")
     parser.add_argument(
         "-o", "--out-dir", type=Path, default=ROOT / "wants",
@@ -245,7 +179,7 @@ def main() -> int:
         return 1
 
     print(f"解析 {args.xlsx} …")
-    sheets, errors = parse_workbook(args.xlsx)
+    sheets, errors = parse_workbook(args.xlsx, parse_sheet, merge_wants)
 
     if errors:
         print(f"\n❌ 校验失败（{len(errors)} 个问题）：", file=sys.stderr)
@@ -262,33 +196,14 @@ def main() -> int:
         total = sum(w["quantity"] for w in wants)
         print(
             f"  · {name}: {meta.get('buyer')} / {meta.get('city')} "
-            f"— {len(wants)} 种 / {total} 张"
+            f"- {len(wants)} 种 / {total} 张"
         )
 
     if args.dry_run:
         print("\n(--dry-run，未写入文件)")
         return 0
 
-    args.out_dir.mkdir(parents=True, exist_ok=True)
-    used_fnames: set[str] = set()
-    for name, (meta, wants) in sheets.items():
-        buyer = meta.get("buyer") or name
-        fname = slugify(buyer, slugify(name, "buyer")) + ".txt"
-        if re.fullmatch(r"[A-Za-z0-9_-]+", name.strip()):
-            fname = name.strip() + ".txt"
-        # 冲突检测：同名买家 slugify 后相同会静默覆盖丢数据，加后缀避免
-        if fname in used_fnames:
-            stem, _, ext = fname.rpartition(".")
-            i = 2
-            while f"{stem}_{i}.{ext}" in used_fnames:
-                i += 1
-            fname = f"{stem}_{i}.{ext}"
-            print(f"  ⚠ 工作表「{name}」文件名冲突，改用 {fname}", file=sys.stderr)
-        used_fnames.add(fname)
-        path = args.out_dir / fname
-        path.write_text(wants_to_txt(meta, wants), encoding="utf-8")
-        print(f"  写入 {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
-
+    write_sheets(sheets, wants_to_txt, "buyer", args.out_dir, "buyer", ROOT)
     print("\n下一步: python3 scripts/build_wants.py")
     return 0
 

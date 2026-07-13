@@ -44,6 +44,15 @@ jobs:
         # 预检 runner apt 装的依赖；包丢失则早失败，避免半途 ImportError
         run: python3 -c "import requests, openpyxl; print('deps ok')"
 
+      - name: Lint & test
+        # 代码变更时跑 ruff + pytest（数据更新 cron 不跑，省时）
+        if: github.event_name == 'push'
+        run: |
+          python3 -m venv /tmp/lint-venv
+          /tmp/lint-venv/bin/pip install -q -r requirements-dev.txt
+          /tmp/lint-venv/bin/ruff check scripts/ tests/
+          /tmp/lint-venv/bin/pytest tests/ -q
+
       - name: Read WPS share IDs from site_config.json
         # 单一来源：share ID 只在 site_config.json 维护，workflow 不再硬编码
         id: cfg

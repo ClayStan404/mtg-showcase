@@ -236,9 +236,16 @@ function setHrefSafe(el, url) {
 
 /** 图片加载失败：隐藏 img 并给父容器加降级文案标记（CSS 显示「图加载失败」） */
 function onImgError(img) {
-  img.onerror = null;
   img.style.visibility = "hidden";
   img.parentElement?.classList.add("img-failed");
+}
+
+/** 给动态生成的 img 绑 error 监听（CSP 禁止 inline onerror，改用 addEventListener） */
+function bindImgErrors(root) {
+  root.querySelectorAll("img:not([data-eb])").forEach((img) => {
+    img.dataset.eb = "1";
+    img.addEventListener("error", () => onImgError(img));
+  });
 }
 
 function openCart() {
@@ -382,7 +389,7 @@ function renderCartList() {
       const img = card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
       html += `
         <article class="cart-item" data-id="${escapeAttr(card.id)}">
-          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" onerror="onImgError(this)" />
+          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" />
           <div class="cart-item-main">
             <p class="cart-item-name">${escapeHtml(displayName(card))}</p>
             <p class="cart-item-meta">
@@ -404,6 +411,7 @@ function renderCartList() {
     html += `</section>`;
   }
   list.innerHTML = html;
+  bindImgErrors(list);
   updateCartChrome();
 }
 
@@ -699,7 +707,6 @@ function cardHtml(c) {
               alt="${escapeAttr(displayName(c))}"
               loading="lazy"
               decoding="async"
-              onerror="onImgError(this)"
             />
           </div>
         </button>
@@ -769,6 +776,7 @@ function renderGrid() {
     html += `<button type="button" class="load-more" id="load-more">加载更多（还有 ${filtered.length - shown.length} 张）</button>`;
   }
   grid.innerHTML = html;
+  bindImgErrors(grid);
 }
 
 /** 增量加载下一页，不重建已渲染的卡片 DOM（只追加新页 + 刷新按钮） */
@@ -788,6 +796,7 @@ function loadMore() {
       `<button type="button" class="load-more" id="load-more">加载更多（还有 ${filtered.length - state.visibleCount} 张）</button>`
     );
   }
+  bindImgErrors(grid);
 }
 
 function openModal(card) {
@@ -1425,6 +1434,10 @@ function bindEvents() {
     },
     { passive: true, capture: true }
   );
+
+  $("#modal-img")?.addEventListener("error", function () {
+    onImgError(this);
+  });
 
   updateCartChrome();
   updateFilterToggle();

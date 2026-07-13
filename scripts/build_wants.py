@@ -22,14 +22,7 @@ from typing import Any
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from inventory_format import (  # noqa: E402
-    ParseError,
-    lang_label,
-    slugify,
-    validate_meta,
-    want_line_to_fields,
-)
-from build_data import (  # noqa: E402
+from build_common import (  # noqa: E402
     ScryfallClient,
     bump_cache_buster,
     enrich_fields_from_scryfall,
@@ -38,6 +31,13 @@ from build_data import (  # noqa: E402
     payload_unchanged,
     pick_images,
     pick_text,
+)
+from inventory_format import (  # noqa: E402
+    ParseError,
+    lang_label,
+    slugify,
+    validate_meta,
+    want_line_to_fields,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -356,7 +356,7 @@ def main() -> int:
     # 先写前端内嵌 JS（即使 JSON 无变化也写，防 JS 被误删后不重建）
     OUT_JS.parent.mkdir(parents=True, exist_ok=True)
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    js_bytes = f"window.__MTG_WANTS__={compact};\n".encode("utf-8")
+    js_bytes = f"window.__MTG_WANTS__={compact};\n".encode()
     OUT_JS.write_bytes(js_bytes)
     bump_cache_buster(ROOT / "index.html", "wants-data.js", js_bytes)
 
