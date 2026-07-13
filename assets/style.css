@@ -1663,6 +1663,9 @@ footer {
 
 /* 偏好减少动效的用户：禁用动画/过渡 */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {
