@@ -1,27 +1,43 @@
 name: Auto Update Inventory
 
 on:
+  push:
+    branches: [master]
+    # 纯文档改动不影响站点产物，跳过部署
+    paths-ignore:
+      - 'CLAUDE.md'
+      - 'QWEN.md'
+      - 'README.md'
   schedule:
     # 每小时整点运行（UTC，对应北京时间每小时一次）
     - cron: '0 * * * *'
   workflow_dispatch:  # 支持手动触发
 
 permissions:
-  contents: write  # 允许 push commit
-  issues: write     # 失败时创建/评论 issue 通知
+  contents: read      # 只读 master 源码（不再 commit 回 master）
+  pages: write        # 部署 Pages artifact
+  id-token: write     # deploy-pages 需要签名
+  issues: write       # 失败时创建/评论 issue 通知
 
-# 防止 cron 与手动触发重叠，避免在同一 self-hosted runner 上并发操作
-# 同一 checkout 导致 git push 冲突或工作区污染
+# 防止 push / cron / 手动触发重叠，避免 self-hosted runner 工作区并发污染
 concurrency:
-  group: auto-update
+  group: deploy
   cancel-in-progress: false
 
 jobs:
-  update:
+  build-deploy:
     runs-on: self-hosted
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 保留 .cache/scryfall 与上一份 data/*.json（未跟踪文件），
+          # 供 load_previous_enrichment 复用 + Scryfall 磁盘缓存加速重建。
+          # 默认 clean: true 会 git clean -ffdx 删掉这些 gitignored 缓存。
+          clean: false
 
       - name: Fetch inventory xlsx from WPS
         run: |
@@ -53,30 +69,32 @@ jobs:
         # 跳过会让站点在求购文档清空后展示过期数据
         run: python3 scripts/build_wants.py
 
-      - name: Commit & push
+      - name: Assemble site
+        # 组装干净站点目录：源码 + 产物 + CNAME（自定义域名 claystan.cc 必需）。
+        # 不含 scripts/、.github/、templates/、site_config.json（已内嵌进 JSON）、文档。
+        # 产物不入 git，每次部署现场生成后打包进 artifact。
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf site
+          mkdir -p site/assets site/data
+          cp index.html site/
+          cp -r assets/. site/assets/
+          cp -r data/. site/data/
+          cp CNAME site/
+          cp LICENSE site/ 2>/dev/null || true
+          echo "✅ 站点目录组装完成："
+          ls -la site/ site/assets/ site/data/
 
-          # git add -A 让已删除的卖家 txt 也被 stage（git add inventory/*.txt 的 glob
-          # 只展开现存文件，不会 stage 删除操作）
-          git add -A inventory/ data/cards.json assets/cards-data.js
-          if [ -f assets/wants-data.js ]; then
-            git add -A data/wants.json assets/wants-data.js
-          fi
-          # bump_cache_buster 会更新 index.html 的 ?v=，需一起提交
-          git add index.html
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
 
-          if git diff --staged --quiet; then
-            echo "ℹ 无变更，跳过提交"
-            exit 0
-          fi
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
 
-          COUNT=$(python3 -c "import json;print(json.load(open('data/cards.json'))['count'])")
-          TOTAL=$(python3 -c "import json;print(json.load(open('data/cards.json'))['total_quantity'])")
-          git commit -m "Auto update: ${COUNT} cards / ${TOTAL} total (WPS sync)"
-          git push
-          echo "✅ 已提交并推送：${COUNT} 种 / ${TOTAL} 张"
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5
 
       - name: Notify on failure
         # Cookie 过期是最高频故障；默认无通知会导致站点静默展示过期数据数天
@@ -86,7 +104,7 @@ jobs:
           REPO="${{ github.repository }}"
           TOKEN="${{ secrets.GITHUB_TOKEN }}"
           RUN_URL="https://github.com/${REPO}/actions/runs/${{ github.run_id }}"
-          BODY="自动更新失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：${RUN_URL}"
+          BODY="自动部署失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：${RUN_URL}"
           API="https://api.github.com/repos/${REPO}/issues"
           EXISTING=$(curl -s -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" \
             "${API}?state=open&per_page=100" \

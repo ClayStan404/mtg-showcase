@@ -17,5 +17,12 @@ wps_wants.xlsx
 # wants/*.txt 是中间产物（parse_wps_wants_excel 生成，不入库）
 wants/
 
+# 生成产物（部署时由 workflow 现场生成，不入库；master 只放源码）
+inventory/
+data/cards.json
+data/wants.json
+assets/cards-data.js
+assets/wants-data.js
+
 # WPS / Office lock files
 **/.~*

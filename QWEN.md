@@ -7,15 +7,15 @@
 - **站点**：https://claystan.cc/
 - **仓库**：https://github.com/ClayStan404/mtg-showcase
 - **分支**：`master`
-- **部署**：GitHub Pages（CNAME → `claystan.cc`）
-- **自动化**：GitHub Actions self-hosted runner，每小时从 WPS 云文档拉取最新数据 → 解析 → Scryfall 富化 → 自动部署
+- **部署**：GitHub Pages（CNAME -> `claystan.cc`），workflow 模式（`build_type: workflow`）
+- **自动化**：GitHub Actions self-hosted runner，`push` / 每小时 cron / 手动触发 -> 从 WPS 云文档拉取 -> 解析 -> Scryfall 富化 -> 打包 Pages artifact 发布。产物不入 git，master 只放源码
 
 ## Tech Stack
 
 - **前端**：原生 HTML / CSS / JS（无框架），`index.html` + `assets/app.js` + `assets/style.css`
 - **数据**：`assets/cards-data.js`（`window.__MTG_DATA__` 内嵌，避免额外 fetch）与 `data/cards.json` 同源
-- **后端脚本**：Python 3（`requests` + `openpyxl`），职责是解析 WPS Excel → 拉取 Scryfall 元数据 → 生成站点数据
-- **自动化**：GitHub Actions + self-hosted runner（Debian），cron 每小时触发
+- **后端脚本**：Python 3（`requests` + `openpyxl`），职责是解析 WPS Excel -> 拉取 Scryfall 元数据 -> 生成站点数据
+- **自动化**：GitHub Actions + self-hosted runner（Debian），cron 每小时触发 + push 触发
 - **数据来源**：WPS 金山文档在线协作表格（在售 + 求购各一个文档），通过分享链接 + Cookie 自动下载
 
 ## Architecture / Data Flow
@@ -23,27 +23,28 @@
 ### 自动化流程（GitHub Actions 每小时）
 
 ```
-WPS 在售文档 (share link)  →  fetch_wps_share.py  →  wps_inventory.xlsx
-WPS 求购文档 (share link)  →  fetch_wps_share.py  →  wps_wants.xlsx
+WPS 在售文档 (share link)  ->  fetch_wps_share.py  ->  wps_inventory.xlsx
+WPS 求购文档 (share link)  ->  fetch_wps_share.py  ->  wps_wants.xlsx
   ↓
-parse_wps_excel.py        →  inventory/*.txt
-parse_wps_wants_excel.py  →  wants/*.txt
+parse_wps_excel.py        ->  inventory/*.txt
+parse_wps_wants_excel.py  ->  wants/*.txt
   ↓
-build_data.py             →  data/cards.json + assets/cards-data.js
-build_wants.py            →  data/wants.json + assets/wants-data.js
+build_data.py             ->  data/cards.json + assets/cards-data.js
+build_wants.py            ->  data/wants.json + assets/wants-data.js
   ↓
-git commit & push → GitHub Pages 自动部署
+assemble site/ -> upload-pages-artifact -> deploy-pages（产物不入 git）
 ```
 
-### ClayStan 个人流程（本地维护）
+### ClayStan 个人流程（数据走 WPS，无本地上线）
 
 ```
 claystan.txt（手写，Excel 列顺序：系列 编号 语言 闪 数量）
-  ↓  txt_to_wps_xlsx.py  →  claystan.xlsx（WPS 模板格式）
+  ↓  txt_to_wps_xlsx.py  ->  claystan.xlsx（WPS 模板格式）
   ↓  手动上传到 WPS 在售文档
+  ↓  下次 workflow 运行自动同步（或 gh workflow run 立即触发）
 ```
 
-`claystan.txt` 是个人编辑用，**不参与自动化流程**。改完后跑 `txt_to_wps_xlsx.py` 生成 xlsx，上传到 WPS 文档，下次 workflow 运行自动同步。
+`claystan.txt` 是个人编辑用，**不参与自动化流程**。改完后跑 `txt_to_wps_xlsx.py` 生成 xlsx，上传到 WPS 文档，下次 workflow 运行自动同步。**数据上线统一走 WPS + Actions，无本地直连路径**。
 
 ### 其他卖家
 
@@ -55,27 +56,26 @@ claystan.txt（手写，Excel 列顺序：系列 编号 语言 闪 数量）
 |------|------|
 | `scripts/` | Python 脚本（见下表） |
 | `.github/workflows/` | GitHub Actions workflow（`auto-update.yml`） |
-| `inventory/` | 卖家库存 txt 文件（由 `parse_wps_excel.py` 自动生成） |
-| `wants/` | 求购 txt 文件（由 `parse_wps_wants_excel.py` 自动生成） |
-| `data/` | `cards.json` / `wants.json` — 富化后的完整数据 |
-| `assets/` | 前端资源：`app.js`、`cards-data.js`、`wants-data.js`、`style.css` |
+| `inventory/` | 卖家库存 txt 文件（由 `parse_wps_excel.py` 自动生成，不入库） |
+| `wants/` | 求购 txt 文件（由 `parse_wps_wants_excel.py` 自动生成，不入库） |
+| `data/` | `cards.json` / `wants.json` - 富化后的完整数据（不入库） |
+| `assets/` | 前端资源：`app.js`、`style.css`（源码）+ `cards-data.js`、`wants-data.js`（生成产物，不入库） |
 | `templates/` | WPS 协作模板 xlsx |
-| `.cache/scryfall/` | Scryfall API 响应缓存（git-ignored） |
+| `.cache/scryfall/` | Scryfall API 响应缓存（git-ignored，runner 工作区持久） |
 
 ### 脚本一览
 
 | 脚本 | 用途 |
 |------|------|
 | `fetch_wps_share.py` | 从 WPS 分享链接下载 xlsx（读 Cookie 文件） |
-| `parse_wps_excel.py` | WPS 在售 xlsx → `inventory/*.txt` |
-| `parse_wps_wants_excel.py` | WPS 求购 xlsx → `wants/*.txt`（多一列「必须」） |
-| `parse_excel_order_txt.py` | 手写 txt（Excel 列顺序）→ `inventory/*.txt` |
-| `txt_to_wps_xlsx.py` | `claystan.txt` → WPS 模板格式 xlsx（上传用） |
-| `build_data.py` | `inventory/*.txt` → Scryfall 富化 → `data/cards.json` + `assets/cards-data.js` |
-| `build_wants.py` | `wants/*.txt` → Scryfall 富化 → `data/wants.json` + `assets/wants-data.js` |
+| `parse_wps_excel.py` | WPS 在售 xlsx -> `inventory/*.txt` |
+| `parse_wps_wants_excel.py` | WPS 求购 xlsx -> `wants/*.txt`（多一列「必须」） |
+| `parse_excel_order_txt.py` | 手写 txt（Excel 列顺序）-> `inventory/*.txt` |
+| `txt_to_wps_xlsx.py` | `claystan.txt` -> WPS 模板格式 xlsx（上传用） |
+| `build_data.py` | `inventory/*.txt` -> Scryfall 富化 -> `data/cards.json` + `assets/cards-data.js` |
+| `build_wants.py` | `wants/*.txt` -> Scryfall 富化 -> `data/wants.json` + `assets/wants-data.js` |
 | `inventory_format.py` | 共享约定：语言/闪/数量归一化、slugify、ParseError、validate_meta |
 | `test_wps_api.py` | WPS 开放平台 API 测试脚本（OAuth + 签名认证，需 app 审核） |
-| `update.sh` | 一键上线：解析 → Scryfall 富化 → git commit & push |
 
 ## Build & Run
 
@@ -85,14 +85,15 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # ── 自动化（GitHub Actions 每小时自动运行，无需手动干预）──
-# 手动触发：
+# 手动触发部署：
 gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
 
-# ── ClayStan 个人更新流程 ──
+# ── ClayStan 个人更新流程（数据走 WPS，无本地上线）──
 # 1. 编辑 claystan.txt
 # 2. 生成 WPS 格式 xlsx
 python3 scripts/txt_to_wps_xlsx.py claystan.txt
 # 3. 打开 WPS 在售文档，用 claystan.xlsx 内容更新 ClayStan 工作表
+# 4.（可选）立即触发部署：gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
 
 # ── 手动分步执行（调试用）──
 # 下载 xlsx
@@ -104,15 +105,7 @@ python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
 # Scryfall 富化
 python3 scripts/build_data.py
 python3 scripts/build_wants.py
-# 提交
-git add -A inventory/ data/ assets/cards-data.js assets/wants-data.js
-git commit -m "Update inventory/wants"
-git push origin master
-
-# ── 一键上线（本地手动，解析 → 富化 → commit & push）──
-./scripts/update.sh                     # 默认解析根目录 claystan.txt
-./scripts/update.sh claystan.txt        # 指定 txt
-./scripts/update.sh ~/下载/库存.xlsx      # 解析 WPS 导出的 xlsx
+# 产物不入库；本地调试生成后用 python3 -m http.server 预览，上线靠 push master 触发 workflow
 ```
 
 本地预览：直接用浏览器打开 `index.html`，或 `python3 -m http.server` 后访问 `localhost:8000`。
@@ -160,7 +153,7 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 
 ### 前端约定
 
-- 无构建工具/无 npm — 纯静态文件，修改后直接 git push
+- 无构建工具/无 npm - 纯静态文件，push master 触发 workflow 部署
 - 卡牌数据内嵌在 `assets/cards-data.js`（`window.__MTG_DATA__`），`index.html` 通过 `<script>` 加载
 - 意向清单存储在 `localStorage`（key: `mtg-wishlist-v1`）
 - `app.js` 中所有 DOM 查询用 `$()` 简写，渲染靠 `innerHTML` 模板字符串
@@ -170,11 +163,10 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 
 - 共享逻辑在 `scripts/inventory_format.py`（语言/闪/数量归一化、slugify、ParseError、`validate_meta()` 必填校验）
 - Scryfall 请求有限速（`REQUEST_GAP = 0.12s`）和磁盘缓存（`.cache/scryfall/`）
-- `build_data.py` 有两层增量缓存：已有 `cards.json` 的富化数据复用 + Scryfall 磁盘缓存
+- `build_data.py` 有两层增量缓存：已有 `cards.json` 的富化数据复用 + Scryfall 磁盘缓存；workflow 用 `clean: false` 保留 runner 工作区这两层缓存
 - `build_data.py --validate-only` 可只校验不联网（用于 PR 校验）
 - `build_data.py --no-cache` 禁用磁盘缓存
-- `update.sh` 是一键上线脚本，自动判断 `.txt`/`.xlsx` 并完成解析 → 富化 → commit & push
-- `fetch_wps_share.py` Cookie 查找顺序：项目根目录 `wps_cookies.txt` → `~/.config/wps_cookies.txt` → 环境变量 `WPS_COOKIES`（fallback）
+- `fetch_wps_share.py` Cookie 查找顺序：项目根目录 `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> 环境变量 `WPS_COOKIES`（fallback）
 
 ## site_config.json
 
@@ -182,11 +174,11 @@ cat 新cookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 
 ## Git & Deploy
 
-- 分支 `master`，push 后 GitHub Pages 自动部署
-- **GitHub Actions**：每小时整点 cron 触发，self-hosted runner 执行
-- 上线产物：`inventory/*.txt` + `data/cards.json` + `assets/cards-data.js`（+ `data/wants.json` + `assets/wants-data.js`；`wants/*.txt` 是中间产物，不入库）
-- 前端 CSS/JS 有版本号参数（`?v=N`）：`cards-data.js` / `wants-data.js` 由构建脚本用内容哈希自动 bump；`style.css` / `app.js` 仍需手动 bump 强制缓存刷新
-- `.gitignore`：`.venv/`、`.cache/`、`__pycache__/`、WPS lock files（`**/.~*`）、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`（生成的临时文件）
+- 分支 `master` 只放源码，**生成产物不入库**；部署走 GitHub Actions（workflow 模式，`build_type: workflow`）
+- **GitHub Actions**：`push master` / 每小时 cron / `workflow_dispatch` 触发 -> 现场从 WPS 拉取生成产物 -> 组装 `site/`（含 `CNAME`）-> `upload-pages-artifact` -> `deploy-pages`
+- 产物：`inventory/*.txt`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/*.txt` 均为中间/生成产物，不入库
+- 前端 CSS/JS 版本号（`?v=N`）：`cards-data.js` / `wants-data.js` / `app.js` / `style.css` 均由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump，bump 只发生在部署 artifact 里，不回写 master
+- `.gitignore`：`.venv/`、`.cache/`、`__pycache__/`、WPS lock files（`**/.~*`）、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`（生成的临时文件），以及生成产物 `inventory/`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/`
 
 ## WPS Share IDs
 
