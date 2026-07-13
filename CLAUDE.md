@@ -60,7 +60,7 @@ claystan.txt(手写,Excel 列顺序:系列 编号 语言 闪 数量)
 
 `assets/app.js` 的 `loadData()` 优先读 `window.__MTG_DATA__`(内嵌的 `cards-data.js`);只有在未生成时才回退 `fetch data/cards.json`。求购数据同理走 `window.__MTG_WANTS__`(`wants-data.js`)。这是刻意设计--代理 / DNS 环境下 `fetch` 本地 json 会失败,内嵌更稳。`cards.json` / `cards-data.js` 不在 git,由 workflow 部署时 `build_data.py` 生成并打包进 artifact;本地改源码后 push `master` 触发部署即可,无需手动跑 build。
 
-前端无构建步骤、无框架:`index.html` + `assets/app.js` + `assets/style.css`,纯 vanilla JS。首页有「在售 / 求购」两个视图 tab(求购也有 lang/foil 筛选)。意向清单持久化在 `localStorage`(key `mtg-wishlist-v1`)。`index.html` 里 CSS/JS 用 `?v=N` 做缓存击穿;`?v=` 由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump,**bump 只发生在部署 artifact 里,不回写 master**。用户可控内容一律走 `escapeHtml()` / `escapeAttr()`。`index.html` 有 CSP meta(`script-src 'self'`,inline `onerror` 改用 `addEventListener` `bindImgErrors`)+ Open Graph / Twitter 分享卡片(`og-image.png` 1200×630)+ `favicon.svg` + `<noscript>` 降级;style.css 有 `prefers-reduced-motion` 降级(含 `scroll-behavior`)。卡片列表分页(`PAGE_SIZE=60`,「加载更多」增量追加不重建 DOM);footer 展示「最后更新」时间(`generated_at` 北京时间)。
+前端无构建步骤、无框架:`index.html` + `assets/app.js` + `assets/style.css`,纯 vanilla JS。首页有「在售 / 求购」两个视图 tab(求购也有 lang/foil 筛选)。意向清单持久化在 `localStorage`(key `mtg-wishlist-v1`)。`index.html` 里 CSS/JS 用 `?v=N` 做缓存击穿;`?v=` 由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump,**bump 只发生在部署 artifact 里,不回写 master**。用户可控内容一律走 `escapeHtml()`(转义单引号 `&#39;`)/ `escapeAttr()`。`index.html` 有 CSP meta(`script-src 'self'`,inline `onerror` 改用 `addEventListener` `bindImgErrors`)+ Open Graph / Twitter 分享卡片(`og-image.png` 1200×630)+ `favicon.svg` + `<noscript>` 降级;style.css 有 `prefers-reduced-motion` 降级(含 `scroll-behavior`)。卡片列表分页(`PAGE_SIZE=60`,「加载更多」增量追加不重建 DOM);footer 展示「最后更新」时间(`generated_at` 北京时间)。a11y:模态/清单打开时背景 `inert` + 焦点保存/恢复(`_lastFocus`)+ `role="tablist"/"tab"` + `aria-selected`;安全:`setHrefSafe()` 校验 `http(s)://` 防 `javascript:` 注入,图片失败 `.img-failed::after` 显示「图加载失败」;`image_lang` 字段在 modal 显示「图:英文」标签(非 en 卡回退 en 图时)。
 
 ## 脚本一览
 
@@ -128,19 +128,19 @@ ruff check scripts/ tests/                       # lint
 
 ## 资源与外部依赖
 
-- **Scryfall API**:`https://api.scryfall.com/cards/{set}/{number}/{lang}`,节流间隔 `REQUEST_GAP=0.12s`,`USER_AGENT="MTGShowcase/1.0 (personal inventory; github pages)"`。响应缓存在 `.cache/scryfall/`(gitignore)。图片直接 hotlink Scryfall CDN(`cards.scryfall.io`,官方允许),不下载 / 不存储 / 不变形。
-- **mtgch API**:`https://mtgch.com/api/v1/card/{set}/{number}/`,仅取非中文卡中文名。
-- **WPS 分享下载**:`fetch_wps_share.py` 走 `https://www.kdocs.cn/api/v3/office/file/{share_id}/download?format=xlsx`,302 重定向与 JSON 两种响应都处理。分享 ID:在售 `cgyl3WizNfp7`、求购 `cvvaN21e3gm8`(也写在 `site_config.json` 的 `wps_inventory_url` / `wps_wants_url`)。
+- **Scryfall API**:`https://api.scryfall.com/cards/{set}/{number}/{lang}`,节流间隔 `REQUEST_GAP=0.12s`、缓存 TTL `CACHE_TTL=30天`、`USER_AGENT` 均定义在 `build_common.py`。响应缓存在 `.cache/scryfall/`(gitignore);429 读 `Retry-After` 头。图片直接 hotlink Scryfall CDN(`cards.scryfall.io`,官方允许),不下载 / 不存储 / 不变形。
+- **mtgch API**:`https://mtgch.com/api/v1/card/{set}/{number}/`,仅取非中文卡中文名;负结果也缓存(空文件哨兵)。
+- **WPS 分享下载**:`fetch_wps_share.py` 走 `https://www.kdocs.cn/api/v3/office/file/{share_id}/download?format=xlsx`,302 重定向与 JSON 两种响应都处理,3 次重试 + 退避。分享 ID 写在 `site_config.json` 的 `wps_inventory_url` / `wps_wants_url`,workflow 从中读取(单一来源,不硬编码)。
 - **WPS 开放平台 API**(待审核):`test_wps_api.py` 走 OAuth + 读单元格两条路,凭证在 `appid_and_key`(gitignore)。审核通过后可取代 Cookie 方案。
-- `build_data.py` / `build_wants.py` 都复用上一份 JSON 里同 `set|number|lang` 的元数据加速重建(两层增量:JSON 复用 + Scryfall 磁盘缓存);Scryfall 429 读 `Retry-After` 头,缓存 TTL 30 天,mtgch 负结果也缓存。workflow 用 `clean: false` 保留 runner 工作区的这两层缓存;**清缓存或改了卡时首次构建会慢**。
-- `site_config.json`:站点标题 / 副标题 / 两个 WPS 文档 URL / 联系方式,会被 `build_data.py` / `build_wants.py` 内嵌进 JSON 的 `site` 字段供前端渲染。
+- `build_data.py` / `build_wants.py` 都复用上一份 JSON 里同 `set|number|lang` 的元数据加速重建(两层增量:JSON 复用 + Scryfall 磁盘缓存);`build_common.py` 提供 `ScryfallClient` / `base_from_cached` / `base_from_card` / `bump_cache_buster` / `payload_unchanged` 等共享工具。workflow 用 `clean: false` 保留 runner 工作区的这两层缓存;**清缓存或改了卡时首次构建会慢**。workflow build 后有 sanity check(error 卡 >20% 中止部署);`normalize_qty` strict 拒绝非整数(如 `1.9`)。
+- `site_config.json`:站点标题 / 副标题 / 两个 WPS 文档 URL / 联系方式,`build_common.py` 的 `load_site_config()` 读取,`build_data.py` / `build_wants.py` 各自内嵌进 JSON 的 `site` 字段供前端渲染。
 - `templates/WPS库存协作模板.xlsx`、`templates/WPS求购模板.xlsx`:卖家 / 买家协作模板本地副本,线上主入口见 `site_config.json`。
 
 ## Git / 部署注意
 
 - **单一部署路径**:GitHub Actions(workflow 模式)。`push master` / 每小时 cron / `workflow_dispatch` 触发 -> 现场从 WPS 拉取生成产物 -> 打包 Pages artifact 发布。**产物不入 git**,master 只放源码。
 - 日常提交:只提交源码(`index.html`、`assets/app.js`、`assets/style.css`、`scripts/`、`site_config.json`、`claystan.txt`、文档等)。数据产物由 workflow 现场生成。
-- `.gitignore`:`.venv/`、`.cache/`、`__pycache__/`、`appid_and_key`、`wps_cookies.txt`、生成的 `*.xlsx`、WPS lock files(`**/.~*`),以及**生成产物** `inventory/`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/`。
-- 前端 CSS/JS 用 `?v=N` 缓存击穿:`cards-data.js` / `wants-data.js` / `app.js` / `style.css` 均由 `build_data.py` 的 `bump_cache_buster` 用内容哈希自动 bump,bump 只发生在部署 artifact 里,不回写 master、无需手动。
+- `.gitignore`:`.venv/`、`.cache/`、`__pycache__/`、`appid_and_key`、`wps_cookies.txt`、`*.xlsx`(`!templates/*.xlsx` 保留模板)、WPS lock files(`**/.~*`)、`site/`、`.qwen/`、`.claude/`,以及**生成产物** `inventory/`、`data/cards.json`、`data/wants.json`、`assets/cards-data.js`、`assets/wants-data.js`、`wants/`。
+- 前端 CSS/JS 用 `?v=N` 缓存击穿:`cards-data.js` / `wants-data.js` / `app.js` / `style.css` 均由 `build_common.py` 的 `bump_cache_buster` 用内容哈希自动 bump,bump 只发生在部署 artifact 里,不回写 master、无需手动。
 - Pages 配置:`build_type: workflow`(GitHub Actions 部署),非 legacy 分支发布。自定义域名 `claystan.cc` 靠 artifact 内的 `CNAME` 文件。
 - 全局规则:commit message 与 PR 描述用英文;本机不主动 `git commit` / `git push`,需用户明确指示。
