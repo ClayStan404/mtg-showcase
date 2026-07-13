@@ -1,0 +1,79 @@
+name: Heartbeat
+
+# 独立的「站点是否还在更新」告警。GitHub 对被跳过的 cron 不发通知，
+# self-hosted runner 离线时 auto-update 会静默停更，数据逐时过期无人知晓。
+# 本 workflow 跑在 GitHub-hosted runner 上（不依赖 self-hosted），每 30min
+# 检查 auto-update 最近一次成功 run；超 2h 无成功则开/评论 issue，恢复后自动关闭。
+
+on:
+  schedule:
+    # 每 30 分钟（UTC）
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write   # 开/关 issue
+  actions: read   # 查 workflow runs
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check auto-update freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime, timezone
+
+          repo = os.environ["REPO"]
+          token = os.environ["GH_TOKEN"]
+          headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+          TITLE = "Auto-update stale（可能 runner 离线）"
+          THRESHOLD_H = 2
+
+          def api(method, url, data=None):
+              body = json.dumps(data).encode() if data is not None else None
+              req = urllib.request.Request(url, data=body, headers=headers, method=method)
+              return json.load(urllib.request.urlopen(req))
+
+          # auto-update workflow 最近一次成功 run
+          url = (
+              f"https://api.github.com/repos/{repo}/actions/workflows/"
+              f"auto-update.yml/runs?status=completed&conclusion=success&per_page=1"
+          )
+          runs = api("GET", url).get("workflow_runs", [])
+          if not runs:
+              stale, age = True, "无成功记录"
+          else:
+              updated = datetime.fromisoformat(runs[0]["updated_at"].replace("Z", "+00:00"))
+              now = datetime.now(timezone.utc)
+              age_h = (now - updated).total_seconds() / 3600
+              stale, age = age_h > THRESHOLD_H, f"{age_h:.1f}h"
+          print(f"auto-update 最近成功 run 距今 {age}; stale={stale}")
+
+          issues = api("GET", f"https://api.github.com/repos/{repo}/issues?state=open&per_page=100")
+          existing = next((i for i in issues if i.get("title") == TITLE), None)
+
+          if stale:
+              body = (
+                  f"auto-update 已 {age} 无成功部署。可能原因：self-hosted runner 离线 / "
+                  f"WPS Cookie 过期 / WPS 不可达。请检查 runner 状态与最近的失败 run。"
+              )
+              if existing:
+                  api("POST", f"https://api.github.com/repos/{repo}/issues/{existing['number']}/comments", {"body": body})
+                  print(f"已评论现有 issue #{existing['number']}")
+              else:
+                  api("POST", f"https://api.github.com/repos/{repo}/issues", {"title": TITLE, "body": body})
+                  print("已创建新 issue")
+          else:
+              if existing:
+                  api("PATCH", f"https://api.github.com/repos/{repo}/issues/{existing['number']}", {"state": "closed"})
+                  print(f"已恢复，关闭 issue #{existing['number']}")
+              else:
+                  print("正常，无需操作")
+          PYEOF

@@ -75,6 +75,8 @@ claystan.txt（手写，Excel 列顺序：系列 编号 语言 闪 数量）
 | `build_data.py` | `inventory/*.txt` -> Scryfall 富化 -> `data/cards.json` + `assets/cards-data.js` |
 | `build_wants.py` | `wants/*.txt` -> Scryfall 富化 -> `data/wants.json` + `assets/wants-data.js` |
 | `inventory_format.py` | 共享约定：语言/闪/数量归一化、slugify、ParseError、validate_meta |
+| `build_common.py` | build_data / build_wants 共享：Scryfall 富化、磁盘缓存、payload 工具（解耦） |
+| `wps_excel_common.py` | parse_wps_* 共享：工作表跳过 / meta / header 查找 / 写入（含冲突检测） |
 | `test_wps_api.py` | WPS 开放平台 API 测试脚本（OAuth + 签名认证，需 app 审核） |
 
 ## Build & Run
