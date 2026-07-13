@@ -812,22 +812,30 @@ function openModal(card) {
 
   const modalImg = $("#modal-img");
   if (modalImg) {
-    // 重置 onerror 可能设置的 visibility:hidden，否则切换卡牌后图片永远不显示
+    // 重置 onerror 可能设置的 visibility:hidden 与 .img-failed，否则切换卡牌后状态残留
     modalImg.style.visibility = "";
+    modalImg.parentElement?.classList.remove("img-failed");
     modalImg.alt = displayName(card);
     const realSrc = card.image?.large || card.image?.normal || "";
     // 先用透明占位替换旧图，预加载新图完成后再设 src，
     // 避免切换卡牌时短暂显示上一张卡图
     modalImg.src = PLACEHOLDER_IMG;
+    const markImgFailed = () => {
+      if (state.modalCardId !== card.id) return;
+      modalImg.style.visibility = "hidden";
+      // .modal-art.img-failed::after 会显示“图加载失败”，否则用户只看到空白
+      modalImg.parentElement?.classList.add("img-failed");
+    };
     if (realSrc) {
       const preload = new Image();
       preload.onload = () => {
         if (state.modalCardId === card.id) modalImg.src = realSrc;
       };
-      preload.onerror = () => {
-        if (state.modalCardId === card.id) modalImg.style.visibility = "hidden";
-      };
+      preload.onerror = markImgFailed;
       preload.src = realSrc;
+    } else {
+      // 无图片 URL（数据缺图），直接标记失败
+      markImgFailed();
     }
   }
   $("#modal-title").textContent = displayName(card);
@@ -1335,8 +1343,11 @@ function bindEvents() {
       e.preventDefault();
       e.stopPropagation();
       const id = addBtn.dataset.id;
+      const was = inCart(id);
+      const before = cartCount();
       addToCart(id, 1);
-      showToast(inCart(id) ? "已加入意向清单" : "已更新清单");
+      // 仅在清单确实变化时提示；达上限时 cartCount 不变，addToCart 内部已提示“已达库存上限”
+      if (cartCount() > before) showToast(was ? "已更新清单" : "已加入意向清单");
       return;
     }
     const hit = e.target.closest(".card-hit");

@@ -315,7 +315,10 @@ def main() -> int:
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     js_bytes = f"window.__MTG_WANTS__={compact};\n".encode()
     OUT_JS.write_bytes(js_bytes)
-    bump_cache_buster(ROOT / "index.html", "wants-data.js", js_bytes)
+    # cache buster 基于剔除 generated_at 的稳定内容，避免每小时时间戳变化导致 ?v= 抖动
+    stable = {k: v for k, v in payload.items() if k != "generated_at"}
+    stable_bytes = f"window.__MTG_WANTS__={json.dumps(stable, ensure_ascii=False, separators=(',', ':'))};\n".encode()
+    bump_cache_buster(ROOT / "index.html", "wants-data.js", stable_bytes)
 
     if payload_unchanged(OUT_JSON, payload):
         print(f"数据无变化，跳过写入 {OUT_JSON}")

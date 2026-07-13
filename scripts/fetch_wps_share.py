@@ -149,9 +149,16 @@ def main():
             wait = 5 * attempt
             print(f"⚠ 第 {attempt + 1} 次尝试，{wait}s 后重试…", file=sys.stderr)
             time.sleep(wait)
-        if download_xlsx(args.share_id, cookie, output):
-            success = True
-            break
+        try:
+            if download_xlsx(args.share_id, cookie, output):
+                success = True
+                break
+        except (requests.RequestException, json.JSONDecodeError) as e:
+            # download_xlsx 内部的 requests 超时/连接错误、JSON 解析异常会穿透 return False
+            # 的正常重试路径；这里兜底捕获，让瞬时网络故障真正走完 3 次重试而非直接崩溃
+            print(f"⚠ 下载异常: {e}", file=sys.stderr)
+            if attempt == 2:
+                raise
     sys.exit(0 if success else 1)
 
 

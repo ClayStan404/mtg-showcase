@@ -26,6 +26,7 @@ from build_common import (  # noqa: E402
     pick_images,
 )
 from inventory_format import (  # noqa: E402
+    META_RE,
     ParseError,
     card_line_to_fields,
     lang_label,
@@ -37,12 +38,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY_DIR = ROOT / "inventory"
 DEFAULT_INVENTORY_FILE = ROOT / "inventory.txt"  # 兼容旧单文件
 DEFAULT_OUTPUT = ROOT / "data" / "cards.json"
-
-# # seller: 昵称  /  # city: 上海  /  # contact: ...
-META_RE = re.compile(
-    r"^#\s*(seller|nickname|nick|city|contact|wechat)\s*[:=：]\s*(.+?)\s*$",
-    re.I,
-)
 
 
 def discover_inventory_files(inventory_dir: Path, legacy_file: Path) -> list[Path]:
@@ -356,7 +351,11 @@ def main() -> int:
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     js_bytes = f"window.__MTG_DATA__={compact};\n".encode()
     js_path.write_bytes(js_bytes)
-    bump_cache_buster(ROOT / "index.html", "cards-data.js", js_bytes)
+    # cache buster 基于剔除 generated_at 的稳定内容，避免每小时时间戳变化导致 ?v= 抖动、
+    # 浏览器无意义重下（前端用 generated_at 显示更新时间，但数据未变时旧时间同样有效）
+    stable = {k: v for k, v in payload.items() if k != "generated_at"}
+    stable_bytes = f"window.__MTG_DATA__={json.dumps(stable, ensure_ascii=False, separators=(',', ':'))};\n".encode()
+    bump_cache_buster(ROOT / "index.html", "cards-data.js", stable_bytes)
     print(f"已写入 {js_path}")
 
     if payload_unchanged(args.output, payload):

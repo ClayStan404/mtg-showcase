@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from collections import OrderedDict
 from typing import Any
 
 # 表格 / 用户输入 → 内部 lang 码（展示与 Scryfall）
@@ -56,6 +57,13 @@ FOIL_FALSE = {"0", "false", "no", "n", "否", "非闪", "nf", ""}
 
 QTY_RE = re.compile(r"^(?:(\d+)x|x(\d+))$", re.I)
 SLUG_RE = re.compile(r"[^a-zA-Z0-9\u4e00-\u9fff_-]+")
+
+# inventory txt / \u624b\u5199 txt \u7684 meta \u5934\uff1a# seller: \u6635\u79f0 / # city: \u4e0a\u6d77 / # contact: ...
+# build_wants \u56e0\u542b buyer \u7528\u81ea\u5df1\u7684\u6b63\u5219\uff0c\u4e0d\u5171\u7528\u6b64\u5904
+META_RE = re.compile(
+    r"^#\s*(seller|nickname|nick|city|contact|wechat)\s*[:=\uff1a]\s*(.+?)\s*$",
+    re.I,
+)
 
 
 # \u5185\u90e8 lang \u7801 -> txt \u7b80\u5199\uff08\u5199 inventory/wants txt \u65f6\u7528\uff0c\u4e0e LANG_INPUT_MAP \u4e92\u9006\uff09
@@ -242,3 +250,15 @@ def want_line_to_fields(line: str) -> tuple[str, str, str, bool, int, bool, str]
     foil = normalize_foil(parts[3] if len(parts) > 3 else "")
     must = normalize_strict(parts[4] if len(parts) > 4 else "")
     return set_code, number, lang, foil, qty, must, note
+
+
+def merge_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """按 set|number|lang|foil 合并同卡同印刷，数量累加。"""
+    merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
+    for c in cards:
+        key = f"{c['set']}|{c['number']}|{c['lang']}|{'f' if c['foil'] else 'nf'}"
+        if key in merged:
+            merged[key]["quantity"] += c["quantity"]
+        else:
+            merged[key] = dict(c)
+    return list(merged.values())

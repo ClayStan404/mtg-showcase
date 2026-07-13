@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +22,7 @@ from inventory_format import (  # noqa: E402
     LANG_TOKEN,
     ParseError,
     cell_str,
+    merge_cards,
     normalize_foil,
     normalize_lang,
     normalize_qty,
@@ -119,17 +119,6 @@ def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any
 
     errors.extend(validate_meta(meta, sheet_name))
     return meta, cards, errors
-
-
-def merge_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
-    for c in cards:
-        key = f"{c['set']}|{c['number']}|{c['lang']}|{'f' if c['foil'] else 'nf'}"
-        if key in merged:
-            merged[key]["quantity"] += c["quantity"]
-        else:
-            merged[key] = dict(c)
-    return list(merged.values())
 
 
 def cards_to_txt(meta: dict[str, str], cards: list[dict[str, Any]]) -> str:

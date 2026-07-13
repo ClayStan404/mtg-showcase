@@ -71,13 +71,17 @@ jobs:
           echo "wants_share=$WANTS" >> "$GITHUB_OUTPUT"
 
       - name: Fetch inventory xlsx from WPS
+        env:
+          INV_SHARE: ${{ steps.cfg.outputs.inv_share }}
         run: |
-          python3 scripts/fetch_wps_share.py --share-id ${{ steps.cfg.outputs.inv_share }} --output wps_inventory.xlsx
+          python3 scripts/fetch_wps_share.py --share-id "$INV_SHARE" --output wps_inventory.xlsx
           echo "✅ 在售 xlsx 下载完成"
 
       - name: Fetch wants xlsx from WPS
+        env:
+          WANTS_SHARE: ${{ steps.cfg.outputs.wants_share }}
         run: |
-          python3 scripts/fetch_wps_share.py --share-id ${{ steps.cfg.outputs.wants_share }} --output wps_wants.xlsx
+          python3 scripts/fetch_wps_share.py --share-id "$WANTS_SHARE" --output wps_wants.xlsx
           echo "✅ 求购 xlsx 下载完成"
 
       - name: Parse inventory
@@ -106,9 +110,11 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           import json
-          for f, label in [('data/cards.json', 'inventory'), ('data/wants.json', 'wants')]:
+          # cards.json 的列表 key 是 'cards'，wants.json 是 'wants'（见 build_wants.py）
+          # 用错 key 会让对应文件永远拿到空列表而跳过检查，使 20% 错误率保护失效
+          for f, label, key in [('data/cards.json', 'inventory', 'cards'), ('data/wants.json', 'wants', 'wants')]:
               d = json.load(open(f))
-              cards = d.get('cards', [])
+              cards = d.get(key, [])
               if not cards:
                   print(f'{label}: empty')
                   continue

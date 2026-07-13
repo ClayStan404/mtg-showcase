@@ -58,6 +58,8 @@ def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
         old = json.loads(output_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return False
+    if not isinstance(old, dict):
+        return False
     old_wo_ts = {k: v for k, v in old.items() if k != "generated_at"}
     new_wo_ts = {k: v for k, v in new_payload.items() if k != "generated_at"}
     return old_wo_ts == new_wo_ts
@@ -65,7 +67,11 @@ def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
 
 def load_site_config() -> dict[str, Any]:
     if SITE_CONFIG.exists():
-        return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
+        try:
+            return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as e:
+            # site_config.json 损坏时回退默认配置，避免直接崩掉整轮 build
+            print(f"⚠ site_config.json 解析失败，使用默认配置: {e}", file=sys.stderr)
     return {
         "title": "万智牌 Sales List",
         "subtitle": "实体卡展示 · 站外联系成交",
@@ -173,12 +179,12 @@ class ScryfallClient:
                 or data.get("atomic_translated_name")
                 or ""
             )
+            if self.use_disk_cache:
+                # 仅在 API 正常返回时缓存正/负结果（有名字写名字，无名字写空文件作哨兵）
+                cache_path.write_text(name, encoding="utf-8")
         except (requests.RequestException, json.JSONDecodeError, ValueError):
+            # 瞬时故障（超时/5xx/非法 JSON）不缓存，否则会把“暂时拿不到”固化成 30 天阴性
             name = ""
-
-        if self.use_disk_cache:
-            # 缓存正/负结果：有名字写名字，无名字写空文件作哨兵
-            cache_path.write_text(name, encoding="utf-8")
         return name
 
 

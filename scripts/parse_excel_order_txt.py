@@ -21,9 +21,7 @@
 from __future__ import annotations
 
 import argparse
-import re
 import sys
-from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -31,8 +29,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from inventory_format import (  # noqa: E402
     LANG_TOKEN,
+    META_RE,
     ParseError,
     cell_str,
+    merge_cards,
     normalize_foil,
     normalize_lang,
     normalize_qty,
@@ -41,10 +41,6 @@ from inventory_format import (  # noqa: E402
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-META_RE = re.compile(
-    r"^#\s*(seller|nickname|nick|city|contact|wechat)\s*[:=：]\s*(.+?)\s*$",
-    re.I,
-)
 
 
 def parse_excel_order_line(line: str, line_num: int) -> dict[str, Any]:
@@ -102,17 +98,6 @@ def parse_file(path: Path) -> tuple[dict[str, str], list[dict[str, Any]], list[s
                 errors.append(f"第{line_num}行：{e} — {line}")
 
     return meta, cards, errors
-
-
-def merge_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
-    for c in cards:
-        key = f"{c['set']}|{c['number']}|{c['lang']}|{'f' if c['foil'] else 'nf'}"
-        if key in merged:
-            merged[key]["quantity"] += c["quantity"]
-        else:
-            merged[key] = dict(c)
-    return list(merged.values())
 
 
 def cards_to_inventory_txt(meta: dict[str, str], cards: list[dict[str, Any]], source: str) -> str:
