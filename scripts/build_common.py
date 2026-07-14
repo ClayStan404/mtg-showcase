@@ -136,8 +136,9 @@ class ScryfallClient:
         raise RuntimeError("unreachable")  # 逻辑不可达：循环内必然 return 或 raise
 
     def _cache_path(self, set_code: str, number: str, lang: str) -> Path:
+        safe_set = re.sub(r"[^\w.-]", "_", set_code)
         safe_num = re.sub(r"[^\w.-]", "_", number)
-        return CACHE_DIR / f"{set_code}_{safe_num}_{lang}.json"
+        return CACHE_DIR / f"{safe_set}_{safe_num}_{lang}.json"
 
     def fetch_card(self, set_code: str, number: str, lang: str) -> dict[str, Any] | None:
         api_lang = scryfall_lang(lang)
@@ -155,6 +156,7 @@ class ScryfallClient:
             urls.append(f"https://api.scryfall.com/cards/{set_code}/{number}")
 
         data = None
+        api_failed = False
         for url in urls:
             try:
                 data = self.get(url).json()
@@ -163,7 +165,20 @@ class ScryfallClient:
                 if e.response is not None and e.response.status_code == 404:
                     continue
                 print(f"  ⚠ 无法获取 {set_code} {number} {lang}: {e}", file=sys.stderr)
-                return None
+                api_failed = True
+                break
+            except (requests.ConnectionError, requests.Timeout) as e:
+                print(f"  ⚠ 网络错误获取 {set_code} {number} {lang}: {e}", file=sys.stderr)
+                api_failed = True
+                break
+
+        if data is None and api_failed and self.use_disk_cache and cache_path.exists():
+            try:
+                cached = json.loads(cache_path.read_text(encoding="utf-8"))
+                print(f"  ⚠ 回退到过期缓存: {set_code} {number} {lang}", file=sys.stderr)
+                return cached
+            except json.JSONDecodeError:
+                pass
 
         # 仅当返回数据的 lang 与请求 lang 一致时才缓存到 api_lang 路径。
         # 回退场景（如 ja 卡无日文印刷 -> 404 -> 取 en）下 data.lang != api_lang，
@@ -174,8 +189,9 @@ class ScryfallClient:
         return data
 
     def fetch_zh_name(self, set_code: str, number: str) -> str:
+        safe_set = re.sub(r"[^\w.-]", "_", set_code)
         safe_num = re.sub(r"[^\w.-]", "_", number)
-        cache_path = CACHE_DIR / f"zhname_{set_code}_{safe_num}.txt"
+        cache_path = CACHE_DIR / f"zhname_{safe_set}_{safe_num}.txt"
         if self.use_disk_cache and cache_path.exists():
             # 负结果也缓存（空文件作哨兵），避免每次重试失败的 mtgch 请求；同样受 TTL
             if time.time() - cache_path.stat().st_mtime < CACHE_TTL:

@@ -126,7 +126,10 @@ def parse_sheet(ws, sheet_name: str) -> tuple[dict[str, str], list[dict[str, Any
         except ParseError as e:
             errors.append(f"[{sheet_name}] 第{r_idx}行：{e}")
 
-    errors.extend(validate_meta(meta, sheet_name, required=("buyer", "city", "contact")))
+    meta_errors = validate_meta(meta, sheet_name, required=("buyer", "city", "contact"))
+    errors.extend(meta_errors)
+    if meta_errors:
+        return meta, [], errors
     return meta, wants, errors
 
 
@@ -182,10 +185,9 @@ def main() -> int:
     sheets, errors = parse_workbook(args.xlsx, parse_sheet, merge_wants)
 
     if errors:
-        print(f"\n❌ 校验失败（{len(errors)} 个问题）：", file=sys.stderr)
+        print(f"\n⚠ {len(errors)} 个问题（已跳过问题行，保留有效数据）：", file=sys.stderr)
         for e in errors:
             print(f"  · {e}", file=sys.stderr)
-        return 1
 
     if not sheets:
         print("没有可导入的工作表（是否只有「说明/模板」？）", file=sys.stderr)

@@ -159,6 +159,26 @@ def test_card_line_empty_raises():
         card_line_to_fields([])
 
 
+def test_card_line_too_many_raises():
+    with pytest.raises(ParseError, match="字段过多"):
+        card_line_to_fields(["neo", "111", "e", "1", "extra"])
+
+
+def test_card_line_unknown_token_raises():
+    with pytest.raises(ParseError, match="无法识别"):
+        card_line_to_fields(["neo", "111", "xyz"])
+
+
+def test_card_line_duplicate_lang_raises():
+    with pytest.raises(ParseError, match="语言字段重复"):
+        card_line_to_fields(["neo", "111", "e", "z"])
+
+
+def test_card_line_duplicate_foil_raises():
+    with pytest.raises(ParseError, match="闪字段重复"):
+        card_line_to_fields(["neo", "111", "0", "1"])
+
+
 # want_line_to_fields
 def test_want_line_basic():
     s, n, lang,f, q, m, note = want_line_to_fields("neo 111")

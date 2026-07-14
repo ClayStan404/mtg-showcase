@@ -110,7 +110,6 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
                     "city": city,
                     "contact": contact,
                     "source_file": path.name,
-                    "source_line": line_num,
                 }
             )
 

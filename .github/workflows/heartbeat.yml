@@ -10,6 +10,10 @@ on:
     # 每 30 分钟（UTC）
     - cron: '7,37 * * * *'
   workflow_dispatch:
+  # auto-update 完成后立即检查，减少对 cron 的依赖
+  workflow_run:
+    workflows: ["Auto-update"]
+    types: [completed]
 
 permissions:
   issues: write   # 开/关 issue
@@ -18,6 +22,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # 防止 API 挂起导致 job 长时间运行
     steps:
       - name: Check auto-update freshness
         env:
@@ -39,7 +44,7 @@ jobs:
           def api(method, url, data=None):
               body = json.dumps(data).encode() if data is not None else None
               req = urllib.request.Request(url, data=body, headers=headers, method=method)
-              return json.load(urllib.request.urlopen(req))
+              return json.load(urllib.request.urlopen(req, timeout=15))
 
           # auto-update workflow 最近一次成功 run
           url = (
@@ -65,8 +70,13 @@ jobs:
                   f"WPS Cookie 过期 / WPS 不可达。请检查 runner 状态与最近的失败 run。"
               )
               if existing:
-                  api("POST", f"https://api.github.com/repos/{repo}/issues/{existing['number']}/comments", {"body": body})
-                  print(f"已评论现有 issue #{existing['number']}")
+                  updated = datetime.fromisoformat(existing["updated_at"].replace("Z", "+00:00"))
+                  since_h = (now - updated).total_seconds() / 3600
+                  if since_h < 6:
+                      print(f"issue #{existing['number']} 最近 {since_h:.1f}h 已评论，跳过")
+                  else:
+                      api("POST", f"https://api.github.com/repos/{repo}/issues/{existing['number']}/comments", {"body": body})
+                      print(f"已评论现有 issue #{existing['number']}")
               else:
                   api("POST", f"https://api.github.com/repos/{repo}/issues", {"title": TITLE, "body": body})
                   print("已创建新 issue")

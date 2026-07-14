@@ -1242,13 +1242,6 @@ main {
   background: #f4f6fa;
   border-color: #d5dbe8;
 }
-
-.cart.shot-mode .cart-toolbar,
-.cart.shot-mode .cart-header .modal-close,
-.cart.shot-mode .cart-item-actions .btn-danger-ghost {
-  /* 截图时仍可操作，颜色调浅 */
-}
-
 .cart.shot-mode .btn {
   border-color: #c5cedd;
   color: #1a1f2a;
@@ -1299,29 +1292,6 @@ main {
 
 .modal-close:hover {
   border-color: var(--accent);
-}
-
-.contact {
-  margin: 0 0 3rem;
-  padding: 1.25rem 1.4rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.contact h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.15rem;
-}
-
-.contact p {
-  margin: 0.35rem 0;
-  color: var(--text-muted);
-}
-
-.contact .value {
-  color: var(--text);
-  font-weight: 600;
 }
 
 footer {
@@ -1533,11 +1503,6 @@ footer {
   .oracle {
     font-size: 0.9rem;
     padding: 0.75rem 0.85rem;
-  }
-
-  .contact {
-    margin-bottom: 1.5rem;
-    padding: 1rem 1.1rem;
   }
 
   footer {

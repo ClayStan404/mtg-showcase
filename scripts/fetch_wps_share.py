@@ -61,13 +61,13 @@ def load_cookies(cookie_file: Path | None = None) -> str:
     print("1. 浏览器打开 https://www.kdocs.cn 并登录")
     print("2. F12 → Network → 刷新页面")
     print("3. 点任意请求 → Request Headers → 找 Cookie")
-    print("4. 复制完整值，保存到 ~/wps_cookies.txt")
+    print("4. 复制完整值，保存到 ~/.config/wps_cookies.txt")
     sys.exit(1)
 
 
 def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
     url = DOWNLOAD_API.format(share_id=share_id)
-    ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
     headers = {
         "User-Agent": ua,
         "Cookie": cookie,
@@ -81,6 +81,9 @@ def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
     # 302 → redirect to CDN download URL
     if resp.status_code == 302:
         dl_url = resp.headers.get("location", "")
+        if not dl_url.startswith("https://"):
+            print(f"❌ CDN 地址非 HTTPS，拒绝跟随: {dl_url[:100]}")
+            return False
         print(f"获取到 CDN 地址: {dl_url[:100]}...")
         resp = requests.get(dl_url, headers={"User-Agent": ua}, timeout=60)
         if resp.status_code == 200 and len(resp.content) > 100 and resp.content[:4] == b"PK\x03\x04":

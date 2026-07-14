@@ -77,7 +77,7 @@ def parse_workbook(path: Path, parse_sheet_fn, merge_fn):
             ws = wb[name]
             meta, items, errs = parse_sheet_fn(ws, name)
             errors.extend(errs)
-            if errs:
+            if errs and not items:
                 continue
             result[name] = (meta, merge_fn(items))
     finally:

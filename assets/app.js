@@ -24,6 +24,7 @@ const state = {
   visibleCount: 60, // 分页：当前已渲染卡片数
   generatedAt: "", // 数据最后更新时间
   _filtered: null, // renderGrid 缓存的过滤结果，供 loadMore 复用
+  anyDropdownOpen: false, // syncScrim 维护，避免 scroll handler 每次查 DOM
 };
 
 const PAGE_SIZE = 60;
@@ -158,7 +159,8 @@ function clearCart() {
   state.cart = {};
   saveCart();
   renderCartList();
-  renderGrid();
+  const visible = (state._filtered || activeList()).slice(0, state.visibleCount);
+  for (const c of visible) refreshCardButton(c.id);
   showToast("清单已清空");
 }
 
@@ -245,6 +247,7 @@ function bindImgErrors(root) {
   root.querySelectorAll("img:not([data-eb])").forEach((img) => {
     img.dataset.eb = "1";
     img.addEventListener("error", () => onImgError(img));
+    if (img.complete && img.naturalWidth === 0) onImgError(img);
   });
 }
 
@@ -388,8 +391,8 @@ function renderCartList() {
     for (const { card, want } of group) {
       const img = card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
       html += `
-        <article class="cart-item" data-id="${escapeAttr(card.id)}">
-          <img src="${escapeAttr(img)}" alt="" loading="lazy" decoding="async" />
+        <article class="cart-item" data-id="${escapeHtml(card.id)}">
+          <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" />
           <div class="cart-item-main">
             <p class="cart-item-name">${escapeHtml(displayName(card))}</p>
             <p class="cart-item-meta">
@@ -400,11 +403,11 @@ function renderCartList() {
           </div>
           <div class="cart-item-actions">
             <div class="cart-qty">
-              <button type="button" data-act="dec" data-id="${escapeAttr(card.id)}" aria-label="减少">−</button>
+              <button type="button" data-act="dec" data-id="${escapeHtml(card.id)}" aria-label="减少 ${escapeHtml(displayName(card))} 数量">−</button>
               <span>${want}</span>
-              <button type="button" data-act="inc" data-id="${escapeAttr(card.id)}" aria-label="增加">+</button>
+              <button type="button" data-act="inc" data-id="${escapeHtml(card.id)}" aria-label="增加 ${escapeHtml(displayName(card))} 数量">+</button>
             </div>
-            <button type="button" class="btn btn-danger-ghost btn-sm" data-act="rm" data-id="${escapeAttr(card.id)}">移除</button>
+            <button type="button" class="btn btn-danger-ghost btn-sm" data-act="rm" data-id="${escapeHtml(card.id)}">移除</button>
           </div>
         </article>`;
     }
@@ -598,16 +601,6 @@ function setScrollLock(locked) {
   document.body.classList.toggle("scroll-lock", locked);
 }
 
-function restorePortaledMenus() {
-  document.querySelectorAll(".dd-menu.is-portal").forEach((menu) => {
-    const homeId = menu.dataset.home;
-    const home = homeId ? document.getElementById(homeId) : null;
-    menu.classList.remove("is-portal");
-    delete menu.dataset.home;
-    if (home) home.appendChild(menu);
-  });
-}
-
 /** 把菜单放到触发按钮正下方，贴合筛选条而不是从屏幕底部弹出 */
 function positionPortaledMenu(dd, menu) {
   const trigger = dd.querySelector(".dd-trigger");
@@ -668,6 +661,7 @@ function portalMenuIfNeeded(dd, open) {
 
 function syncScrim() {
   const open = document.querySelector(".dd.open");
+  state.anyDropdownOpen = Boolean(open);
   const scrim = $("#dd-scrim");
   const narrowOpen = Boolean(open && isNarrow());
 
@@ -701,13 +695,13 @@ function cardHtml(c) {
   const mana = formatManaCost(c);
   const typeShort = typeLabelShort(c);
   return `
-    <div class="card" data-id="${escapeAttr(c.id)}">
+    <div class="card" data-id="${escapeHtml(c.id)}">
       <div class="card-media">
-        <button type="button" class="card-hit" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))} 图片">
+        <button type="button" class="card-hit" data-id="${escapeHtml(c.id)}" aria-label="${escapeHtml(displayName(c))} 图片">
           <div class="card-img-wrap">
             <img
-              src="${escapeAttr(cardImageSrc(c))}"
-              alt="${escapeAttr(displayName(c))}"
+              src="${escapeHtml(cardImageSrc(c))}"
+              alt="${escapeHtml(displayName(c))}"
               loading="lazy"
               decoding="async"
             />
@@ -719,12 +713,12 @@ function cardHtml(c) {
             : `<button
           type="button"
           class="card-add${added ? " is-in" : ""}"
-          data-id="${escapeAttr(c.id)}"
+          data-id="${escapeHtml(c.id)}"
           aria-label="${added ? "已在清单" : "加入意向清单"}"
         >${added ? "已加" : "加入"}</button>`
         }
       </div>
-      <button type="button" class="card-hit card-hit-info" data-id="${escapeAttr(c.id)}" aria-label="${escapeAttr(displayName(c))}">
+      <button type="button" class="card-hit card-hit-info" data-id="${escapeHtml(c.id)}" aria-label="${escapeHtml(displayName(c))}">
         <div class="card-body">
           <div class="card-title-row">
             <p class="card-name">${escapeHtml(displayName(c))}</p>
@@ -872,7 +866,7 @@ function openModal(card) {
   if (manaDd) {
     const cmcNum = Number(card.cmc);
     const cmcPart = Number.isFinite(cmcNum)
-      ? `CMC ${Number.isInteger(cmcNum) ? cmcNum : cmcNum}`
+      ? `CMC ${cmcNum}`
       : "";
     if (mana && cmcPart) manaDd.textContent = `${mana} · ${cmcPart}`;
     else if (mana) manaDd.textContent = mana;
@@ -1001,7 +995,7 @@ function renderDropdown(filterId) {
         type="button"
         class="dd-option"
         role="option"
-        data-value="${escapeAttr(opt.value)}"
+        data-value="${escapeHtml(opt.value)}"
         aria-selected="${opt.value === value ? "true" : "false"}"
       >${escapeHtml(opt.label)}</button>
     </li>`
@@ -1018,13 +1012,13 @@ function buildDropdownShell(filterId) {
         class="dd-trigger"
         aria-haspopup="listbox"
         aria-expanded="false"
-        aria-label="${escapeAttr(conf.label)}"
+        aria-label="${escapeHtml(conf.label)}"
       >
         <span class="dd-label">${escapeHtml(conf.label)}</span>
         <span class="dd-value">${escapeHtml(conf.allLabel)}</span>
         <span class="dd-caret" aria-hidden="true"></span>
       </button>
-      <ul class="dd-menu" role="listbox" aria-label="${escapeAttr(conf.label)}"></ul>
+      <ul class="dd-menu" role="listbox" aria-label="${escapeHtml(conf.label)}"></ul>
     </div>`;
 }
 
@@ -1231,6 +1225,7 @@ function setView(view) {
     const on = btn.dataset.view === view;
     btn.classList.toggle("active", on);
     btn.setAttribute("aria-selected", on ? "true" : "false");
+    btn.setAttribute("tabindex", on ? "0" : "-1");
   });
   setFiltersOpen(false);
   closeModal();
@@ -1249,10 +1244,6 @@ function escapeHtml(str) {
     .replaceAll("'", "&#39;");
 }
 
-function escapeAttr(str) {
-  return escapeHtml(str).replaceAll("'", "&#39;");
-}
-
 function bindEvents() {
   state.cart = loadCart();
 
@@ -1262,14 +1253,28 @@ function bindEvents() {
     setView(tab.dataset.view);
   });
 
+  $("#view-tabs")?.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const tabs = [...document.querySelectorAll(".view-tab")];
+    const cur = tabs.findIndex((t) => t.getAttribute("tabindex") === "0");
+    const next =
+      e.key === "ArrowRight"
+        ? (cur + 1) % tabs.length
+        : (cur - 1 + tabs.length) % tabs.length;
+    if (!tabs[next]) return;
+    tabs[next].focus();
+    setView(tabs[next].dataset.view);
+    e.preventDefault();
+  });
+
   let searchTimer = null;
-  $("#search").addEventListener("input", (e) => {
+  $("#search")?.addEventListener("input", (e) => {
     state.query = e.target.value;
     state.visibleCount = PAGE_SIZE;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(renderGrid, 150);
   });
-  $("#search").addEventListener("focus", () => {
+  $("#search")?.addEventListener("focus", () => {
     $("#toolbar")?.classList.remove("is-collapsed");
   });
 
@@ -1333,7 +1338,7 @@ function bindEvents() {
     }
   });
 
-  $("#grid").addEventListener("click", (e) => {
+  $("#grid")?.addEventListener("click", (e) => {
     if (e.target.closest("#load-more")) {
       loadMore();
       return;
@@ -1356,8 +1361,8 @@ function bindEvents() {
     if (card) openModal(card);
   });
 
-  $("#modal-close").addEventListener("click", closeModal);
-  $("#modal-backdrop").addEventListener("click", closeModal);
+  $("#modal-close")?.addEventListener("click", closeModal);
+  $("#modal-backdrop")?.addEventListener("click", closeModal);
   $("#modal-add")?.addEventListener("click", () => {
     if (!state.modalCardId || state.view === "want") return;
     const was = inCart(state.modalCardId);
@@ -1412,7 +1417,7 @@ function bindEvents() {
     "scroll",
     (e) => {
       // capture 会收到所有可滚动元素的 scroll；菜单内部滑动不能关下拉
-      if (document.querySelector(".dd.open")) {
+      if (state.anyDropdownOpen) {
         const t = e.target;
         const inMenu =
           t instanceof Element &&

@@ -33,9 +33,6 @@ LANG_INPUT_MAP = {
     "其他": "other",
 }
 
-# 仅允许以上可解析输入；未知则报错（严格模式）
-ALLOWED_LANG_INPUTS = set(LANG_INPUT_MAP.keys())
-
 LANG_LABEL = {
     "en": "英文",
     "zhs": "简中",
@@ -195,6 +192,8 @@ def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
         parts = parts[1:]
     if len(parts) < 2:
         raise ParseError("至少需要 系列 + 编号")
+    if len(parts) > 4:
+        raise ParseError("字段过多，格式: 系列 编号 [语言] [闪]")
 
     set_code = parts[0].lower()
     number = parts[1]
@@ -204,11 +203,15 @@ def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
     for token in parts[2:]:
         low = token.lower()
         if low in FOIL_TRUE or low in FOIL_FALSE:
+            if foil_raw:
+                raise ParseError(f"闪字段重复: {low}")
             foil_raw = low
         elif low in LANG_INPUT_MAP:
+            if lang_raw:
+                raise ParseError(f"语言字段重复: {low}")
             lang_raw = low
         else:
-            lang_raw = low
+            raise ParseError(f"无法识别的字段「{token}」（仅支持 e/z/j/o 语言，0/1 闪）")
 
     lang = normalize_lang(lang_raw)
     foil = normalize_foil(foil_raw) if foil_raw != "" else False

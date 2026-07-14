@@ -7,7 +7,15 @@ on:
     paths-ignore:
       - 'CLAUDE.md'
       - 'QWEN.md'
+      - 'AGENTS.md'
       - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'pyproject.toml'
+      - 'requirements-dev.txt'
+      - 'tests/**'
+      - '.github/dependabot.yml'
+      - 'SECURITY.md'
   schedule:
     # 每小时整点运行（UTC，对应北京时间每小时一次）
     - cron: '0 * * * *'
@@ -96,6 +104,10 @@ jobs:
           rm -f wants/*.txt
           python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
 
+      - name: Clean stale Scryfall cache
+        # 删除 60 天未访问的缓存文件，避免已售卡数据长期堆积
+        run: find .cache/scryfall -type f -mtime +60 -delete 2>/dev/null || true
+
       - name: Build data (Scryfall enrichment)
         run: python3 scripts/build_data.py
 
@@ -171,27 +183,67 @@ jobs:
           body = f"自动部署失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：{run_url}"
           api = f"https://api.github.com/repos/{repo}/issues"
           headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
-          existing = ""
+          list_ok = False
+          existing = None
           try:
               req = urllib.request.Request(f"{api}?state=open&per_page=100", headers=headers)
-              issues = json.load(urllib.request.urlopen(req))
-              existing = next((str(i["number"]) for i in issues if i.get("title") == "Auto-update failed"), "")
+              issues = json.load(urllib.request.urlopen(req, timeout=15))
+              existing = next((i["number"] for i in issues if i.get("title") == "Auto-update failed"), None)
+              list_ok = True
           except Exception as e:
               print(f"list issues failed: {e}")
-          if existing:
+          if existing is not None:
+              num = str(existing)
               payload = json.dumps({"body": body}).encode()
               try:
-                  creq = urllib.request.Request(f"{api}/{existing}/comments", data=payload, headers=headers, method="POST")
-                  urllib.request.urlopen(creq)
-                  print(f"已评论现有 issue #{existing}")
+                  creq = urllib.request.Request(f"{api}/{num}/comments", data=payload, headers=headers, method="POST")
+                  urllib.request.urlopen(creq, timeout=15)
+                  print(f"已评论现有 issue #{num}")
               except Exception as e:
                   print(f"comment failed: {e}")
-          else:
+          elif list_ok:
               payload = json.dumps({"title": "Auto-update failed", "body": body}).encode()
               try:
                   creq = urllib.request.Request(api, data=payload, headers=headers, method="POST")
-                  urllib.request.urlopen(creq)
+                  urllib.request.urlopen(creq, timeout=15)
                   print("已创建新 issue")
               except Exception as e:
                   print(f"create issue failed: {e}")
+          else:
+              print("list issues failed, skipping create to avoid duplicates")
+          PYEOF
+
+      - name: Close issue on success
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, urllib.request
+          repo = os.environ["REPO"]
+          token = os.environ["GITHUB_TOKEN"]
+          run_url = f"https://github.com/{repo}/actions/runs/{os.environ['RUN_ID']}"
+          api = f"https://api.github.com/repos/{repo}/issues"
+          headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+          try:
+              req = urllib.request.Request(f"{api}?state=open&per_page=100", headers=headers)
+              issues = json.load(urllib.request.urlopen(req, timeout=15))
+              existing = next((i["number"] for i in issues if i.get("title") == "Auto-update failed"), None)
+          except Exception as e:
+              print(f"list issues failed: {e}")
+              existing = None
+          if existing:
+              try:
+                  payload = json.dumps({"body": f"已恢复部署。成功运行：{run_url}"}).encode()
+                  creq = urllib.request.Request(f"{api}/{existing}/comments", data=payload, headers=headers, method="POST")
+                  urllib.request.urlopen(creq, timeout=15)
+                  creq = urllib.request.Request(f"{api}/{existing}", data=json.dumps({"state": "closed"}).encode(), headers=headers, method="PATCH")
+                  urllib.request.urlopen(creq, timeout=15)
+                  print(f"已关闭 issue #{existing}")
+              except Exception as e:
+                  print(f"close issue failed: {e}")
+          else:
+              print("无 open 的 Auto-update failed issue，无需关闭")
           PYEOF
