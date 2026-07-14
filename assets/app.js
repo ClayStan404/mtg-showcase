@@ -136,6 +136,7 @@ function refreshCardButton(cardId) {
     const on = inCart(cardId);
     btn.classList.toggle("is-in", on);
     btn.textContent = on ? "已加" : "加入";
+    btn.setAttribute("aria-label", on ? "已在清单" : "加入意向清单");
   });
   const modalAdd = $("#modal-add");
   if (modalAdd && state.modalCardId === cardId) {
@@ -683,7 +684,9 @@ const PLACEHOLDER_IMG =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 function cardImageSrc(card) {
-  return card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
+  // normal（488×680）优先：small（146×204）在 retina 屏放大显示发糊。
+  // c7739ea 曾为省流量改回 small 优先，回退了 ce59a5c 的清晰度修复，此处恢复。
+  return card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
 }
 
 function cardHtml(c) {
@@ -755,6 +758,7 @@ function renderGrid() {
   const empty = $("#empty");
   const filtered = activeList().filter(matches);
   state._filtered = filtered; // 缓存供 loadMore 复用，避免重新过滤全量
+  state._filteredQuery = state.query; // 记录本次过滤用的 query，供 loadMore 检测是否过期
   const isWant = state.view === "want";
 
   $("#visible-count").textContent = String(filtered.length);
@@ -779,8 +783,9 @@ function renderGrid() {
 
 /** 增量加载下一页，不重建已渲染的卡片 DOM（只追加新页 + 刷新按钮） */
 function loadMore() {
-  // 搜索 debounce 期间可能 _filtered 已过期，此时跳过避免追加不匹配的卡片
-  if (state._filtered && state._filtered[0] && !matches(state._filtered[0])) {
+  // 搜索 debounce 期间 _filtered 可能对应旧 query（input 立即改 query 但 renderGrid
+  // 延迟 150ms）；此时点加载更多应先 flush 重渲染，而非基于旧结果膨胀 visibleCount
+  if (state._filteredQuery !== state.query) {
     renderGrid();
     return;
   }
@@ -1234,6 +1239,9 @@ function setView(view) {
     btn.setAttribute("tabindex", on ? "0" : "-1");
   });
   setFiltersOpen(false);
+  // 切 Tab 后恢复工具栏：移动端可能在上一视图滚到底部被自动收起，
+  // 切 Tab 不触发 scroll，不重置会导致搜索栏在新视图里持续不可见
+  $("#toolbar")?.classList.remove("is-collapsed");
   closeModal();
   closeCart();
   renderSiteMeta();
@@ -1392,7 +1400,7 @@ function bindEvents() {
     const id = btn.dataset.id;
     const act = btn.dataset.act;
     const cur = state.cart[id] || 0;
-    if (act === "inc") setCartQty(id, cur + 1);
+    if (act === "inc") addToCart(id, 1);
     else if (act === "dec") setCartQty(id, cur - 1);
     else if (act === "rm") setCartQty(id, 0);
   });
