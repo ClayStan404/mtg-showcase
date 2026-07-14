@@ -16,6 +16,7 @@ import json
 import re
 import sys
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -144,7 +145,23 @@ def parse_all_wants(wants_dir: Path) -> list[dict[str, Any]]:
         for e in errors:
             print(f"  · {e}", file=sys.stderr)
         raise SystemExit(1)
-    return all_e
+
+    # 跨文件合并：同 buyer 的相同求购可能出现在多个 sheet/txt，按 wid 键合并数量
+    merged_all: OrderedDict[str, dict[str, Any]] = OrderedDict()
+    for e in all_e:
+        key = (
+            f"{e['buyer_id']}|{e['set']}|{e['number']}|{e['lang']}-"
+            f"{'f' if e['foil'] else 'nf'}-{'1' if e['must'] else '0'}"
+        )
+        if key in merged_all:
+            merged_all[key]["quantity"] += e["quantity"]
+            # note 用分号拼接，对齐 Excel 侧 merge_wants 语义，避免跨文件合并丢备注
+            if e.get("note"):
+                existing = merged_all[key].get("note", "")
+                merged_all[key]["note"] = f"{existing}; {e['note']}" if existing else e["note"]
+        else:
+            merged_all[key] = e
+    return list(merged_all.values())
 
 
 def enrich_wants(

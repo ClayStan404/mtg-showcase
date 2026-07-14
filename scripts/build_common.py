@@ -140,9 +140,20 @@ class ScryfallClient:
         safe_num = re.sub(r"[^\w.-]", "_", number)
         return CACHE_DIR / f"{safe_set}_{safe_num}_{lang}.json"
 
+    def _neg_path(self, set_code: str, number: str, lang: str) -> Path:
+        """404 负结果哨兵路径（与正缓存同目录、同命名规则，后缀 .notfound）。"""
+        safe_set = re.sub(r"[^\w.-]", "_", set_code)
+        safe_num = re.sub(r"[^\w.-]", "_", number)
+        return CACHE_DIR / f"{safe_set}_{safe_num}_{lang}.notfound"
+
     def fetch_card(self, set_code: str, number: str, lang: str) -> dict[str, Any] | None:
         api_lang = scryfall_lang(lang)
         cache_path = self._cache_path(set_code, number, api_lang)
+        neg_path = self._neg_path(set_code, number, api_lang)
+        # 负结果哨兵：错误 set/number 在 TTL 内直接返回 None，避免每轮重发 404（对齐 fetch_zh_name）
+        if self.use_disk_cache and neg_path.exists():
+            if time.time() - neg_path.stat().st_mtime < CACHE_TTL:
+                return None
         if self.use_disk_cache and cache_path.exists():
             # TTL：超期则忽略缓存重拉，让 Scryfall 数据更新（Oracle 文本/规则面）后刷新
             if time.time() - cache_path.stat().st_mtime < CACHE_TTL:
@@ -182,6 +193,11 @@ class ScryfallClient:
                 return cached
             except json.JSONDecodeError:
                 pass
+
+        # 404（两 url 均未找到且非网络故障）写负哨兵：TTL 内下次直接返回 None，
+        # 避免错误 set/number 每轮重发请求。api_failed（5xx/超时）不写，留待重试。
+        if data is None and not api_failed and self.use_disk_cache:
+            neg_path.write_text("", encoding="utf-8")
 
         # 仅当返回数据的 lang 与请求 lang 一致时才缓存到 api_lang 路径。
         # 回退场景（如 ja 卡无日文印刷 -> 404 -> 取 en）下 data.lang != api_lang，

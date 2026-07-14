@@ -141,7 +141,17 @@ def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[s
         for e in errors:
             print(f"  · {e}", file=sys.stderr)
         raise SystemExit(1)
-    return all_entries
+
+    # 跨文件合并：同 seller 的相同印刷可能出现在多个 sheet/txt（write_sheets 按
+    # sheet 拆文件不改 seller_id），按 card_id 键合并数量，避免重复 card_id。
+    merged_all: OrderedDict[str, dict[str, Any]] = OrderedDict()
+    for e in all_entries:
+        key = f"{e['seller_id']}|{e['set']}|{e['number']}|{e['lang']}|{'foil' if e['foil'] else 'nf'}"
+        if key in merged_all:
+            merged_all[key]["quantity"] += e["quantity"]
+        else:
+            merged_all[key] = e
+    return list(merged_all.values())
 
 
 def card_id(entry: dict[str, Any]) -> str:
