@@ -42,8 +42,9 @@ Frontend reads `window.__MTG_DATA__` (inlined `cards-data.js`) first, falls back
 - `o` (other) displays as "其他" (other) but fetches Scryfall image in `en` (see `SCRYFALL_LANG`).
 - `seller`/`buyer`, `city`, `contact` are **required** - `validate_meta` exits on missing.
 - `parse_excel_order_txt.py` input is **Excel column order** (`set number lang foil qty`, positional) - different from `inventory/*.txt` format (`[Nx] set number [lang] [foil]`). Don't confuse them.
-- Sold out = **delete row**, don't write `0`. Same card/printing/lang on one line, merge by quantity.
+- Sold out = **delete row**, don't write `0`. Same card/printing/lang on one line, merge by quantity; build scripts also merge across files (same seller/buyer across sheets/txt) by card_id/wid.
 - Frontend has CSP (`script-src 'self'`, inline handlers via `addEventListener`), pagination (`PAGE_SIZE=60`), a11y (inert/focus/aria-live) - see QWEN.md for details.
+- Card images use `normal` res minimum (modal `large`); never downgrade to `small` for bandwidth - retina clarity is a hard requirement (c7739ea once regressed this).
 
 ## Common commands
 
@@ -72,7 +73,7 @@ ruff check scripts/ tests/
 
 ## External dependencies
 
-- **Scryfall API**: `https://api.scryfall.com/cards/{set}/{number}/{lang}` - rate-limited (`REQUEST_GAP=0.12s`), disk-cached (`.cache/scryfall/`, `CACHE_TTL=30 days`), 429 respects `Retry-After`. Card images are hotlinked from Scryfall CDN (no download/store/transform). All constants in `build_common.py`.
+- **Scryfall API**: `https://api.scryfall.com/cards/{set}/{number}/{lang}` - rate-limited (`REQUEST_GAP=0.12s`), disk-cached (`.cache/scryfall/`, `CACHE_TTL=30 days`; 404 negative results cached via `.notfound` sentinel), 429 respects `Retry-After`. Card images are hotlinked from Scryfall CDN (no download/store/transform). All constants in `build_common.py`.
 - **mtgch API**: `https://mtgch.com/api/v1/card/{set}/{number}/` - Chinese name lookup for non-Chinese cards; negative results cached too.
 - **WPS share download**: `fetch_wps_share.py` handles 302 redirect + JSON responses, 3 retries with backoff. Share IDs read from `site_config.json` (single source). Cookie auth: project root `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> env `WPS_COOKIES`.
 
@@ -80,7 +81,7 @@ ruff check scripts/ tests/
 
 - **Single deploy path**: GitHub Actions workflow mode. `push master` / hourly cron / `workflow_dispatch`.
 - Checkout uses `clean: false` to preserve `.cache/scryfall` and previous `data/*.json` for incremental rebuild speed.
-- Heartbeat workflow (`heartbeat.yml`): runs on `ubuntu-latest` every 30min, checks auto-update freshness, opens issue if > 2h stale, auto-closes on recovery.
+- Heartbeat workflow (`heartbeat.yml`): runs on `ubuntu-latest` every 30min, checks auto-update freshness, opens issue if > 2h stale, auto-closes on recovery. Concurrency group prevents duplicate issues from overlapping schedule/workflow_run triggers.
 - Cache busting (`?v=N`) is auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash - only in the deploy artifact, never written back to master.
 - `.gitignore`: `*.xlsx` (with `!templates/*.xlsx`), `site/`, `.qwen/`, `.claude/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wps_cookies.txt`, `.cache/`, `.venv/`.
 - Global rule: commit messages and PR descriptions in English. Don't `git commit` / `git push` unless explicitly asked.

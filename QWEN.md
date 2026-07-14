@@ -165,14 +165,16 @@ cat newcookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
 - Accessibility: modal/cart open adds `inert` to background; focus save/restore (`_lastFocus`); `role="tablist"/"tab"` + `aria-selected`
 - Security: `setHrefSafe()` validates `http(s)://` to prevent `javascript:` injection; image load failure shows "图加载失败" (image load failed) via CSS `.img-failed::after`
 - Data field: `image_lang` (actual image language; when different from `lang`, modal shows a "图:英文" (image: English) label)
+- Image resolution: card grid uses `normal` (488×680) priority, modal uses `large`; **never downgrade to `small` (146×204) for bandwidth** - it upscales blurry on retina. This is a hard constraint (c7739ea once reverted it for "performance" and was rolled back).
 - Wants view also has `lang` / `foil` filters (same as inventory view)
 
 ### Python script conventions
 
 - Shared modules: `scripts/inventory_format.py` (lang/foil/qty normalization, slugify, ParseError, `validate_meta()`) + `scripts/build_common.py` (`ScryfallClient`, `base_from_cached` / `base_from_card`, `bump_cache_buster`, `payload_unchanged`, `load_site_config` — enrichment/cache/payload utilities) + `scripts/wps_excel_common.py` (sheet skip / meta / header lookup / file writing with conflict detection)
 - `REQUEST_GAP`, `CACHE_TTL`, `bump_cache_buster` and other constants/functions are defined in `build_common.py` (not in `build_data.py`)
-- Scryfall rate-limited (`REQUEST_GAP = 0.12s`) with disk cache (`.cache/scryfall/`, `CACHE_TTL = 30 days`); 429 respects `Retry-After` header; mtgch negative results also cached
+- Scryfall rate-limited (`REQUEST_GAP = 0.12s`) with disk cache (`.cache/scryfall/`, `CACHE_TTL = 30 days`); 429 respects `Retry-After` header; 404 (invalid set/number) and mtgch negative results also cached via sentinel files (TTL-bound), so they aren't refetched every deploy
 - Both `build_data.py` / `build_wants.py` have two-layer incremental caching (reuse enriched data from existing JSON + Scryfall disk cache); workflow uses `clean: false` to preserve these on the runner workspace
+- `parse_all_inventories` / `parse_all_wants` also merge across files by card_id/wid (same seller/buyer split across sheets/txt deduped, quantity summed); wants `note` concatenated via `;` to align with Excel-side `merge_wants`
 - `build_data.py --validate-only` — parse only, no network (for PR validation)
 - `build_data.py --no-cache` — disable disk cache
 - `fetch_wps_share.py` has 3 retries + 5s/10s backoff; Cookie lookup order: project root `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> env var `WPS_COOKIES` (fallback)
@@ -187,7 +189,7 @@ Site-level config: title, subtitle, WPS document URLs, contact info. Read by `bu
 
 - Branch `master` holds source only — **generated artifacts are never committed**; deploy via GitHub Actions (workflow mode, `build_type: workflow`)
 - **GitHub Actions**: `push master` / hourly cron / `workflow_dispatch` -> fetch from WPS -> generate artifacts -> assemble `site/` (including `CNAME` / `robots.txt` / `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`
-- **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within the last 2h; if stale, opens/comments on an issue; auto-closes when recovered (GitHub doesn't notify on skipped cron runs)
+- **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within the last 2h; if stale, opens/comments on an issue; auto-closes when recovered (GitHub doesn't notify on skipped cron runs); a concurrency group prevents schedule + workflow_run overlap from creating duplicate issues
 - Artifacts: `inventory/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/*.txt` are all intermediate/generated products, not committed
 - Frontend CSS/JS cache busting (`?v=N`): `cards-data.js` / `wants-data.js` / `app.js` / `style.css` are all auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash; bumping only happens in the deploy artifact, never written back to master
 - `.gitignore`: `.venv/`, `.cache/`, `__pycache__/`, WPS lock files (`**/.~*`), `wps_cookies.txt`, `*.xlsx` (`!templates/*.xlsx` preserves templates), `site/`, `.qwen/`, `.claude/`, plus generated products `inventory/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/`
