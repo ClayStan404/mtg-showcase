@@ -283,21 +283,21 @@ class _FakeClient:
 def test_base_from_card_zhs_uses_printed_no_client():
     card = {
         "name": "Sol Ring",
-        "printed_name": "太阳指环",
+        "printed_name": "阳光戒",
         "type_line": "Artifact",
         "cmc": 1,
     }
     # zhs 分支不调 client，传 None 也不应崩
     base = build_common.base_from_card(card, None, "neo", "111", "zhs")
-    assert base["name_zh"] == "太阳指环"
+    assert base["name_zh"] == "阳光戒"
     assert base["name_en"] == "Sol Ring"
 
 
 def test_base_from_card_en_fetches_zh_name():
     card = {"name": "Sol Ring", "type_line": "Artifact", "cmc": 1, "lang": "en"}
-    client = _FakeClient(zh="太阳指环")
+    client = _FakeClient(zh="阳光戒")
     base = build_common.base_from_card(card, client, "neo", "111", "en")
-    assert base["name_zh"] == "太阳指环"
+    assert base["name_zh"] == "阳光戒"
     assert base["image_lang"] == "en"
 
 
@@ -321,14 +321,14 @@ def test_fetch_zh_name_caches_real_response(monkeypatch, tmp_path):
 
     class _Resp:
         def json(self):
-            return {"zhs_name": "太阳指环"}
+            return {"zhs_name": "阳光戒"}
 
     monkeypatch.setattr(client, "get", lambda *a, **k: _Resp())
     cache_path = tmp_path / "zhname_neo_111.txt"
 
-    assert client.fetch_zh_name("neo", "111") == "太阳指环"
+    assert client.fetch_zh_name("neo", "111") == "阳光戒"
     assert cache_path.exists()
-    assert cache_path.read_text(encoding="utf-8") == "太阳指环"
+    assert cache_path.read_text(encoding="utf-8") == "阳光戒"
 
 
 def test_fetch_zh_name_does_not_cache_transient_failure(monkeypatch, tmp_path):
