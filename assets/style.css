@@ -1259,6 +1259,13 @@ main {
   background: #f4f6fa;
   border-color: #d5dbe8;
 }
+
+.cart.shot-mode .cart-toolbar,
+.cart.shot-mode .cart-tip,
+.cart.shot-mode .modal-close {
+  display: none;
+}
+
 .cart.shot-mode .btn {
   border-color: #c5cedd;
   color: #1a1f2a;
@@ -1607,7 +1614,8 @@ footer {
 
 /* 图片加载失败降级文案（onImgError 给父容器加 .img-failed） */
 .card-img-wrap.img-failed::after,
-.modal-art.img-failed::after {
+.modal-art.img-failed::after,
+.cart-item.img-failed::after {
   content: "图加载失败";
   position: absolute;
   inset: 0;

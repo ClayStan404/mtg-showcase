@@ -75,7 +75,7 @@ def parse_file(path: Path) -> tuple[dict[str, str], list[dict[str, Any]], list[s
     cards: list[dict[str, Any]] = []
     errors: list[str] = []
 
-    with path.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8-sig") as fh:
         for line_num, raw in enumerate(fh, 1):
             line = raw.strip()
             if not line:

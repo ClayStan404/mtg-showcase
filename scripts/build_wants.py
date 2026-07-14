@@ -58,7 +58,7 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
     source = path.stem
     entries: list[dict[str, Any]] = []
 
-    with path.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8-sig") as fh:
         for line_num, raw in enumerate(fh, 1):
             line = raw.strip()
             if not line:
@@ -273,6 +273,9 @@ def main() -> int:
 
     print("读取求购 wants/ …")
     entries = parse_all_wants(args.wants_dir)
+    if args.validate_only:
+        print("校验通过（未联网）")
+        return 0
     if not entries:
         print("无求购条目，写入空数据")
         payload = {
@@ -286,9 +289,6 @@ def main() -> int:
         }
     else:
         print(f"合计 {len(entries)} 条")
-        if args.validate_only:
-            print("校验通过（未联网）")
-            return 0
         prev = load_previous_enrichment(OUT_JSON, list_key="wants")
         client = ScryfallClient(use_disk_cache=not args.no_cache)
         wants = enrich_wants(entries, client, prev)

@@ -779,6 +779,11 @@ function renderGrid() {
 
 /** 增量加载下一页，不重建已渲染的卡片 DOM（只追加新页 + 刷新按钮） */
 function loadMore() {
+  // 搜索 debounce 期间可能 _filtered 已过期，此时跳过避免追加不匹配的卡片
+  if (state._filtered && state._filtered[0] && !matches(state._filtered[0])) {
+    renderGrid();
+    return;
+  }
   const filtered = state._filtered || activeList().filter(matches);
   const oldCount = state.visibleCount;
   state.visibleCount += PAGE_SIZE;
@@ -1405,6 +1410,7 @@ function bindEvents() {
   const reflowOrClose = () => {
     const open = document.querySelector(".dd.open");
     if (!open) return;
+    portalMenuIfNeeded(open, true);
     const menu = findMenu(open.dataset.filter);
     if (menu?.classList.contains("is-portal")) {
       positionPortaledMenu(open, menu);

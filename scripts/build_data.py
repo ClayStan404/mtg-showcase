@@ -65,7 +65,7 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
 
     merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
-    with path.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8-sig") as fh:
         for line_num, raw in enumerate(fh, 1):
             line = raw.strip()
             if not line:

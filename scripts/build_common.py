@@ -164,6 +164,9 @@ class ScryfallClient:
             except requests.HTTPError as e:
                 if e.response is not None and e.response.status_code == 404:
                     continue
+                if e.response is not None and e.response.status_code in (500, 502, 503, 504):
+                    api_failed = True
+                    continue
                 print(f"  ⚠ 无法获取 {set_code} {number} {lang}: {e}", file=sys.stderr)
                 api_failed = True
                 break
@@ -210,8 +213,11 @@ class ScryfallClient:
                 # 仅在 API 正常返回时缓存正/负结果（有名字写名字，无名字写空文件作哨兵）
                 cache_path.write_text(name, encoding="utf-8")
         except (requests.RequestException, json.JSONDecodeError, ValueError):
-            # 瞬时故障（超时/5xx/非法 JSON）不缓存，否则会把“暂时拿不到”固化成 30 天阴性
-            name = ""
+            # 瞬时故障（超时/5xx/非法 JSON）不缓存；回退到过期缓存（如有）
+            if self.use_disk_cache and cache_path.exists():
+                name = cache_path.read_text(encoding="utf-8").strip()
+            else:
+                name = ""
         return name
 
 

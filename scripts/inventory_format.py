@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections import OrderedDict
 from typing import Any
@@ -103,8 +104,9 @@ def slugify(value: str, fallback: str = "seller") -> str:
 def cell_str(value: Any) -> str:
     if value is None:
         return ""
-    if isinstance(value, float) and value == int(value):
-        return str(int(value))
+    if isinstance(value, float):
+        if math.isfinite(value) and value == int(value):
+            return str(int(value))
     return str(value).strip()
 
 

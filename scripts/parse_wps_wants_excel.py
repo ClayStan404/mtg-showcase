@@ -139,6 +139,9 @@ def merge_wants(wants: list[dict[str, Any]]) -> list[dict[str, Any]]:
         key = f"{w['set']}|{w['number']}|{w['lang']}|{'f' if w['foil'] else 'nf'}|{'m' if w['must'] else 'nm'}"
         if key in merged:
             merged[key]["quantity"] += w["quantity"]
+            if w.get("note"):
+                existing = merged[key].get("note", "")
+                merged[key]["note"] = f"{existing}; {w['note']}" if existing else w["note"]
         else:
             merged[key] = dict(w)
     return list(merged.values())
