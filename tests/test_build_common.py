@@ -6,6 +6,7 @@ load_site_config / pick_* / classify_types / base_from_* 的边界情况，
 """
 
 import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -298,3 +299,48 @@ def test_base_from_card_en_fetches_zh_name():
     base = build_common.base_from_card(card, client, "neo", "111", "en")
     assert base["name_zh"] == "太阳指环"
     assert base["image_lang"] == "en"
+
+
+# ── stable_payload_bytes ────────────────────────────────────────────
+def test_stable_payload_bytes_excludes_generated_at():
+    payload = {"generated_at": "2026-07-14", "cards": [1, 2], "count": 2}
+    text = build_common.stable_payload_bytes(payload, "window.__MTG_DATA__").decode()
+    assert text.startswith("window.__MTG_DATA__=")
+    assert text.endswith(";\n")
+    assert "generated_at" not in text
+    # compact 序列化（separators=(',', ':')，无空格）；剥掉 var= 前缀与 ;\n 后缀后应还原剔除时间戳的 dict
+    body = text[len("window.__MTG_DATA__="):-2]
+    assert json.loads(body) == {"cards": [1, 2], "count": 2}
+
+
+# ── ScryfallClient.fetch_zh_name 缓存策略 ───────────────────────────
+def test_fetch_zh_name_caches_real_response(monkeypatch, tmp_path):
+    # mtgch 正常返回应缓存（有名字写名字），避免每次重建都重拉
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+
+    class _Resp:
+        def json(self):
+            return {"zhs_name": "太阳指环"}
+
+    monkeypatch.setattr(client, "get", lambda *a, **k: _Resp())
+    cache_path = tmp_path / "zhname_neo_111.txt"
+
+    assert client.fetch_zh_name("neo", "111") == "太阳指环"
+    assert cache_path.exists()
+    assert cache_path.read_text(encoding="utf-8") == "太阳指环"
+
+
+def test_fetch_zh_name_does_not_cache_transient_failure(monkeypatch, tmp_path):
+    # 瞬时故障（超时/5xx/非法 JSON）不应缓存，否则会把“暂时拿不到”固化成 30 天阴性
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+
+    def boom(*a, **k):
+        raise build_common.requests.RequestException("timeout")
+
+    monkeypatch.setattr(client, "get", boom)
+    cache_path = tmp_path / "zhname_neo_111.txt"
+
+    assert client.fetch_zh_name("neo", "111") == ""
+    assert not cache_path.exists(), "瞬时故障不应写入缓存哨兵"

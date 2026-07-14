@@ -46,11 +46,22 @@ def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> N
         html_path.write_text(new_text, encoding="utf-8")
 
 
+def stable_payload_bytes(payload: dict[str, Any], var_name: str) -> bytes:
+    """生成剔除 generated_at 的 JS payload 字节，供 bump_cache_buster 用稳定内容算 ?v=。
+
+    写入文件的 JS 仍含 generated_at（前端用它显示“最后更新”），但 cache buster 基于
+    剔除时间戳的内容计算，避免每小时时间戳变化导致 ?v= 抖动、浏览器无意义重下。
+    """
+    stable = {k: v for k, v in payload.items() if k != "generated_at"}
+    return f"{var_name}={json.dumps(stable, ensure_ascii=False, separators=(',', ':'))};\n".encode()
+
+
 def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
     """比较新 payload 与已存在的 output（忽略 generated_at 时间戳）。
 
-    避免每小时 Actions 因 generated_at 变化产生无意义写入，以及
-    bump_cache_buster 哈希随时间戳抖动。前端不使用 generated_at 字段。
+    generated_at 每小时部署都会变，但数据未必变化；忽略它比较可避免无意义写入，
+    也让 bump_cache_buster 的 ?v= 不随时间戳抖动。前端仍用 generated_at 显示
+    “最后更新”时间——数据未变时旧时间戳对用户同样有效，故可安全忽略。
     """
     if not output_path.exists():
         return False

@@ -114,13 +114,13 @@ jobs:
           # 用错 key 会让对应文件永远拿到空列表而跳过检查，使 20% 错误率保护失效
           for f, label, key in [('data/cards.json', 'inventory', 'cards'), ('data/wants.json', 'wants', 'wants')]:
               d = json.load(open(f))
-              cards = d.get(key, [])
-              if not cards:
+              items = d.get(key, [])
+              if not items:
                   print(f'{label}: empty')
                   continue
-              errs = sum(1 for c in cards if c.get('error'))
-              ratio = errs / len(cards)
-              print(f'{label}: {errs}/{len(cards)} error ({ratio:.0%})')
+              errs = sum(1 for c in items if c.get('error'))
+              ratio = errs / len(items)
+              print(f'{label}: {errs}/{len(items)} error ({ratio:.0%})')
               if ratio > 0.2:
                   raise SystemExit(f'{label} error ratio {ratio:.0%} > 20%, aborting deploy')
           print('sanity check passed')
