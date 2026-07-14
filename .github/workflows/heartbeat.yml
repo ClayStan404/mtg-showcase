@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
   # auto-update 完成后立即检查，减少对 cron 的依赖
   workflow_run:
-    workflows: ["Auto-update"]
+    workflows: ["Auto Update Inventory"]
     types: [completed]
 
 permissions:
