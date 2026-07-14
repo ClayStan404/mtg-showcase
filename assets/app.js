@@ -25,6 +25,7 @@ const state = {
   generatedAt: "", // 数据最后更新时间
   _filtered: null, // renderGrid 缓存的过滤结果，供 loadMore 复用
   anyDropdownOpen: false, // syncScrim 维护，避免 scroll handler 每次查 DOM
+  cardIndex: null, // id -> card 的 Map，避免 O(n) find
 };
 
 const PAGE_SIZE = 60;
@@ -106,7 +107,7 @@ function maxWant(card) {
 }
 
 function addToCart(cardId, delta = 1) {
-  const card = state.cards.find((c) => c.id === cardId);
+  const card = state.cardIndex?.get(cardId);
   if (!card) return;
   const max = maxWant(card);
   const cur = state.cart[cardId] || 0;
@@ -144,7 +145,7 @@ function refreshCardButton(cardId) {
 }
 
 function setCartQty(cardId, qty) {
-  const card = state.cards.find((c) => c.id === cardId);
+  const card = state.cardIndex?.get(cardId);
   if (!card) return;
   const max = maxWant(card);
   const next = Math.max(0, Math.min(max, qty));
@@ -297,7 +298,7 @@ function cartLines() {
   const ids = Object.keys(state.cart).filter((id) => state.cart[id] > 0);
   const items = ids
     .map((id) => {
-      const card = state.cards.find((c) => c.id === id);
+      const card = state.cardIndex?.get(id);
       if (!card) return null;
       return { card, want: state.cart[id] };
     })
@@ -682,7 +683,7 @@ const PLACEHOLDER_IMG =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 function cardImageSrc(card) {
-  return card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
+  return card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
 }
 
 function cardHtml(c) {
@@ -726,7 +727,7 @@ function cardHtml(c) {
               ${must ? '<span class="flag flag-exact">必须</span>' : ""}
               ${flex ? '<span class="flag flag-any">可替</span>' : ""}
               ${c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
-              ${c.quantity > 1 ? `<span class="flag flag-qty">×${c.quantity}</span>` : ""}
+              ${c.quantity > 1 ? `<span class="flag flag-qty">×${escapeHtml(String(c.quantity))}</span>` : ""}
             </div>
           </div>
           ${secondaryName(c) ? `<p class="card-name-en">${escapeHtml(secondaryName(c))}</p>` : ""}
@@ -847,7 +848,7 @@ function openModal(card) {
     card.foil ? '<span class="tag foil">闪卡 FOIL</span>' : "",
     typeShort ? `<span class="tag">${escapeHtml(typeShort)}</span>` : "",
     mana ? `<span class="tag">${escapeHtml(mana)}</span>` : "",
-    `<span class="tag">×${card.quantity}</span>`,
+    `<span class="tag">×${escapeHtml(String(card.quantity))}</span>`,
     card.city ? `<span class="tag">${escapeHtml(card.city)}</span>` : "",
   ].join("");
 
@@ -1531,12 +1532,13 @@ async function main() {
   }
   const data = await loadData();
   state.cards = data.sell.cards || [];
+  state.cardIndex = new Map(state.cards.map((c) => [c.id, c]));
   state.site = data.sell.site || data.wants.site || {};
   state.wants = data.wants.wants || [];
   state.generatedAt = data.sell.generated_at || data.wants.generated_at || "";
   // 清理清单里已不存在的卡，并按当前库存上限 clamp 数量
   for (const id of Object.keys(state.cart)) {
-    const card = state.cards.find((c) => c.id === id);
+    const card = state.cardIndex?.get(id);
     if (!card) delete state.cart[id];
     else state.cart[id] = Math.min(state.cart[id], maxWant(card));
   }

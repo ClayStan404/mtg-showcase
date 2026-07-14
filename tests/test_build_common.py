@@ -344,3 +344,73 @@ def test_fetch_zh_name_does_not_cache_transient_failure(monkeypatch, tmp_path):
 
     assert client.fetch_zh_name("neo", "111") == ""
     assert not cache_path.exists(), "瞬时故障不应写入缓存哨兵"
+
+
+# ── ScryfallClient.fetch_card 缓存回退策略 ──────────────────────────
+def _make_response(data):
+    class _Resp:
+        def json(self):
+            return data
+    return _Resp()
+
+
+def test_fetch_card_cache_hit(monkeypatch, tmp_path):
+    """TTL 内的缓存直接返回，不调 API"""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    cache = tmp_path / "neo_111_en.json"
+    cache.write_text(json.dumps({"name": "Sol Ring", "lang": "en"}), encoding="utf-8")
+
+    def fail(*a, **k):
+        raise AssertionError("不应调用 API")
+
+    monkeypatch.setattr(client, "get", fail)
+    result = client.fetch_card("neo", "111", "en")
+    assert result["name"] == "Sol Ring"
+
+
+def test_fetch_card_404_returns_none(monkeypatch, tmp_path):
+    """所有 URL 都 404 时返回 None（not_found）"""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+
+    def mock_get(url, **k):
+        resp = build_common.requests.Response()
+        resp.status_code = 404
+        err = build_common.requests.HTTPError(response=resp)
+        raise err
+
+    monkeypatch.setattr(client, "get", mock_get)
+    assert client.fetch_card("neo", "111", "en") is None
+
+
+def test_fetch_card_network_error_fallback_to_expired_cache(monkeypatch, tmp_path):
+    """网络错误 + 有过期缓存 -> 回退旧缓存"""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    cache = tmp_path / "neo_111_en.json"
+    cache.write_text(json.dumps({"name": "Sol Ring", "lang": "en"}), encoding="utf-8")
+    # 让缓存看起来已过期
+    import os
+    old_time = cache.stat().st_mtime - build_common.CACHE_TTL - 1
+    os.utime(cache, (old_time, old_time))
+
+    def mock_get(url, **k):
+        raise build_common.requests.ConnectionError("timeout")
+
+    monkeypatch.setattr(client, "get", mock_get)
+    result = client.fetch_card("neo", "111", "en")
+    assert result is not None
+    assert result["name"] == "Sol Ring"
+
+
+def test_fetch_card_network_error_no_cache_returns_none(monkeypatch, tmp_path):
+    """网络错误 + 无缓存 -> None"""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+
+    def mock_get(url, **k):
+        raise build_common.requests.ConnectionError("timeout")
+
+    monkeypatch.setattr(client, "get", mock_get)
+    assert client.fetch_card("neo", "111", "en") is None

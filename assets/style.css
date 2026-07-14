@@ -1,3 +1,17 @@
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 1000;
+  padding: 0.5rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
 :root {
   --bg: #0f1218;
   --bg-elevated: #171b24;
@@ -87,7 +101,7 @@ header.site-header {
 }
 
 .view-tab {
-  min-height: 2.2rem;
+  min-height: 2.75rem;
   padding: 0.3rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -257,6 +271,7 @@ header.site-header {
   padding: 0.85rem 0;
   padding-top: max(0.65rem, env(safe-area-inset-top, 0px));
   background: rgba(15, 18, 24, 0.92);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid transparent;
   transition: transform 0.22s ease, box-shadow 0.22s ease;
@@ -722,6 +737,7 @@ main {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -910,6 +926,7 @@ main {
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   touch-action: manipulation;
 }
@@ -1151,8 +1168,8 @@ main {
 }
 
 .cart-qty button {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -1341,6 +1358,7 @@ footer {
   .toolbar.is-collapsed {
     transform: translateY(calc(-100% - 2px));
     pointer-events: none;
+    visibility: hidden;
     box-shadow: none;
   }
 
@@ -1511,7 +1529,7 @@ footer {
 
   .card-add {
     font-size: 0.7rem;
-    min-height: 1.85rem;
+    min-height: 2.75rem;
     padding: 0.22rem 0.5rem;
   }
 

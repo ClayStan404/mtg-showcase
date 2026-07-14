@@ -120,7 +120,7 @@ class ScryfallClient:
                 time.sleep(wait)
             except requests.HTTPError as e:
                 status = e.response.status_code if e.response is not None else 0
-                if status == 404 or attempt == 2:
+                if status in (400, 401, 403, 404, 405, 410) or attempt == 2:
                     raise
                 # 429 限流：优先遵守 Retry-After 头，避免被封 IP
                 wait = 2 ** attempt

@@ -101,6 +101,9 @@ def download_xlsx(share_id: str, cookie: str, output: Path) -> bool:
             # Success: API returns {"download_url": "https://..."}
             if "download_url" in data:
                 dl_url = data["download_url"]
+                if not dl_url.startswith("https://"):
+                    print(f"❌ JSON download_url 非 HTTPS，拒绝跟随: {dl_url[:100]}")
+                    return False
                 print(f"获取到 CDN 地址: {dl_url[:100]}...")
                 resp = requests.get(dl_url, headers={"User-Agent": ua}, timeout=60)
                 if resp.status_code == 200 and len(resp.content) > 100 and resp.content[:4] == b"PK\x03\x04":
