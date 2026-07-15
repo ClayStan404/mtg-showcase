@@ -16,6 +16,7 @@ on:
       - 'tests/**'
       - '.github/dependabot.yml'
       - 'SECURITY.md'
+      - 'docs/**'
   workflow_dispatch:  # 支持手动触发
     # 不再用 GitHub schedule：官方文档明确 schedule 在整点高负载时会被延迟甚至丢弃
     # (实测本仓库 cron '0 *' 一天被跳过近一半，间隔常拉到 1.5–3h)。
