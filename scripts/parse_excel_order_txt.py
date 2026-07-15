@@ -44,8 +44,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def parse_excel_order_line(line: str, line_num: int) -> dict[str, Any]:
-    """系列 编号 [语言] [闪] [数量] — 位置固定，与 Excel 列对齐。"""
-    parts = line.split()
+    """系列 编号 [语言] [闪] [数量] — 位置固定，与 Excel 列对齐。
+
+    分隔符：空格/制表符；若整行含逗号则按 CSV 处理（兼容从表格粘贴的
+    `msc,211,z,1,2,` 这类行，尾随空字段如空备注列会被忽略）。
+    """
+    if "," in line:
+        parts = [p.strip() for p in line.split(",")]
+        while parts and parts[-1] == "":
+            parts.pop()
+    else:
+        parts = line.split()
     if len(parts) < 2:
         raise ParseError("至少需要 系列 + 编号", line_num)
     if len(parts) > 5:
