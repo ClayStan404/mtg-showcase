@@ -15,7 +15,7 @@ Static **Magic: The Gathering buylist + sell list** website for multiple sellers
 - **Frontend**: Vanilla HTML / CSS / JS (no framework, no build step) — `index.html` + `assets/app.js` + `assets/style.css`
 - **Data**: `assets/cards-data.js` (`window.__MTG_DATA__` inlined) + `assets/wants-data.js` (`window.__MTG_WANTS__`), same-source as `data/cards.json` / `data/wants.json`
 - **Backend scripts**: Python 3 (`requests` + `openpyxl`) — parse WPS Excel -> fetch Scryfall metadata -> generate site data
-- **Automation**: GitHub Actions + self-hosted runner (Debian), hourly cron + push trigger
+- **Automation**: GitHub Actions + self-hosted runner, hourly cron + push trigger
 - **Data source**: WPS/Kingsoft Docs collaborative spreadsheets (one for inventory, one for wants), downloaded via share link + session Cookie
 
 ## Architecture / Data Flow
@@ -122,19 +122,8 @@ Local preview: open `index.html` in a browser, or run `python3 -m http.server` a
 
 ## Self-Hosted Runner
 
-- **Machine**: Debian (SSH alias `debian`)
-- **Runner directory**: `/home/claystan/actions-runner-personal/`
-- **Runner name**: `mtg-showcase`
-- **Cookie file**: `~/.config/wps_cookies.txt` (single line, browser-copied Cookie value)
-- **Python deps**: `python3-requests` + `python3-openpyxl` (via apt)
-
-### Cookie refresh
-
-```bash
-# Copy new Cookie from browser, write directly to file — no runner restart needed
-cat newcookie.txt | ssh debian "cat > ~/.config/wps_cookies.txt"
-```
-
+Access details (machine alias, runner directory, cookie refresh) live in the
+private `config_rc` repo at `infra/mtg-showcase/runner-access.md`.
 ## Conventions
 
 ### Field shorthand
@@ -190,7 +179,7 @@ Site-level config: title, subtitle, WPS document URLs, contact info. Read by `bu
 - Branch `master` holds source only — **generated artifacts are never committed**; deploy via GitHub Actions (workflow mode, `build_type: workflow`)
 - **GitHub Actions**: `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch` -> fetch from WPS -> generate artifacts -> assemble `site/` (including `CNAME` / `robots.txt` / `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`. Setup/runbook: `docs/runner-cron.md`
 - **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within the last 2h; if stale, opens/comments on an issue; auto-closes when recovered (GitHub doesn't notify on skipped cron runs); a concurrency group prevents schedule + workflow_run overlap from creating duplicate issues
-- **Hermes bot integration** (separate from this repo): on radxa-32g, the hermes agent runs A deploy-alerting (cron, complements heartbeat) / B card-query (skill) / C daily-broadcast (cron) over the TG/微信/QQ bots. See `docs/hermes-integration.md`.
+- **Hermes bot integration** (separate from this repo): the hermes agent (on a separate host) runs A deploy-alerting (cron, complements heartbeat) / B card-query (skill) / C daily-broadcast (cron) over the TG/微信/QQ bots. See private `config_rc` repo (`infra/mtg-showcase/hermes-integration.md`).
 - Artifacts: `inventory/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/*.txt` are all intermediate/generated products, not committed
 - Frontend CSS/JS cache busting (`?v=N`): `cards-data.js` / `wants-data.js` / `app.js` / `style.css` are all auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash; bumping only happens in the deploy artifact, never written back to master
 - `.gitignore`: `.venv/`, `.cache/`, `__pycache__/`, WPS lock files (`**/.~*`), `wps_cookies.txt`, `*.xlsx` (`!templates/*.xlsx` preserves templates), `site/`, `.qwen/`, `.claude/`, plus generated products `inventory/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/`

@@ -21,7 +21,7 @@ on:
     # 不再用 GitHub schedule：官方文档明确 schedule 在整点高负载时会被延迟甚至丢弃
     # (实测本仓库 cron '0 *' 一天被跳过近一半，间隔常拉到 1.5–3h)。
     # 改由 self-hosted runner 本机 cron 每小时调 workflow_dispatch 触发
-    # (脚本 /home/claystan/.local/share/mtg-showcase/trigger.sh)；heartbeat.yml
+    # (runner-local trigger.sh，见 config_rc/infra/mtg-showcase/runner-cron.md)；heartbeat.yml
     # 仍在 GitHub 侧 2h 兜底告警（runner 离线 / cron 挂了都能捕获）。
 
 permissions:

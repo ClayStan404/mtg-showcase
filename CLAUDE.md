@@ -79,10 +79,10 @@ ruff check scripts/ tests/
 
 ## Git / deploy notes
 
-- **Single deploy path**: GitHub Actions workflow mode. `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch`. Setup/runbook: `docs/runner-cron.md`.
+- **Single deploy path**: GitHub Actions workflow mode. `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch`. Setup/runbook: private `config_rc` repo (`infra/mtg-showcase/runner-cron.md`).
 - Checkout uses `clean: false` to preserve `.cache/scryfall` and previous `data/*.json` for incremental rebuild speed.
 - Heartbeat workflow (`heartbeat.yml`): runs on `ubuntu-latest` every 30min, checks auto-update freshness, opens issue if > 2h stale, auto-closes on recovery. Concurrency group prevents duplicate issues from overlapping schedule/workflow_run triggers.
-- **Hermes bot integration** (separate from this repo): on radxa-32g, the hermes agent runs A deploy-alerting (cron, complements heartbeat) / B card-query (skill) / C daily-broadcast (cron) over the TG/微信/QQ bots. See `docs/hermes-integration.md`.
+- **Hermes bot integration** (separate from this repo): the hermes agent (on a separate host) runs A deploy-alerting (cron, complements heartbeat) / B card-query (skill) / C daily-broadcast (cron) over the TG/微信/QQ bots. See private `config_rc` repo (`infra/mtg-showcase/hermes-integration.md`).
 - Cache busting (`?v=N`) is auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash - only in the deploy artifact, never written back to master.
 - `.gitignore`: `*.xlsx` (with `!templates/*.xlsx`), `site/`, `.qwen/`, `.claude/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wps_cookies.txt`, `.cache/`, `.venv/`.
 - Global rule: commit messages and PR descriptions in English. Don't `git commit` / `git push` unless explicitly asked.
