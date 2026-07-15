@@ -16,10 +16,12 @@ on:
       - 'tests/**'
       - '.github/dependabot.yml'
       - 'SECURITY.md'
-  schedule:
-    # 每小时整点运行（UTC，对应北京时间每小时一次）
-    - cron: '0 * * * *'
   workflow_dispatch:  # 支持手动触发
+    # 不再用 GitHub schedule：官方文档明确 schedule 在整点高负载时会被延迟甚至丢弃
+    # (实测本仓库 cron '0 *' 一天被跳过近一半，间隔常拉到 1.5–3h)。
+    # 改由 self-hosted runner 本机 cron 每小时调 workflow_dispatch 触发
+    # (脚本 /home/claystan/.local/share/mtg-showcase/trigger.sh)；heartbeat.yml
+    # 仍在 GitHub 侧 2h 兜底告警（runner 离线 / cron 挂了都能捕获）。
 
 permissions:
   contents: read      # 只读 master 源码（不再 commit 回 master）
