@@ -55,6 +55,10 @@ every connected channel (telegram / weixin / qqbot).
 4. A's "provider rate limit" failure notification was actually the script hitting
    GitHub's anonymous 60/h API limit (HTTP 403). The script now reads a PAT from
    `~/.config/gh/hosts.yml` (5000/h).
+5. A's staleness check uses `run_started_at` (fallback `created_at`), NOT
+   `updated_at` -- GitHub refreshes `updated_at` after a run completes (later by
+   ~the run's duration), so using it would make the 2h threshold effectively
+   looser and alert late.
 
 ## Troubleshooting
 
