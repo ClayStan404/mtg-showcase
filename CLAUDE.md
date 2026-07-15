@@ -79,7 +79,7 @@ ruff check scripts/ tests/
 
 ## Git / deploy notes
 
-- **Single deploy path**: GitHub Actions workflow mode. `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch`.
+- **Single deploy path**: GitHub Actions workflow mode. `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch`. Setup/runbook: `docs/runner-cron.md`.
 - Checkout uses `clean: false` to preserve `.cache/scryfall` and previous `data/*.json` for incremental rebuild speed.
 - Heartbeat workflow (`heartbeat.yml`): runs on `ubuntu-latest` every 30min, checks auto-update freshness, opens issue if > 2h stale, auto-closes on recovery. Concurrency group prevents duplicate issues from overlapping schedule/workflow_run triggers.
 - Cache busting (`?v=N`) is auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash - only in the deploy artifact, never written back to master.

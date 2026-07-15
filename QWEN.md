@@ -188,7 +188,7 @@ Site-level config: title, subtitle, WPS document URLs, contact info. Read by `bu
 ## Git & Deploy
 
 - Branch `master` holds source only — **generated artifacts are never committed**; deploy via GitHub Actions (workflow mode, `build_type: workflow`)
-- **GitHub Actions**: `push master` / hourly cron / `workflow_dispatch` -> fetch from WPS -> generate artifacts -> assemble `site/` (including `CNAME` / `robots.txt` / `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`
+- **GitHub Actions**: `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch` -> fetch from WPS -> generate artifacts -> assemble `site/` (including `CNAME` / `robots.txt` / `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`. Setup/runbook: `docs/runner-cron.md`
 - **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within the last 2h; if stale, opens/comments on an issue; auto-closes when recovered (GitHub doesn't notify on skipped cron runs); a concurrency group prevents schedule + workflow_run overlap from creating duplicate issues
 - Artifacts: `inventory/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/*.txt` are all intermediate/generated products, not committed
 - Frontend CSS/JS cache busting (`?v=N`): `cards-data.js` / `wants-data.js` / `app.js` / `style.css` are all auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash; bumping only happens in the deploy artifact, never written back to master
