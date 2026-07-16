@@ -166,7 +166,7 @@ create policy "publish_log read authed" on public.publish_log for select using (
   # contact: 联系
   #
   # 由 export_wants_to_txt.py 生成 - 语言 e/z/j/o  闪 0/1  必须 0/1  数量默认1
-
+  
   [Nx] set number lang foil must | note
   ```
   - `must`:`1`/`0`;`note`:` | 备注`(空则省略;换行清洗为空格,不断行)
@@ -178,49 +178,6 @@ create policy "publish_log read authed" on public.publish_log for select using (
 - 需 `migration_mapping.json`:`{"昵称": "user-uid", ...}`(inventory 用 seller 昵称,wants 用 buyer 昵称;同一人同 UID)
 - upsert profiles + delete 旧 + insert inventory + wants
 - env:`SUPABASE_SERVICE_ROLE_KEY`
-
-## 6. admin 前端(关键设计 + 坑)
-
-纯 JS(无构建、无框架、无 CDN),复用主站样式。功能:登录 + profile + **库存 CRUD + 求购 CRUD** + 添加(单卡 + 批量)+ 筛选 + 搜索。
-
-### 6.1 卡片渲染:共享 `assets/card-render.js`(重要)
-- 把主站 `cardHtml` + 纯函数(`displayName`/`cardImageSrc`/`buildHay`/`cmcBucket`/`typeLabelShort`/`escapeHtml` + `TYPE_LABELS` 等常量)抽到 `assets/card-render.js`
-- 主站 `app.js` 和 `admin.js` 都引用(在各自 script 前)-- **卡片渲染只维护一份**
-- `cardHtml(c, ctx)` 可配置:`ctx.view='sell'|'want'`、`ctx.mode='cart'(主站)/'crud'(admin)`
-- admin 的 wants 卡片:`view='want'`,显示 `must` 角标(必须/可替,复用主站 `flag-exact`/`flag-any`)+ note
-- 主站 `app.js` 删掉这些函数,`renderGrid`/`loadMore` 调用改 `cardHtml(c, { view: state.view, inCart, mode: "cart" })`
-- `card` 对象字段对齐 `cards.json`/`wants.json`:`set, number, lang, lang_label, foil, quantity, name_zh, name_en, image, type_line, mana_cost, cmc, types[], seller/buyer, city, must, note`
-
-### 6.2 图片:优先读 cards.json/wants.json,不实时查 Scryfall(最大的坑)
-- **admin 启动时 `fetch('../data/cards.json')` + `fetch('../data/wants.json')`,建索引 `set/number/lang -> card`**
-- `toCard(row)` 优先用已富化数据(图片 URL + 名字 + 类型),**不调 Scryfall API**
-- 只有 json 没有的新卡才 fallback 查 Scryfall
-- **原因**:admin 实时查几百张 Scryfall API -> 触发 429 限流 -> 大量图片不显示。json 已被 `build_data`/`build_wants` 富化好,直接用
-- json 的 `image.normal` 和 Scryfall API 的 `image_uris.normal` 同一 CDN URL,浏览器 HTTP 缓存共用(主站和 admin)
-
-### 6.3 Scryfall fallback 的坑
-- `type_line` 用 **em dash**(`-`,U+2014)分隔副类型,如 `"Creature - Dragon"`。`extractTypes` 要 `split(/[--]/)`,不是 `split("-")`
-- **429/529 不缓存 null**(否则永久不重试),改为等待重试;只有 404 才缓存 null
-- 并发限流(8 并发 + 重试 + 递增延迟)
-- Scryfall 查询缓存到 `localStorage`,下次秒开
-
-### 6.4 CSP(admin/index.html 独立 CSP)
-```
-default-src 'self';
-img-src 'self' data: https://cards.scryfall.io;
-script-src 'self';                    -- 无内联,无 CDN
-style-src 'self' 'unsafe-inline';
-connect-src 'self' https://<project>.supabase.co https://api.scryfall.com;
-frame-ancestors 'none'
-```
-- admin 引用主站样式:`<link rel="stylesheet" href="../assets/style.css">`
-- admin 引用共享:`<script src="../assets/card-render.js"></script>` 在 `admin.js` 前
-
-### 6.5 其他
-- Auth 用纯 fetch(GoTrue password grant),token 存 localStorage,401 自动 refresh。不 vendor supabase-js
-- **库存 vs 求购切换**:admin 顶部 tab 切"库存/求购",共用卡片网格但字段不同(wants 多 must/note;CRUD 调不同表)
-- 批量添加:textarea 粘贴每行一张(inventory:`set number lang foil qty`;wants:`set number lang foil must qty | note`)
-- 单卡添加:输入 set/number/lang 后实时 Scryfall 预览
 
 ## 7. Edge Function: `publish`(立即发布)
 
@@ -288,45 +245,6 @@ Deno.serve(async (req) => {
 6. admin SPA(库存 + 求购管理,读 cards.json/wants.json 优先)
 7. deploy `publish` Edge Function
 8. 验证:`export --dry-run` + `build_data --validate-only` + `build_wants` 确认 json 不变;push 触发 workflow
-
-## 11. 经验教训(必读,避免重蹈)
-
-1. **admin 不要实时查 Scryfall API**:几百张并发查 -> 429 限流 -> 图片不显示。**优先读 `data/cards.json` + `data/wants.json`**(已富化),只有新卡 fallback Scryfall。
-2. **Scryfall `type_line` 用 em dash**(`-`,U+2014):`extractTypes` 要 `split(/[--]/)`。
-3. **429/529 不缓存 null**:否则该卡永久不重试。404 才缓存 null。
-4. **共享 `card-render.js`**:主站 + admin 一份 `cardHtml`,避免两份维护。`cardHtml(c, ctx)` 可配置 view + mode。
-5. **`handle_new_user` 要 `revoke execute from public`**:否则暴露为可公开调用 RPC(安全 advisor 会报)。
-6. **`set` 是 SQL 保留词**:列名用 `set_code`,export 时映射回 `set`。
-7. **CSP 严格**:`script-src 'self'`(无 CDN/内联),`connect-src` 含 supabase + api.scryfall.com,`img-src` 含 cards.scryfall.io。supabase-js 用纯 fetch 替代(无依赖)。
-8. **`service_role` 绝不进前端**:anon key + RLS 兜底。
-9. **`inventory/*.txt` 和 `wants/*.txt` 是接口**:复用,`build_data.py`/`build_wants.py` 不动。
-10. **wants 和 inventory 对称**:但 wants 多 `must`(0/1)+ `note`(`| 备注`),用 `buyer_id`(不是 seller_id)。
-11. **profiles 卖家/买家共用**:一个用户可同时有 inventory 和 wants。
-12. **主站 `loadData` 读 cards.json/wants.json**(别动),admin 也要读(优先)。
-13. **图片 CDN `cards.scryfall.io` 国内通常可达**,偶发 reset(重试);API `api.scryfall.com` 也可达。
-14. **admin 改文件后 bump `?v=`**:否则浏览器缓存旧版。
-15. **wants 的 note 清洗换行**:WPS 单元格 Alt+Enter 是 `\n`,写 txt 时替换为空格,避免断行破坏格式(见 `parse_wps_wants_excel.wants_to_txt`)。
-
-## 12. 文件清单
-
-**新增:**
-- `supabase/schema.sql`(含 wants 表)、`supabase/functions/publish/index.ts`
-- `assets/card-render.js`(共享 cardHtml + 纯函数)
-- `admin/index.html`、`admin/admin.js`、`admin/admin.css`(库存 + 求购管理)
-- `scripts/export_inventory_to_txt.py`、`scripts/export_wants_to_txt.py`、`scripts/migrate_wps_to_supabase.py`
-- `tests/test_export_inventory.py`(可加 `test_export_wants.py`)
-
-**修改:**
-- `.github/workflows/auto-update.yml`(inventory + wants 都换 export + assemble 加 admin)
-- `site_config.json`(删 wps_*_url,加 supabase_url)
-- `assets/app.js`(删 cardHtml 等,用 card-render.js,改 2 处调用传 ctx)
-- `index.html`(加 `card-render.js` script)
-- `.gitignore`(加 `migration_mapping.json`)
-
-**不动:**
-- `scripts/build_data.py`、`build_wants.py`、`build_common.py`、`inventory_format.py`、`parse_excel_order_txt.py`
-- `assets/app.js` 的 `loadData`(读 cards.json/wants.json)
-- 主站展示前端、`fetch_wps_share.py`(留作备用,workflow 不调)
 
 ## 13. Supabase 已建项目信息(可复用)
 
