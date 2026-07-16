@@ -149,7 +149,7 @@ create policy "wants delete own" on public.wants for delete using (auth.uid() = 
 **关键决策**:
 - `publish_log` 表**砍掉**(原防抖需求取消,见第 8 节)。已建项目里若有,`drop table public.publish_log;`。
 - `seller_name` 用 **partial unique index**(`where seller_name <> ''`)而非列级 unique -- 否则两个未填昵称的新用户(空字符串)会撞约束导致注册失败。改昵称撞名时数据库报冲突,admin 前端友好提示。
-- inventory/wants 的 unique 含 `price + note`:同卡不同价/不同品相算独立条目(上架两次)。`merge_cards`/`merge_wants` 也要按 price+note 分组(见第 5 节全链路清单)。note 写入前 `strip()` 归一化,避免尾空格导致同 note 算两条。
+- inventory/wants 的 unique 含 `price + note`:同卡不同价/不同品相算独立条目(上架两次)。**已建项目有旧 unique 约束(`inventory_seller_id_set_code_number_lang_foil_key` / `wants_buyer_id_set_code_number_lang_foil_must_key`,不含 price/note),必须先 drop 再建新的,否则同卡不同价第二行撞旧约束失败**(语句见步骤 1)。合并按 price+note 分组(见第 5 节全链路清单)。note 写入前 `strip()` 归一化,避免尾空格导致同 note 算两条。
 - price 用 `numeric(10,2) not null default 0`,不用 nullable -- 0=市价,排序时 0 自然排最前,无需处理 null。展示层把 0 渲染成"市价/私聊"文案。
 
 ## 5. txt 格式约定(空格 + # note)
@@ -203,6 +203,7 @@ wants(must 在 qty 和 price 之间):
 - **内部 txt(export 生成 -> build 读)**:export 脚本从 profiles 自动补 `# seller:`/`# city:`/`# contact:` 头。`build_data.py`/`build_wants.py` 照旧读 meta 头,**meta 读取逻辑不改**。
 - profiles 是唯一权威源;txt 的 meta 是 export 抄的派生物(不入 git、不手维护、每次 deploy 重新抄)。
 - 现有 `claystan.txt` 的 `# seller: claystan` 头,迁移时被 `migrate_wps_to_supabase.py` 读进 profiles,之后录入不再写 meta。
+- **`claystan.txt` 迁移后定位**:迁移后 ClayStan 改走 admin 录入,`claystan.txt` 不再进 build(不落 `inventory/`)。**过渡期坑**:步骤 5 重写解析器(位置格式)后、步骤 6 切 workflow 前,本地跑 `build_data` 若读旧 `inventory/*.txt`(WPS 生成的 Nx 前置格式)会全行报错 -- 这段过渡期用新格式手写测试数据,或等 workflow 切换后测。
 
 ### 解析函数重写
 
@@ -221,17 +222,18 @@ admin 侧 JS 版同步重写,和 Python 交叉测试(同输入同输出)。
 3. `cards_to_txt`/`wants_to_txt`:输出新格式(含 price/note)
 4. `card_line_to_fields`/`want_line_to_fields`:解析新格式
 5. `build_data.py`/`build_wants.py`:card/want 对象加 price/note 字段写进 json
-6. **合并逻辑按 price+note 分组(三处都要改)**:
-   - `inventory_format.py` 的 `merge_cards` / `build_wants` 的 `merge_wants`
-   - `build_data.py` 的 `parse_inventory_file`(单文件内,:96)和 `parse_all_inventories`(跨文件,:149)
-   - `build_wants.py` 的 `parse_all_wants`(:152)
+6. **合并逻辑按 price+note 分组**:
+   - `merge_cards`(`inventory_format.py:260`)/`merge_wants`(`parse_wps_wants_excel.py:136`)在 **WPS 残留脚本**里(调用点 `parse_wps_excel.py:170`、`parse_excel_order_txt.py:191`、`txt_to_wps_xlsx.py:105`、`parse_wps_wants_excel.py:188`),随第 6 节删除消失,**不用改**
+   - 真正要改的是 build 脚本里的 **inline 合并 key**:`build_data.py:96`(单文件内)和 `:149`(跨文件)、`build_wants.py:152`(跨文件) -- 三处 key 都加 price+note
    - 同价同备注才合并数量;否则同卡不同价/不同备注保持独立条目
+   - **删 `build_wants.py:158-161` 的 note `;` 拼接**:新分组语义下 note 是分组键、相同才合并,永远不走拼接分支,留着与分组语义矛盾
+   - **新架构下合并基本是 no-op**:export 按 seller 一个文件 + DB unique 保证同 seller 同卡同价同 note 在 txt 里只出现一次,build 合并很少触发。真正关键的是第 7 点 id 唯一性(否则同卡不同价后条覆盖前条、`cardIndex` 丢数据)
 7. **`card_id`/`wid` 必须加 price+note**(关键,否则同卡不同价 id 冲突):
    - `build_data.py:157` `card_id = {seller_id}-{set}-{number}-{lang}-{foil/nf}-{price}-{note}`
    - `build_wants.py:184` `wid = {buyer_id}-{set}-{number}-{lang}-{foil/nf}-{must}-{price}-{note}`
    - 前端 `app.js` 的 `cardIndex`(id->card Map)、购物车、模态框都按 id 查 -- id 不唯一会让同卡不同价的后条覆盖前条、数据丢失
-   - note 进 id 含中文,作 Map key 没问题;作 DOM id 注意转义
-   - price 进 id 要统一格式化(如 `f"{price:.2f}"`),避免 `Decimal('50.00')` / `float 50.0` 的 str 表示不一致导致同卡 id 漂移、前端缓存失效
+   - note 进 id 含中文/空格/特殊字符,作 Map key 没问题;`app.js:130-134` 的 `refreshCardButton` 已用 `CSS.escape` 处理 `data-id` 选择器,加 note 后**回归测试含中文/空格/`"`/`]` 的卡**,确认所有 `data-id` 查询点都被 `CSS.escape` 覆盖。更稳的替代:note 不放原文,放短 hash/slugify,id 保持 ASCII 稳定,note 作独立字段
+   - price 进 id 要统一格式化:**export 写 txt 时 price 一律 `f"{price:.2f}"`(始终 2 位,如 `50.00`),build 读回同样 `f"{:.2f}"` 进 id** -- 避免 `Decimal('50.00')`/`float 50.0`/`int 50` 的 str 表示往返不一致导致同卡 id 漂移、前端缓存失效
 8. `app.js` cardHtml:展示 price(0->"市价/私聊")+ note
 9. admin:CRUD 表单加 price/note,批量/导入 JS 解析
 
@@ -244,10 +246,10 @@ admin 侧 JS 版同步重写,和 Python 交叉测试(同输入同输出)。
 - 按 seller 写 `inventory/{profile_uid}.txt`:
   - **文件名用 UID**(唯一,不冲突);build 脚本从 `# seller:` 头读昵称生成 seller_id,**不依赖文件名**(`profile_uid` ≠ build 里的 `seller_id`,后者是 `slugify(昵称)`)
   - export 自动补 meta 头:`# seller: {seller_name}` / `# city:` / `# contact:`(从 profiles)
-  - 行格式按第 5 节:`set number lang foil qty price # note`
+  - 行格式按第 5 节:`set number lang foil qty price # note`。**price 一律写 `f"{price:.2f}"`(2 位小数,如 `50.00`)**,与 build 端 id 格式化对齐(见第 5 节清单 7)
 - 先 `rm -f inventory/*.txt`
 - **跳过 profile 不全的卖家**(seller_name/city/contact 任一空)-- 否则 `build_data.py` 的 `validate_meta` 会 `SystemExit(1)` 让整轮部署失败
-- admin 应强制 seller_name/city/contact 填齐才允许发布(运营保护,否则自己的库存会被整批跳过、站点变空)
+- admin 应强制 seller_name/city/contact 填齐才允许发布:发布按钮旁显式提示「profile 缺 city/contact,发布后库存不展示」+ 跳转补全入口(运营保护,否则自己的库存会被 export 整批跳过、站点变空,且卖家不知为何)
 
 ### `scripts/export_wants_to_txt.py`(对称)
 - 同上,读 profiles + wants(含 must/price/note)
@@ -309,7 +311,7 @@ admin 列表图 URL 取 cards.json 的 `image.normal`(和主站同一份 URL) ->
 
 ### 部署与依赖
 - **源码目录**:admin 源码放项目根 `admin/`(`admin.html`/`admin.js`/`mtg-ui.js`),入 git;assemble 时 `cp -r admin site/admin` 进部署产物(`site/` 不入 git)。确认 `.gitignore` 不误伤 `admin/`。
-- **Supabase client**:主站和 admin 都用 `@supabase/supabase-js`(CDN 版 `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2`,或打包)。主站用于登录态,admin 用于 CRUD。session 存 localStorage,同域下主站登录后跳 `/admin/` 自动带 session,无需重登。
+- **Supabase client**:`@supabase/supabase-js`(CDN `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2` 或打包)。**主站懒加载**:点「登录」按钮才 `import()` 动态加载(约 50KB gzip,纯看牌买家首屏零成本,"不影响"是低估);admin 必然加载(CRUD)。session 存 localStorage,同域下主站登录后跳 `/admin/` 自动带 session,无需重登。
 - **未登录访问 `/admin/`**:admin JS 检查 session,无则跳回主站登录页。
 
 ## 8. Edge Function: `publish`(立即发布)
@@ -341,7 +343,7 @@ Deno.serve(async (req) => {
 
 - `verify_jwt: true`;env:`GH_PAT`(fine-grained PAT,`actions:write`)、`GH_REPO`、`GH_WORKFLOW`
 - **不配 `SUPABASE_SERVICE_ROLE_KEY`**(不写 publish_log,不需要 bypass RLS)
-- **CORS**:Supabase Edge Function 网关默认允许跨域,主站/admin JS 直调 OK,无需额外配置
+- **CORS**:主站 `claystan.cc`(GitHub Pages)调 `*.supabase.co`,带 Authorization 的 POST 触发 preflight(OPTIONS)。Supabase 网关默认处理 OPTIONS,但**建议函数内显式回 CORS headers**(`Access-Control-Allow-Origin: *`、`Allow-Headers: Authorization, Content-Type`、`Allow-Methods: POST, OPTIONS`,OPTIONS 直接 204 返回)更稳妥。部署后用 `curl -X OPTIONS` 实测 preflight 再下定论
 
 ## 9. workflow 改动(`.github/workflows/auto-update.yml`)
 
@@ -380,7 +382,14 @@ Deno.serve(async (req) => {
 
 ## 11. 迁移步骤
 
-1. Supabase schema 增量改:`apply_migration` 给 inventory/wants 加 price+note 列、改 unique(含 price+note)、加 `profiles_seller_name_uniq` partial index、`drop table publish_log`(见第 4 节)
+1. Supabase schema 增量改(`apply_migration`):
+   - **inventory 加 2 列**(无 price 无 note):`alter table public.inventory add column price numeric(10,2) not null default 0, add column note text not null default '';`
+   - **wants 只加 1 列**(note 已存在,加 note 会 duplicate column):`alter table public.wants add column price numeric(10,2) not null default 0;`
+   - **drop 旧 unique 再建新的**(旧约束不含 price/note,同卡不同价会撞):
+     `alter table public.inventory drop constraint inventory_seller_id_set_code_number_lang_foil_key;`
+     `alter table public.wants drop constraint wants_buyer_id_set_code_number_lang_foil_must_key;`
+     再 `create unique index` 含 price+note(定义见第 4 节)
+   - 加 `profiles_seller_name_uniq` partial index、`drop table public.publish_log`(见第 4 节)
 2. 建用户(Dashboard > Authentication > Users > Add user),记 UID;确认 `email_confirmed_at`(否则 `update auth.users set email_confirmed_at=now()`)。admin 里填齐 seller_name/city/contact(partial unique 要求 seller_name 非空时唯一)
 3. 配 Edge Function secret `GH_PAT`(不需 service_role)
 4. **迁移 WPS 数据**:`migrate_wps_to_supabase.py`(迁 inventory + wants,需 mapping + service_role key)
@@ -389,7 +398,7 @@ Deno.serve(async (req) => {
 7. admin SPA(共享层 `mtg-ui.js` + CRUD + 双 tab + 登录入口,见第 7 节)
 8. deploy `publish` Edge Function
 9. 主站前端改造:**重写** `index.html` 的 `<details class="guide">` 区块(删 WPS 库存/求购链接 + 更新格式说明为第 5 节新格式 + 加登录按钮);删 `app.js` 的 `guide-wps-inv`/`guide-wps-want` 逻辑,加登录态 + 登录后管理入口;`cardHtml` 展示 price/note。admin 批量/导入 UI 里也放一份新格式说明
-10. 验证:跑 `export --dry-run` 对比 WPS 旧 txt 确认 diff 为空(除新增 price/note);`build_data --validate-only` + `build_wants`;push 触发 workflow
+10. 验证:**不要文本 diff** -- 新旧 txt 格式根本不同(旧 `{qty}x set number lang foil` / `set number lang foil must | note`,新 `set number lang foil qty price # note`,diff 不可能空)。改为对比解析后的结构化数据:export 后跑 `build_data --validate-only` 比对 card 元组集合(seller,set,number,lang,foil,qty)与 WPS 旧 parse 结果一致(忽略新增 price/note),或写对比脚本比解析后的 dict 列表。再 `build_data --validate-only` + `build_wants`;push 触发 workflow
 
 **回滚策略**:验证通过前不删 WPS 文档、不删 WPS 残留脚本;若验证失败,workflow 可切回 git 历史里的 WPS 版本(commit 还在),WPS 数据仍最新。migrate 脚本可重跑(unique 约束兜底幂等)。
 
