@@ -821,7 +821,7 @@ function openModal(card) {
     modalImg.style.visibility = "";
     modalImg.parentElement?.classList.remove("img-failed");
     modalImg.alt = displayName(card);
-    const realSrc = card.image?.large || card.image?.normal || "";
+    const realSrc = card.image?.normal || card.image?.large || "";
     // 先用透明占位替换旧图，预加载新图完成后再设 src，
     // 避免切换卡牌时短暂显示上一张卡图
     modalImg.src = PLACEHOLDER_IMG;
