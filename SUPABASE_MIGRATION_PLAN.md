@@ -80,10 +80,10 @@ create table public.inventory (
   quantity   integer not null default 1 check (quantity >= 1),
   price      numeric(10,2) not null default 0,  -- 0=按市价/私聊;>0=固定每张价
   note       text not null default '',          -- 备注(卡牌特殊情况,对应 txt # note)
-  updated_at timestamptz not null default now(),
-  -- 同卡不同价/不同备注算独立条目(上架两次):unique 含 price + note
-  unique (seller_id, set_code, number, lang, foil, price, note)
+  updated_at timestamptz not null default now()
 );
+-- 同卡不同价/不同备注算独立条目(上架两次):命名 unique index(drop 语法统一 drop index)
+create unique index inventory_uniq on public.inventory (seller_id, set_code, number, lang, foil, price, note);
 create index inventory_seller_id_idx on public.inventory(seller_id);
 
 -- wants: 买家求购。比 inventory 多 must;+price +note
@@ -98,9 +98,9 @@ create table public.wants (
   must       boolean not null default false,  -- false=可替其他版,true=必须此印刷
   price      numeric(10,2) not null default 0,  -- 0=面议/私聊;>0=出价
   note       text not null default '',          -- 备注
-  updated_at timestamptz not null default now(),
-  unique (buyer_id, set_code, number, lang, foil, must, price, note)
+  updated_at timestamptz not null default now()
 );
+create unique index wants_uniq on public.wants (buyer_id, set_code, number, lang, foil, must, price, note);
 create index wants_buyer_id_idx on public.wants(buyer_id);
 
 -- updated_at 触发器(两个表)
@@ -385,10 +385,12 @@ Deno.serve(async (req) => {
 1. Supabase schema 增量改(`apply_migration`):
    - **inventory 加 2 列**(无 price 无 note):`alter table public.inventory add column price numeric(10,2) not null default 0, add column note text not null default '';`
    - **wants 只加 1 列**(note 已存在,加 note 会 duplicate column):`alter table public.wants add column price numeric(10,2) not null default 0;`
-   - **drop 旧 unique 再建新的**(旧约束不含 price/note,同卡不同价会撞):
+   - **drop 旧 unique 再建新的**(旧的是表级约束,drop constraint;新的用命名 index,将来 drop index):
      `alter table public.inventory drop constraint inventory_seller_id_set_code_number_lang_foil_key;`
      `alter table public.wants drop constraint wants_buyer_id_set_code_number_lang_foil_must_key;`
-     再 `create unique index` 含 price+note(定义见第 4 节)
+     `create unique index inventory_uniq on public.inventory (seller_id, set_code, number, lang, foil, price, note);`
+     `create unique index wants_uniq on public.wants (buyer_id, set_code, number, lang, foil, must, price, note);`
+   - 现有数据安全:inventory 526 行加 price=0/note='' 后,旧 unique(5 元组)比新(7 元组)更严,drop 旧建新不会因现有数据冲突;wants 0 行无冲突。无需手动核对
    - 加 `profiles_seller_name_uniq` partial index、`drop table public.publish_log`(见第 4 节)
 2. 建用户(Dashboard > Authentication > Users > Add user),记 UID;确认 `email_confirmed_at`(否则 `update auth.users set email_confirmed_at=now()`)。admin 里填齐 seller_name/city/contact(partial unique 要求 seller_name 非空时唯一)
 3. 配 Edge Function secret `GH_PAT`(不需 service_role)
@@ -406,8 +408,9 @@ Deno.serve(async (req) => {
 
 - Project URL: `https://rkvtizboyikrjowfogoc.supabase.co`
 - schema 现状(2026-07 实测 via Supabase MCP):
-  - profiles(1 行,RLS ✅)、inventory(526 行,RLS ✅)、wants(0 行,RLS ✅)、publish_log(1 行,RLS ✅)
-  - **待改(见第 4 节)**:inventory/wants 加 price+note 列、改 unique 含 price+note、加 `profiles_seller_name_uniq`、`drop table publish_log`
+  - 表:profiles(1 行,RLS ✅)、inventory(526 行,RLS ✅)、wants(0 行,RLS ✅)、publish_log(1 行,RLS ✅)
+  - 触发器已建启用:`on_auth_user_created`(auth.users)、`inventory_touch_updated_at`、`wants_touch_updated_at`;`handle_new_user` 已 `revoke execute from public`(acl 仅 postgres/service_role)✅。第 4 节 DDL 幂等(`drop if exists` + create),重跑安全
+  - **待改(见第 4 节)**:inventory 加 price+note 列、wants 加 price 列、drop 旧 unique 建新命名 index(含 price+note)、加 `profiles_seller_name_uniq`、`drop table publish_log`
 - ClayStan user 已建:UID `cc2116b4-f7ae-4d19-867c-795c8daa3149`,email `claystan97@gmail.com`,email_confirmed
 - 526 条库存已迁移(seller=claystan);wants 表已建数据为空
 - `publish` Edge Function 已部署(`verify_jwt=true`,需配 `GH_PAT` secret);但**代码是旧版(含 JWT 自解 + publish_log 逻辑),需按第 8 节重新 deploy 新版**;publish_log 表待 drop
