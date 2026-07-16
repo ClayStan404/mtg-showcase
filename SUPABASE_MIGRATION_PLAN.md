@@ -12,58 +12,64 @@
 **求购(wants,买家求购):**
 `WPS xlsx -> fetch_wps_share.py -> parse_wps_wants_excel.py -> wants/*.txt -> build_wants.py -> data/wants.json`
 
-- **关键接口**:`inventory/*.txt` 和 `wants/*.txt` 是 parse 层和 build 层之间的文本接口。`build_data.py`/`build_wants.py` 及以下完全不动,只换数据源(WPS -> Supabase)。
-- 字段约定集中在 `scripts/inventory_format.py`:
+- **关键接口**:`inventory/*.txt` 和 `wants/*.txt` 是 parse 层和 build 层之间的文本接口。迁移后**只换数据源(WPS -> Supabase)+ 扩展格式(加 price/note)**,build 脚本仍读 txt,但解析函数按新格式重写(见第 5 节)。
+- 字段约定(迁移后,见第 5 节格式):
   - lang:`e`/`z`/`j`/`o`(内部 `en`/`zhs`/`ja`/`other`)
-  - foil:`0`/`1`;qty:空=1,`Nx` 前缀
-  - **wants 多 `must`**:`0`=可替其他版,`1`=必须此印刷;**wants 多 `note`**:`| 备注`
-- inventory txt 行:`[Nx] set number lang foil`
-- wants txt 行:`[Nx] set number lang foil must | note`
-- meta 头:inventory 用 `# seller/city/contact`;wants 用 `# buyer/city/contact`
-- 主站 `assets/app.js` 的 `loadData()` 读 `window.__MTG_DATA__`(inlined cards-data.js)或 `fetch data/cards.json`;wants 同理(`__MTG_WANTS__` / `wants.json`)
-- 主站卡片渲染:`app.js` 的 `cardHtml(c)`,图片用 `c.image.normal`(Scryfall CDN)
-- 买家不登录;卖家/买家目前改 WPS
+  - foil:`0`/`1`;qty:空=1;**price:空=0(市价)**;**must(wants):空=0(可替)**
+  - **note**:`#` 后到行尾(inventory 新增,wants 已有)
+- meta 头(`# seller:`/`# city:`/`# contact:`):**录入侧不写**(seller=登录用户,city/contact 在 profiles 管);export 脚本自动从 profiles 补进 txt 头给 build(见第 5 节 meta 分工)
+- 主站 `assets/app.js` 的 `loadData()` 读 `window.__MTG_DATA__`(inlined cards-data.js)或 `fetch data/cards.json`;wants 同理
+- 主站卡片渲染:`app.js` 的 `cardHtml(c)`,图片用 `c.image.normal`(Scryfall CDN);**新增展示 price/note**
+- 买家不登录看静态展示;卖家/买家在 admin 管理(登录入口在主站,见第 7 节)
 
 ## 2. 架构:读写分离(inventory + wants 都迁)
 
 ```
 卖家/买家(写,慢可忍)  admin SPA ──> Supabase(Tokyo)
-                                   │   ├─ profiles(卖家/买家共用)
-                                   │   ├─ inventory(seller_id)
-                                   │   └─ wants(buyer_id)
-                       hourly cron / "立即发布"按钮
+                                   │   ├─ profiles(卖家/买家共用,账号绑定)
+                                   │   ├─ inventory(seller_id) + price + note
+                                   │   └─ wants(buyer_id) + price + note
+                       hourly cron / "立即发布"按钮(Edge Function -> workflow_dispatch)
                                    ▼
-                   export 脚本: Supabase -> inventory/*.txt + wants/*.txt
+                   export 脚本: Supabase -> inventory/*.txt + wants/*.txt(自动补 meta 头)
                                    ▼
-                   build_data.py / build_wants.py(不动) -> cards.json / wants.json
+                   build_data.py / build_wants.py(行解析按新格式重写) -> cards.json / wants.json
                                    ▼
-买家(读,快)        静态站读 cards.json + wants.json(GitHub Pages,零改动)
+买家(读,快)        静态站读 cards.json + wants.json(GitHub Pages)
 ```
 
-核心:**`inventory/*.txt` 和 `wants/*.txt` 接口复用,build 脚本完全不动**。WPS 彻底退役。
+核心:**txt 接口复用,build 脚本仍读 txt**(但行解析函数重写以支持 price/note)。WPS 彻底退役。
+
+主站登录态:未登录买家看静态展示(零变化);登录后显"管理"按钮跳 `/admin/`(见第 7 节)。
 
 ## 3. Supabase 项目
 
 - 区域:**Tokyo**(`ap-northeast-1`)
 - Auth:邮箱+密码,**邀请制**(Dashboard 关闭 "Allow new users to sign up")
-- 已建项目(可复用):URL `https://rkvtizboyikrjowfogoc.supabase.co`,anon key 在 Dashboard > Project Settings > API
+- 已建项目(可复用):URL `https://rkvtizboyikrjowfogoc.supabase.co`,anon key 见附录 A
 - `service_role` key:**保密**,只进 GitHub Actions secret + 本地 env,**绝不进前端**
 - 一个用户可同时是卖家和买家(profiles 共用:有 inventory 行就是卖家,有 wants 行就是买家)
 - Supabase MCP 工具:`apply_migration`、`execute_sql`、`deploy_edge_function`、`get_advisors`、`get_publishable_keys`
 
 ## 4. 数据库 schema + RLS
 
+> **接手注意**:已建项目 schema 现状见附录 A(profiles + inventory + wants + publish_log 都已建,wants 数据空)。本节是**目标 schema**:加 price/note、改 unique、删 publish_log、加 seller_name partial unique。用 `apply_migration` 增量改。
+
 ```sql
--- profiles: 扩展 auth.users,卖家/买家共用(对应 # seller/city/contact 或 # buyer/...)
+-- profiles: 扩展 auth.users,卖家/买家共用。seller_name 唯一(partial,允许空未填)
 create table public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
-  seller_name text not null default '',   -- 卖家昵称(也作买家昵称)
+  seller_name text not null default '',   -- 卖家昵称(也作买家昵称);唯一约束见下方 partial index
   city        text not null default '',
   contact     text not null default '',
   created_at  timestamptz not null default now()
 );
+-- seller_name 唯一:只约束非空值,空字符串(未填)不参与,允许多个未填 profile 共存
+-- (handle_new_user 触发器建用户时插空 profile,seller_name='')
+create unique index profiles_seller_name_uniq
+  on public.profiles (seller_name) where seller_name <> '';
 
--- inventory: 卖家库存。set_code(NOT "set",SQL 保留词);lang 存内部码
+-- inventory: 卖家库存。set_code(NOT "set",SQL 保留词);lang 存内部码;+price +note
 create table public.inventory (
   id         uuid primary key default gen_random_uuid(),
   seller_id  uuid not null references public.profiles(id) on delete cascade,
@@ -72,12 +78,15 @@ create table public.inventory (
   lang       text not null default 'en',
   foil       boolean not null default false,
   quantity   integer not null default 1 check (quantity >= 1),
+  price      numeric(10,2) not null default 0,  -- 0=按市价/私聊;>0=固定每张价
+  note       text not null default '',          -- 备注(卡牌特殊情况,对应 txt # note)
   updated_at timestamptz not null default now(),
-  unique (seller_id, set_code, number, lang, foil)
+  -- 同卡不同价/不同备注算独立条目(上架两次):unique 含 price + note
+  unique (seller_id, set_code, number, lang, foil, price, note)
 );
 create index inventory_seller_id_idx on public.inventory(seller_id);
 
--- wants: 买家求购。比 inventory 多 must + note
+-- wants: 买家求购。比 inventory 多 must;+price +note
 create table public.wants (
   id         uuid primary key default gen_random_uuid(),
   buyer_id   uuid not null references public.profiles(id) on delete cascade,
@@ -87,9 +96,10 @@ create table public.wants (
   foil       boolean not null default false,
   quantity   integer not null default 1 check (quantity >= 1),
   must       boolean not null default false,  -- false=可替其他版,true=必须此印刷
-  note       text not null default '',         -- 备注(对应 txt 的 | note)
+  price      numeric(10,2) not null default 0,  -- 0=面议/私聊;>0=出价
+  note       text not null default '',          -- 备注
   updated_at timestamptz not null default now(),
-  unique (buyer_id, set_code, number, lang, foil, must)
+  unique (buyer_id, set_code, number, lang, foil, must, price, note)
 );
 create index wants_buyer_id_idx on public.wants(buyer_id);
 
@@ -117,19 +127,10 @@ create trigger on_auth_user_created
 -- 关键:revoke execute from public,否则 handle_new_user 暴露为可公开调用 RPC
 revoke execute on function public.handle_new_user() from public;
 
--- publish_log: "立即发布"防抖(单行表)
-create table public.publish_log (
-  id           integer primary key default 1 check (id = 1),
-  last_trigger timestamptz,
-  triggered_by uuid references public.profiles(id)
-);
-insert into public.publish_log (id) values (1) on conflict (id) do nothing;
-
 -- RLS
 alter table public.profiles   enable row level security;
 alter table public.inventory  enable row level security;
 alter table public.wants      enable row level security;
-alter table public.publish_log enable row level security;
 
 create policy "profiles select own" on public.profiles for select using (auth.uid() = id);
 create policy "profiles update own" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
@@ -143,73 +144,211 @@ create policy "wants select own" on public.wants for select using (auth.uid() = 
 create policy "wants insert own" on public.wants for insert with check (auth.uid() = buyer_id);
 create policy "wants update own" on public.wants for update using (auth.uid() = buyer_id) with check (auth.uid() = buyer_id);
 create policy "wants delete own" on public.wants for delete using (auth.uid() = buyer_id);
-
-create policy "publish_log read authed" on public.publish_log for select using (auth.uid() is not null);
 ```
 
-> 已建项目的 schema 目前**只有 inventory,没有 wants**。接手时需 `apply_migration` 把 wants 表 + 触发器 + RLS 补上。
+**关键决策**:
+- `publish_log` 表**砍掉**(原防抖需求取消,见第 8 节)。已建项目里若有,`drop table public.publish_log;`。
+- `seller_name` 用 **partial unique index**(`where seller_name <> ''`)而非列级 unique -- 否则两个未填昵称的新用户(空字符串)会撞约束导致注册失败。改昵称撞名时数据库报冲突,admin 前端友好提示。
+- inventory/wants 的 unique 含 `price + note`:同卡不同价/不同品相算独立条目(上架两次)。`merge_cards`/`merge_wants` 也要按 price+note 分组(见第 5 节全链路清单)。note 写入前 `strip()` 归一化,避免尾空格导致同 note 算两条。
+- price 用 `numeric(10,2) not null default 0`,不用 nullable -- 0=市价,排序时 0 自然排最前,无需处理 null。展示层把 0 渲染成"市价/私聊"文案。
 
-## 5. 脚本
+## 5. txt 格式约定(空格 + # note)
+
+> 替代旧的 `[Nx] set number lang foil` 和 CSV 方案。**统一空格分隔 + `#` note**,录入快、无歧义、兼容现有 `claystan.txt`。
+
+### 行格式
+
+```
+inventory: set number lang foil [qty] [price] [# note]
+wants:     set number lang foil [qty] [must] [price] [# note]
+```
+
+- **空格分隔**,字段按位置依次填,**尾部可省略**(省略=默认值)
+- **`#` 后到行尾 = note**(可含空格,不含 `#`);无 `#` 则无 note
+- **行首 `#`** 仍是 meta/注释(export 补的 `# seller:` 等),不冲突(note 的 `#` 总在字段后)
+
+### 默认值
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| lang | `e`(en) | 中间字段,总要写 |
+| foil | `0`(非闪) | 中间字段,总要写 |
+| qty | `1` | 尾部可省略 |
+| price | `0`(市价/私聊) | 尾部可省略;0=按市价 |
+| must(wants) | `0`(可替) | 尾部可省略 |
+
+**中间字段不能跳过**:lang/foil 总要写;wants 填 price 时 must 也要显式写(must 在 price 前);若 qty 用默认但 price 有值,qty 要显式写 `1`。
+
+### 例子
+
+```
+inventory:
+  sta 124 j 0              1张 市价
+  sta 124 j 0 2            2张 市价
+  sta 124 j 0 2 50         2张 50元/张
+  sta 124 j 0 # 右下角破损  1张 市价 备注"右下角破损"
+  sta 124 j 0 2 50 # 签名   2张 50元 签名
+
+wants(must 在 qty 和 price 之间):
+  sta 124 j 0 2            2张 市价 可替
+  sta 124 j 0 2 1          2张 市价 必须此版
+  sta 124 j 0 2 1 50       2张 50元 必须此版
+  sta 124 j 0 2 0 50       2张 50元 可替(must 显式写 0,因 price 在后)
+  sta 124 j 0 2 1 50 # 急收  2张 50元 必须此版 备注"急收"
+```
+
+### meta 分工(关键)
+
+- **录入侧(admin 批量/导入/手写)**:**不写 meta 头**。seller=登录用户,city/contact 在 profiles 表管(账号绑定)。
+- **内部 txt(export 生成 -> build 读)**:export 脚本从 profiles 自动补 `# seller:`/`# city:`/`# contact:` 头。`build_data.py`/`build_wants.py` 照旧读 meta 头,**meta 读取逻辑不改**。
+- profiles 是唯一权威源;txt 的 meta 是 export 抄的派生物(不入 git、不手维护、每次 deploy 重新抄)。
+- 现有 `claystan.txt` 的 `# seller: claystan` 头,迁移时被 `migrate_wps_to_supabase.py` 读进 profiles,之后录入不再写 meta。
+
+### 解析函数重写
+
+`card_line_to_fields` / `want_line_to_fields`(Python,`inventory_format.py`)按新格式重写:
+1. 先按第一个 `#` split:前半按空格 split 字段,后半 strip 作 note
+2. 字段按位置依次填(set/number/lang/foil/qty/...),尾部缺失用默认值
+3. 中间字段缺失报错(位置格式不能跳)
+
+admin 侧 JS 版同步重写,和 Python 交叉测试(同输入同输出)。
+
+### 加 price/note 的全链路改动清单
+
+加 price+note 打破了"build 零改动",以下都要动:
+1. schema:加 price/note(第 4 节)
+2. txt 格式:本节
+3. `cards_to_txt`/`wants_to_txt`:输出新格式(含 price/note)
+4. `card_line_to_fields`/`want_line_to_fields`:解析新格式
+5. `build_data.py`/`build_wants.py`:card/want 对象加 price/note 字段写进 json
+6. **合并逻辑按 price+note 分组(三处都要改)**:
+   - `inventory_format.py` 的 `merge_cards` / `build_wants` 的 `merge_wants`
+   - `build_data.py` 的 `parse_inventory_file`(单文件内,:96)和 `parse_all_inventories`(跨文件,:149)
+   - `build_wants.py` 的 `parse_all_wants`(:152)
+   - 同价同备注才合并数量;否则同卡不同价/不同备注保持独立条目
+7. **`card_id`/`wid` 必须加 price+note**(关键,否则同卡不同价 id 冲突):
+   - `build_data.py:157` `card_id = {seller_id}-{set}-{number}-{lang}-{foil/nf}-{price}-{note}`
+   - `build_wants.py:184` `wid = {buyer_id}-{set}-{number}-{lang}-{foil/nf}-{must}-{price}-{note}`
+   - 前端 `app.js` 的 `cardIndex`(id->card Map)、购物车、模态框都按 id 查 -- id 不唯一会让同卡不同价的后条覆盖前条、数据丢失
+   - note 进 id 含中文,作 Map key 没问题;作 DOM id 注意转义
+   - price 进 id 要统一格式化(如 `f"{price:.2f}"`),避免 `Decimal('50.00')` / `float 50.0` 的 str 表示不一致导致同卡 id 漂移、前端缓存失效
+8. `app.js` cardHtml:展示 price(0->"市价/私聊")+ note
+9. admin:CRUD 表单加 price/note,批量/导入 JS 解析
+
+> price 字段为后续前端价格排序预留:`build_data.py:275` 的 sort 可选加 price,或前端加 sort UI;0(市价)排最前。
+
+## 6. 脚本
 
 ### `scripts/export_inventory_to_txt.py`(替代 fetch_wps + parse_wps_excel)
-- `service_role` key 调 Supabase REST bypass RLS,读 profiles + inventory
-- 按 seller 写 `inventory/{seller_id}.txt`,格式同 `parse_wps_excel.cards_to_txt`(复用 `inventory_format.LANG_TOKEN` en->e)
+- `service_role` key 调 Supabase REST bypass RLS,读 profiles + inventory(含 price/note)
+- 按 seller 写 `inventory/{profile_uid}.txt`:
+  - **文件名用 UID**(唯一,不冲突);build 脚本从 `# seller:` 头读昵称生成 seller_id,**不依赖文件名**(`profile_uid` ≠ build 里的 `seller_id`,后者是 `slugify(昵称)`)
+  - export 自动补 meta 头:`# seller: {seller_name}` / `# city:` / `# contact:`(从 profiles)
+  - 行格式按第 5 节:`set number lang foil qty price # note`
 - 先 `rm -f inventory/*.txt`
-- 跳过 profile 不全的卖家
+- **跳过 profile 不全的卖家**(seller_name/city/contact 任一空)-- 否则 `build_data.py` 的 `validate_meta` 会 `SystemExit(1)` 让整轮部署失败
+- admin 应强制 seller_name/city/contact 填齐才允许发布(运营保护,否则自己的库存会被整批跳过、站点变空)
 
-### `scripts/export_wants_to_txt.py`(替代 fetch_wps + parse_wps_wants_excel,对称)
-- 同上,读 profiles + wants
-- 按 buyer 写 `wants/{buyer_id}.txt`,格式同 `parse_wps_wants_excel.wants_to_txt`:
-  ```
-  # buyer: 昵称
-  # city: 城市
-  # contact: 联系
-  #
-  # 由 export_wants_to_txt.py 生成 - 语言 e/z/j/o  闪 0/1  必须 0/1  数量默认1
-  
-  [Nx] set number lang foil must | note
-  ```
-  - `must`:`1`/`0`;`note`:` | 备注`(空则省略;换行清洗为空格,不断行)
-- 先 `rm -f wants/*.txt`
-- `build_wants.py` 下游零改动(它用 `want_line_to_fields` 解析)
+### `scripts/export_wants_to_txt.py`(对称)
+- 同上,读 profiles + wants(含 must/price/note)
+- 按 buyer 写 `wants/{profile_uid}.txt`,行格式 `set number lang foil qty must price # note`
 
-### `scripts/migrate_wps_to_supabase.py`(一次性,迁 inventory + wants)
+### `scripts/migrate_wps_to_supabase.py`(一次性)
 - 读 `wps_inventory.xlsx` + `wps_wants.xlsx`(复用 `parse_wps_excel.parse_workbook` + `parse_wps_wants_excel.parse_workbook`)
 - 需 `migration_mapping.json`:`{"昵称": "user-uid", ...}`(inventory 用 seller 昵称,wants 用 buyer 昵称;同一人同 UID)
-- upsert profiles + delete 旧 + insert inventory + wants
+  - 放项目根,加入 `.gitignore`(含 UID 不敏感但不必入库),一次性用完可删
+- upsert profiles(写 seller_name/city/contact)+ delete 旧 + insert inventory + wants
+- **原子性**:service_role 调 REST 不支持事务,中途失败会部分删部分插丢数据。按 seller 逐个迁移(每个 seller 内先 upsert 新数据、确认成功再 delete 旧),或依赖 unique 约束让脚本可安全重跑(upsert 幂等)
+- WPS 模板若有价格/备注列就读进 price/note,没有则 price=0/note=''
+- **注意**:inventory 的 `parse_wps_excel.parse_sheet` 现状**不存 note**(card dict 无 note 字段,只读不存),migrate 要读 WPS inventory 备注列需自己解析或先给 parse_sheet 补 note 字段;wants 的 `parse_wps_wants_excel.parse_sheet` 已存 note(`"note": note`),可直接复用。price 列两边模板都没有,迁移时一律 price=0
 - env:`SUPABASE_SERVICE_ROLE_KEY`
 
-## 7. Edge Function: `publish`(立即发布)
+### WPS 残留脚本(迁移后可删)
+`fetch_wps_share.py`、`txt_to_wps_xlsx.py`、`parse_wps_excel.py`、`parse_wps_wants_excel.py`、`wps_excel_common.py`、`parse_excel_order_txt.py` -- WPS 退役后不再用,保留无害建议清理。
+
+## 7. admin SPA 设计
+
+### 路径 A:抽共享层(已定)
+
+把主站 `app.js` 的展示/筛选/分页抽成 `assets/mtg-ui.js`,主站和 admin 各自入口 JS 引用,只管数据源 + 特有交互。理由:CRUD 越重,A 的"展示共享、交互分离"收益越大(B 模式开关会让 `cardHtml` 里 if 分支爆炸、`state` 里 cart/shotMode 和编辑态互相污染)。
+
+**两个扩展点**:
+1. **统一卡片视图模型**:定义 card 视图形状(set/number/lang/foil/qty/price/note/name_en/image/types/seller/city/contact/...)。主站从 cards.json 直接喂;admin 从 Supabase 行 + cards.json/wants.json 富化 join 后组装成同形状喂。共享层的 `cardHtml`/`matches`/`filters` 都基于这个视图模型,不假设数据来自 cards.json。
+2. **卡片渲染钩子** `decorateCard(card, el)`:共享层渲染每张卡后调用。主站不注册(纯展示);admin 注册一个往卡片 DOM 塞"编辑/删除"按钮的回调。
+
+**成本**:一次像样的重构(抽 `mtg-ui.js` + 主站回归测试 + 两个扩展点设计)。一次性,换主站干净 + admin 可持续扩展。
+
+### 登录入口(主站)
+- `index.html` 加登录按钮(Supabase Auth 邮箱密码,邀请制)
+- 未登录:买家看静态展示(零变化),多个登录按钮
+- 登录后:显"管理"按钮 -> 跳 `/admin/`(不手动输地址栏)
+- 主站读 `site.supabase_url` + `site.supabase_anon_key`(来自 site_config.json,经 cards.json 的 `site` 字段下发,见第 10 节);不嵌 service_role
+- 登录态检查:`@supabase/supabase-js` 从 localStorage 读 session,未登录无额外网络请求,不影响买家加载性能
+
+### admin 双 tab(库存 + 求购)
+- 复用主站 `view: sell | want` 切换,`activeList()` 据此返回 cards/wants
+- 库存 tab:Supabase inventory(seller_id=uid) join `cards.json`
+- 求购 tab:Supabase wants(buyer_id=uid) join `wants.json`
+- 两个 tab 的 filters 已分两套(库存按 seller/lang/foil/type/cmc,求购按 kind=must/buyer)
+
+### CRUD(库存 + 求购)
+- **查**:列表 + 搜索 + 筛选 + 分页 = 共享层职责
+- **增**:表单(set/number/lang/foil/qty/price/must/note) -> upsert Supabase。填 set/number 后实时调 Scryfall 拉图预览(确认加对卡)。Scryfall 公开 API 无需 key,注意速率。
+- **删/改**:卡片上的编辑/删除按钮(钩子注入) -> 调 Supabase -> 更新本地 state -> 共享层 `renderGrid()` 重渲染
+- 数据模型:admin 列表 = Supabase 行 left join cards.json/wants.json 富化(按 set/number/lang/foil)。join 上的显示名/图,join 不上的(刚加、还没 build)显示 set/number 占位 + 实时 Scryfall 预览兜底。
+- cards.json/wants.json 路径:admin 在 `/admin/`,fetch `/data/cards.json`、`/data/wants.json`(绝对路径,同域)。
+
+### 批量添加 / 从文件导入
+- 批量:多行 `<textarea>`,粘贴第 5 节格式,JS 解析 -> 批量 upsert
+- 导入:上传 txt(inventory/wants 格式;含 meta 头则忽略 seller/buyer 头),JS 解析。**仅支持新格式(空格+#)**,旧 `[Nx] set number lang foil` 格式不支持
+- **owner 强制登录 UID**:导入/批量时 seller_id/buyer_id 强制为当前登录用户,不取文件里的 `# seller:`/`# buyer:` 头。RLS 兜底(`insert with check auth.uid()=seller_id`),前端主动设置避免无谓 403。
+- JS 解析函数和 Python 版交叉测试(同输入同输出)
+
+### 图片缓存复用
+admin 列表图 URL 取 cards.json 的 `image.normal`(和主站同一份 URL) -> 浏览器 HTTP 缓存命中,主站加载过的图 admin 不重复下载。admin 新加的卡(cards.json 没有)实时调 Scryfall 拉,URL 和未来 build 一致,缓存可延续。不需要 Service Worker,浏览器默认缓存够用。
+
+### 部署与依赖
+- **源码目录**:admin 源码放项目根 `admin/`(`admin.html`/`admin.js`/`mtg-ui.js`),入 git;assemble 时 `cp -r admin site/admin` 进部署产物(`site/` 不入 git)。确认 `.gitignore` 不误伤 `admin/`。
+- **Supabase client**:主站和 admin 都用 `@supabase/supabase-js`(CDN 版 `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2`,或打包)。主站用于登录态,admin 用于 CRUD。session 存 localStorage,同域下主站登录后跳 `/admin/` 自动带 session,无需重登。
+- **未登录访问 `/admin/`**:admin JS 检查 session,无则跳回主站登录页。
+
+## 8. Edge Function: `publish`(立即发布)
+
+> 防抖需求**砍掉**(publish_log 表删除)。GitHub workflow 有 `concurrency: group: deploy, cancel-in-progress: false`,多点几次只会排队不会并发污染。按钮节流交前端(点完禁用 60s)。
 
 ```ts
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
-  let userId = null;
-  try { userId = JSON.parse(atob(auth.replace("Bearer ","").split(".")[1])).sub; } catch {}
-  if (!userId) return new Response(JSON.stringify({error:"unauthorized"}),{status:401});
+  // verify_jwt: true 时 Supabase 网关已验签,到这里的必是有效登录用户
+  // 只确认带 Bearer token 即可,不自解 JWT(atob 处理 base64url 会出错且多余)
+  if (!auth.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({error:"unauthorized"}),{status:401});
+  }
   const ghPat = Deno.env.get("GH_PAT");
   if (!ghPat) return new Response(JSON.stringify({error:"GH_PAT not configured"}),{status:500});
   const repo = Deno.env.get("GH_REPO") ?? "ClayStan404/mtg-showcase";
   const workflow = Deno.env.get("GH_WORKFLOW") ?? "auto-update.yml";
-  const now = new Date().toISOString();
-  // 记 publish_log(service_role bypass RLS)
-  // 调 GitHub workflow_dispatch
   const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`,{
     method:"POST",
     headers:{Authorization:`Bearer ${ghPat}`,Accept:"application/vnd.github+json","User-Agent":"mtg-showcase-publish"},
     body: JSON.stringify({ref:"master"}),
   });
   if (!r.ok) return new Response(JSON.stringify({error:`github ${r.status}`}),{status:502});
-  return new Response(JSON.stringify({ok:true,triggered_at:now}));
+  return new Response(JSON.stringify({ok:true}));
 });
 ```
-- `verify_jwt: true`;env:`GH_PAT`(fine-grained PAT,`actions:write`)、`GH_REPO`、`GH_WORKFLOW`
 
-## 8. workflow 改动(`.github/workflows/auto-update.yml`)
+- `verify_jwt: true`;env:`GH_PAT`(fine-grained PAT,`actions:write`)、`GH_REPO`、`GH_WORKFLOW`
+- **不配 `SUPABASE_SERVICE_ROLE_KEY`**(不写 publish_log,不需要 bypass RLS)
+- **CORS**:Supabase Edge Function 网关默认允许跨域,主站/admin JS 直调 OK,无需额外配置
+
+## 9. workflow 改动(`.github/workflows/auto-update.yml`)
 
 **inventory + wants 两侧都换:**
-- 删 `fetch_wps_share`(inventory + wants)+ `parse_wps_excel` + `parse_wps_wants_excel`
+- 删 `Read WPS share IDs from site_config.json`(读已删的 `wps_*_url` 会崩)
+- 删 `Fetch inventory/wants xlsx from WPS`
+- 删 `Parse inventory`/`Parse wants`(parse_wps_*)
 - 加:
   ```yaml
   - name: Export inventory from Supabase
@@ -225,35 +364,44 @@ Deno.serve(async (req) => {
       rm -f wants/*.txt
       python3 scripts/export_wants_to_txt.py
   ```
-- assemble:加 `cp -r admin site/admin`
+- assemble:加 `cp -r admin site/admin 2>/dev/null || true`(admin/ 在步骤 7 建;切换 workflow 时若尚未建,cp 跳过不影响主站部署,避免 workflow fail)
 - repo secrets:`SUPABASE_SERVICE_ROLE_KEY`
-- `fetch_wps_share.py` 彻底不再用(可留作备用,但 workflow 不调)
+- `Notify on failure` 文案改:原"WPS Cookie 过期"-> Supabase/GH_PAT 相关
+- `Verify Python deps`(`import requests, openpyxl`)和 requirements.txt **不动** -- openpyxl 给 migrate 脚本用(不在 workflow 跑),装着无害
+- **Sanity check**(error 比例 >20% abort)和后续 Assemble/Configure Pages/Deploy/Notify 步骤保留不动
+- runner 本机 cron **不变**(仍调 workflow_dispatch),仅 workflow 内容变
+- `heartbeat.yml` **不受影响**:它只检查 auto-update workflow 是否按时跑,和 WPS/Supabase 数据源无关,不用改
 
-## 9. `site_config.json`
+## 10. `site_config.json`
 
 - 删 `wps_inventory_url` + `wps_wants_url`(WPS 退役)
-- 加 `"supabase_url": "https://<project>.supabase.co"`
+- 加 `"supabase_url": "https://<project>.supabase.co"` 和 `"supabase_anon_key": "<anon key>"`(都公开,可嵌前端;经 `load_site_config` 进 cards.json 的 `site` 字段下发,主站/admin 读 `site.supabase_url`/`site.supabase_anon_key`)
 - 保留 `title`/`subtitle`
 
-## 10. 迁移步骤
+## 11. 迁移步骤
 
-1. Supabase 项目(Tokyo)+ 跑 schema.sql(**含 wants 表**)+ Auth(禁公开注册)
-2. 建用户(Dashboard > Authentication > Users > Add user),记 UID;确认 `email_confirmed_at`(否则 `update auth.users set email_confirmed_at=now()`)
-3. 配 Edge Function secret `GH_PAT`
+1. Supabase schema 增量改:`apply_migration` 给 inventory/wants 加 price+note 列、改 unique(含 price+note)、加 `profiles_seller_name_uniq` partial index、`drop table publish_log`(见第 4 节)
+2. 建用户(Dashboard > Authentication > Users > Add user),记 UID;确认 `email_confirmed_at`(否则 `update auth.users set email_confirmed_at=now()`)。admin 里填齐 seller_name/city/contact(partial unique 要求 seller_name 非空时唯一)
+3. 配 Edge Function secret `GH_PAT`(不需 service_role)
 4. **迁移 WPS 数据**:`migrate_wps_to_supabase.py`(迁 inventory + wants,需 mapping + service_role key)
-5. export 脚本(inventory + wants)+ workflow 切换 + GitHub secret `SUPABASE_SERVICE_ROLE_KEY`
-6. admin SPA(库存 + 求购管理,读 cards.json/wants.json 优先)
-7. deploy `publish` Edge Function
-8. 验证:`export --dry-run` + `build_data --validate-only` + `build_wants` 确认 json 不变;push 触发 workflow
+5. 重写解析函数(`card_line_to_fields`/`want_line_to_fields` 按第 5 节)+ `cards_to_txt`/`wants_to_txt` + build 脚本加 price/note + **合并三处按 price+note 分组** + **`card_id`/`wid` 加 price+note**(见第 5 节清单);同步更新 `tests/test_inventory_format.py`,新增 admin JS 解析的交叉测试
+6. export 脚本(inventory + wants)+ workflow 切换 + GitHub secret `SUPABASE_SERVICE_ROLE_KEY`。注意:workflow 的 `cp -r admin site/admin` 依赖步骤 7 的 `admin/` 目录,已用 `|| true` 容错(见第 9 节);建议步骤 7 先于或同步于 workflow 切换,否则切换后首次 deploy 的 site/admin 为空(主站不受影响,但 /admin/ 暂时 404)
+7. admin SPA(共享层 `mtg-ui.js` + CRUD + 双 tab + 登录入口,见第 7 节)
+8. deploy `publish` Edge Function
+9. 主站前端改造:**重写** `index.html` 的 `<details class="guide">` 区块(删 WPS 库存/求购链接 + 更新格式说明为第 5 节新格式 + 加登录按钮);删 `app.js` 的 `guide-wps-inv`/`guide-wps-want` 逻辑,加登录态 + 登录后管理入口;`cardHtml` 展示 price/note。admin 批量/导入 UI 里也放一份新格式说明
+10. 验证:跑 `export --dry-run` 对比 WPS 旧 txt 确认 diff 为空(除新增 price/note);`build_data --validate-only` + `build_wants`;push 触发 workflow
 
-## 13. Supabase 已建项目信息(可复用)
+**回滚策略**:验证通过前不删 WPS 文档、不删 WPS 残留脚本;若验证失败,workflow 可切回 git 历史里的 WPS 版本(commit 还在),WPS 数据仍最新。migrate 脚本可重跑(unique 约束兜底幂等)。
+
+## 附录 A: 已建项目信息(可复用)
 
 - Project URL: `https://rkvtizboyikrjowfogoc.supabase.co`
-- schema 已应用:**profiles + inventory + wants + publish_log** + RLS + 触发器(全部就绪)
+- schema 现状(2026-07 实测 via Supabase MCP):
+  - profiles(1 行,RLS ✅)、inventory(526 行,RLS ✅)、wants(0 行,RLS ✅)、publish_log(1 行,RLS ✅)
+  - **待改(见第 4 节)**:inventory/wants 加 price+note 列、改 unique 含 price+note、加 `profiles_seller_name_uniq`、`drop table publish_log`
 - ClayStan user 已建:UID `cc2116b4-f7ae-4d19-867c-795c8daa3149`,email `claystan97@gmail.com`,email_confirmed
-- 526 条库存已迁移(seller=claystan,734 张)
-- wants 表已建,数据为空(本来没有求购内容,后续在 admin 录入)
-- `publish` Edge Function 已部署(`verify_jwt=true`,需配 `GH_PAT` secret)
+- 526 条库存已迁移(seller=claystan);wants 表已建数据为空
+- `publish` Edge Function 已部署(`verify_jwt=true`,需配 `GH_PAT` secret);但**代码是旧版(含 JWT 自解 + publish_log 逻辑),需按第 8 节重新 deploy 新版**;publish_log 表待 drop
 - anon key(公开,可嵌前端):`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdnRpemJveWlrcmpvd2ZvZ29jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNzg1ODAsImV4cCI6MjA5OTc1NDU4MH0.f6N0wAEAlsWj3afD75zcbh1_6gUI2IHtSuAwlrxdGT8`
 
-如果宁可从零开始,重建项目即可(schema 在第 4 节,含 wants)。
+如果宁可从零开始,重建项目即可(schema 在第 4 节,已含 price/note + wants)。
