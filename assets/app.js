@@ -391,7 +391,7 @@ function renderCartList() {
         }
       </header>`;
     for (const { card, want } of group) {
-      const img = card.image?.small || card.image?.normal || PLACEHOLDER_IMG;
+      const img = card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
       html += `
         <article class="cart-item" data-id="${escapeHtml(card.id)}">
           <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" />
