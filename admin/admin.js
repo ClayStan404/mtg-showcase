@@ -188,23 +188,113 @@
     </div>`;
   }
 
-  // 实时 Scryfall 兜底：join 不到图/名的卡（刚加、还没 build）渲染后异步拉图 + 名。
-  // 由 mtg-ui 的 decorateCards（renderGrid / loadMore 后调用）触发；admin 注册此 hook。
+  // ---------- Scryfall 即时富化（新加卡还没进 Storage 快照时用）----------
+  // 官方 API 是 api.scryfall.com（build 脚本同域）；io 作兼容回退。
+  // 双面卡 image_uris 在 card_faces 上；语言印刷不存在时回退无 lang / en。
+  function pickScryfallImage(j) {
+    if (!j) return "";
+    if (j.image_uris) return j.image_uris.normal || j.image_uris.small || "";
+    const faces = j.card_faces;
+    if (Array.isArray(faces)) {
+      for (const f of faces) {
+        if (f && f.image_uris) {
+          const u = f.image_uris.normal || f.image_uris.small;
+          if (u) return u;
+        }
+      }
+    }
+    return "";
+  }
+
+  function pickScryfallName(j) {
+    if (!j) return "";
+    if (j.name) return j.name;
+    const faces = j.card_faces;
+    if (Array.isArray(faces) && faces[0] && faces[0].name) return faces[0].name;
+    return "";
+  }
+
+  /** Seed displayIndex so the next rowToCard/setView has name+image without waiting for Storage. */
+  function seedDisplayIndex(set, number, lang, patch) {
+    const k = `${String(set || "").toLowerCase()}|${number}|${lang}`;
+    const prev = displayIndex.get(k) || {};
+    displayIndex.set(k, { ...prev, ...patch, set: String(set || "").toLowerCase(), number, lang });
+  }
+
+  async function fetchScryfallJson(set, number, lang) {
+    const setCode = String(set || "").toLowerCase();
+    const num = String(number || "").trim();
+    if (!setCode || !num) return null;
+    const slang = SCRYFALL_LANG[lang] || "en";
+    const path = `${encodeURIComponent(setCode)}/${encodeURIComponent(num)}`;
+    // Prefer official host; keep .io as fallback for environments that only allow it.
+    const hosts = ["https://api.scryfall.com", "https://api.scryfall.io"];
+    const paths = [`/cards/${path}/${slang}`, `/cards/${path}`];
+    // If lang already en, skip duplicate path later
+    const tried = new Set();
+    for (const host of hosts) {
+      for (const p of paths) {
+        const url = host + p;
+        if (tried.has(url)) continue;
+        tried.add(url);
+        try {
+          const r = await fetch(url);
+          if (r.ok) return await r.json();
+        } catch {
+          /* try next */
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Ensure displayIndex has image/name for this printing (used after save + by decorate). */
+  async function ensureDisplayEnrichment(set, number, lang) {
+    const k = `${String(set || "").toLowerCase()}|${number}|${lang}`;
+    const cur = displayIndex.get(k);
+    if (cur && cur.image && (cur.image.normal || cur.image.small) && (cur.name_en || cur.name_zh)) {
+      return cur;
+    }
+    const j = await fetchScryfallJson(set, number, lang);
+    if (!j) return cur || null;
+    const url = pickScryfallImage(j);
+    const name = pickScryfallName(j);
+    const patch = {
+      name_en: name || (cur && cur.name_en) || "",
+      name_printed: name || (cur && cur.name_printed) || "",
+      image: url
+        ? { small: url, normal: url, large: url }
+        : (cur && cur.image) || { small: "", normal: "", large: "" },
+      scryfall_uri: j.scryfall_uri || (cur && cur.scryfall_uri) || "",
+      type_line: j.type_line || (cur && cur.type_line) || "",
+      mana_cost: j.mana_cost || (cur && cur.mana_cost) || "",
+    };
+    seedDisplayIndex(set, number, lang, patch);
+    return displayIndex.get(k);
+  }
+
+  // 实时 Scryfall 兜底：join 不到图/名的卡渲染后异步拉图 + 名，并写回 displayIndex。
   function adminDecorateCard(card, el) {
     if (!card._needsImage) return;
     const img = el.querySelector("img");
     if (!img || img.dataset.sfFetched === "1") return;
-    img.dataset.sfFetched = "1"; // 防重入（重渲染同一张不重复拉）
-    const slang = SCRYFALL_LANG[card.lang] || "en";
-    fetch(`https://api.scryfall.io/cards/${encodeURIComponent(card.set)}/${encodeURIComponent(card.number)}/${slang}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (!j) return;
-        const url = j.image_uris && (j.image_uris.normal || j.image_uris.small);
-        if (url) img.src = url;
-        const name = j.name || "";
+    img.dataset.sfFetched = "1";
+    ensureDisplayEnrichment(card.set, card.number, card.lang)
+      .then((d) => {
+        if (!d) return;
+        const url = d.image && (d.image.normal || d.image.small);
+        if (url) {
+          // undo any prior onImgError hide of the transparent placeholder
+          img.style.visibility = "";
+          img.parentElement?.classList.remove("img-failed");
+          img.src = url;
+          card.image = d.image;
+          card._needsImage = false;
+        }
+        const name = d.name_en || d.name_zh || "";
         if (name) {
           img.alt = name;
+          card.name_en = name;
           const nameEl = el.querySelector(".card-name");
           if (nameEl) nameEl.textContent = name;
         }
@@ -470,6 +560,13 @@
     $("#form-submit").disabled = true;
     try {
       await saveCard(form, view);
+      // Prefetch name/image into displayIndex before re-render so the new card
+      // shows art immediately (do not wait for Storage rebuild / page refresh).
+      try {
+        await ensureDisplayEnrichment(form.set.toLowerCase(), form.number, form.lang);
+      } catch {
+        /* decorate will retry */
+      }
       hideModal("form-modal");
       showToast(form.id ? "已更新" : "已添加");
       scheduleAutoSync();
@@ -488,18 +585,29 @@
   async function previewCard() {
     const set = $("#f-set").value.trim().toLowerCase();
     const number = $("#f-number").value.trim();
-    const lang = tokToLang($("#f-lang").value);
-    if (!set || !number) { $("#form-preview").hidden = true; return; }
-    const slang = SCRYFALL_LANG[lang] || "en";
+    let lang;
     try {
-      const r = await fetch(`https://api.scryfall.io/cards/${encodeURIComponent(set)}/${encodeURIComponent(number)}/${slang}`);
-      if (!r.ok) { $("#form-preview").hidden = true; return; }
-      const j = await r.json();
-      const img = (j.image_uris && (j.image_uris.normal || j.image_uris.small)) || "";
+      lang = tokToLang($("#f-lang").value);
+    } catch {
+      $("#form-preview").hidden = true;
+      return;
+    }
+    if (!set || !number) { $("#form-preview").hidden = true; return; }
+    try {
+      const j = await fetchScryfallJson(set, number, lang);
+      const img = pickScryfallImage(j);
+      const name = pickScryfallName(j);
       if (img) {
         $("#form-preview-img").src = img;
-        $("#form-preview-name").textContent = j.name || "";
+        $("#form-preview-name").textContent = name || "";
         $("#form-preview").hidden = false;
+        // Warm displayIndex while the user is still on the form
+        seedDisplayIndex(set, number, lang, {
+          name_en: name,
+          name_printed: name,
+          image: { small: img, normal: img, large: img },
+          scryfall_uri: (j && j.scryfall_uri) || "",
+        });
       } else {
         $("#form-preview").hidden = true;
       }
