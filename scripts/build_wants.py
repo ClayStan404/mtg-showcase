@@ -31,6 +31,7 @@ from build_common import (  # noqa: E402
     base_from_card,
     bump_all_caches,
     ensure_image_cdn,
+    ensure_zh_name,
     image_cdn_preference,
     load_previous_enrichment,
     load_site_config,
@@ -207,6 +208,7 @@ def enrich_wants(
             base = ensure_image_cdn(
                 base, client, set_code, number, lang, preferred_cdn
             )
+            base = ensure_zh_name(base, client, set_code, number, lang)
 
         if base is None:
             try:

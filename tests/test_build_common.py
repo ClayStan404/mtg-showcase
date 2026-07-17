@@ -113,6 +113,79 @@ def test_load_site_config_image_cdn(tmp_path, monkeypatch):
     assert build_common.load_site_config()["image_cdn"] == "scryfall"
 
 
+def test_is_chinese_art_url():
+    assert build_common.is_chinese_art_url(
+        "https://images.mtgch.com/zhs/normal/front/x.webp"
+    )
+    assert not build_common.is_chinese_art_url(
+        "https://cards.scryfall.io/normal/front/x.jpg"
+    )
+    assert not build_common.is_chinese_art_url(
+        "https://images.mtgch.com/sf/normal/front/x.webp"
+    )
+
+
+def test_resolve_images_zhs_prefers_mtgch_chinese_art(monkeypatch, tmp_path):
+    """pip/717 case: Scryfall has no zhs printing, mtgch has zhs_image_uris."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    en_card = {
+        "lang": "en",
+        "name": "Chaos Warp",
+        "image_uris": {
+            "normal": "https://cards.scryfall.io/normal/front/en.jpg",
+            "small": "https://cards.scryfall.io/small/front/en.jpg",
+        },
+    }
+    monkeypatch.setattr(
+        client,
+        "fetch_mtgch_card",
+        lambda *a, **k: {
+            "name": "Chaos Warp",
+            "zhs_name": "混沌歪曲",
+            "image_uris": {
+                "normal": "https://images.mtgch.com/sf/normal/front/en.webp",
+            },
+            "zhs_image_uris": {
+                "normal": "https://images.mtgch.com/zhs/normal/front/zh.webp",
+                "small": "https://images.mtgch.com/zhs/small/front/zh.webp",
+            },
+        },
+    )
+    imgs = client.resolve_images(
+        "pip", "717", "zhs", "scryfall", scryfall_card=en_card
+    )
+    assert "/zhs/" in imgs["normal"]
+    assert "zh.webp" in imgs["normal"]
+
+
+def test_ensure_image_cdn_fixes_zhs_with_english_art(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    monkeypatch.setattr(
+        client,
+        "resolve_images",
+        lambda *a, **k: {
+            "normal": "https://images.mtgch.com/zhs/normal/front/x.webp",
+            "small": "https://images.mtgch.com/zhs/small/front/x.webp",
+            "large": "",
+        },
+    )
+    base = {
+        "image": {
+            "normal": "https://cards.scryfall.io/normal/front/en.jpg",
+            "small": "s",
+            "large": "",
+        },
+        "image_cdn_attempted": "scryfall",
+        "image_lang": "zhs",
+    }
+    out = build_common.ensure_image_cdn(base, client, "pip", "717", "zhs", "scryfall")
+    assert "/zhs/" in out["image"]["normal"]
+    assert out["image_lang"] == "zhs"
+    assert out["image_cdn_attempted"] == "scryfall+zhs"
+
+
 def test_resolve_images_mtgch_then_scryfall_fallback(monkeypatch, tmp_path):
     monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
     client = build_common.ScryfallClient(use_disk_cache=True)
