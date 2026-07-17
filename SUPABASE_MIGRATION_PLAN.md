@@ -2,6 +2,8 @@
 
 > 卖家在网页(admin)管理**库存**、买家管理**求购**,完全替换 WPS;买家继续看静态站。本文档记录完整方案、关键决策和我踩过的坑,供接手实现参考。
 
+> **实现状态（2026-07-17）**：已实现并提交到本地 master（commits `14b9ed4` 迁移主体 / `d776a3d` `3881518` 及后续 review 修复），**未 push**，线上仍跑 WPS。本文档是**设计/施工手册**，下文的行号、步骤「待办」状态可能与当前代码有出入 -- **以代码为准**。相对文档的主要偏离：① price 展示用 option B（price=0 不显 flag，仅 >0 显 `¥X.XX`）；② admin **override 全局 `cardHtml`**（非注册 `decorateCard` 钩子，钩子对 admin no-op）；③ wants export 写 `# buyer:` 头（非 `# seller:`）；④ `publish` 加 60s 前端节流 + profile 不全禁用发布；⑤ admin/index.html 的 cache-bust 由 `build_common.bump_all_caches` 统一覆盖（root + admin 两处）；⑥ DB 的 `publish_log` 已 drop、新版 publish Edge Function 已 deploy。详见各 commit。
+
 ## 1. 现状(必读)
 
 两条对称的 pipeline,都从 WPS 读:

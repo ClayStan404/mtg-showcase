@@ -247,9 +247,8 @@
       const remain = Math.ceil((publishCooldownUntil - Date.now()) / 1000);
       if (!btn) return;
       if (remain <= 0) {
-        btn.disabled = false;
-        btn.textContent = "立即发布";
         clearInterval(cooldownTimer);
+        updatePublishGuard(); // 到期恢复：按 profile + 已过冷却统一算（不硬写 disabled=false，避免与 guard 抢状态）
         return;
       }
       btn.disabled = true;
@@ -260,6 +259,11 @@
   }
 
   async function publish() {
+    // 防御：按钮被 guard 禁用时点不到，但防控制台/竞态直接调 publish
+    if (!profileIsComplete(profile)) {
+      showToast("请先在「资料」补全昵称/城市/联系");
+      return;
+    }
     const now = Date.now();
     if (now < publishCooldownUntil) {
       showToast(`请稍候，${Math.ceil((publishCooldownUntil - now) / 1000)}s 后可再次发布`);
@@ -542,9 +546,12 @@
     const btn = $("#publish-btn");
     const warn = $("#profile-warn");
     const ok = profileIsComplete(profile);
+    const cooling = Date.now() < publishCooldownUntil;
     if (btn) {
-      btn.disabled = !ok;
+      // 感知 cooldown：冷却中也保持 disabled（冷却 textContent 由 setPublishCooldown 的 tick 管）
+      btn.disabled = !ok || cooling;
       btn.title = ok ? "" : "请先在「资料」补全昵称/城市/联系，否则发布后库存不展示";
+      if (!cooling) btn.textContent = "立即发布";
     }
     if (warn) {
       if (ok) {

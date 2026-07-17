@@ -104,3 +104,9 @@ def test_inv_roundtrip_no_note():
 def test_meta_header_format():
     h = format_meta_header("claystan", "上海", "QQ 417592443")
     assert h == "# seller: claystan\n# city: 上海\n# contact: QQ 417592443\n"
+
+
+def test_meta_header_buyer_role():
+    # wants export 用 role="buyer"，写 # buyer: 头（build_wants META_RE 接受 buyer|seller）
+    h = format_meta_header("claystan", "武汉", "QQ 123", role="buyer")
+    assert h == "# buyer: claystan\n# city: 武汉\n# contact: QQ 123\n"
