@@ -40,7 +40,7 @@ Non-goals:
 | Admin UI | Same admin SPA, talking to our API instead of Supabase JS |
 | API | **Go** HTTP service (+ Go enrichment worker) |
 | Database | **Postgres 16** (same schema spirit as current Supabase tables) |
-| Auth | JWT sessions (Postgres `users` + bcrypt, or reverse-proxy OIDC later) |
+| Auth | **Option A locked:** Go invite-only sessions (`users` + bcrypt/argon2 + JWT or HttpOnly cookie). No external IdP at launch. |
 | Cache | Optional **Redis** or in-process TTL cache for hot list queries |
 | Images | Hotlink Scryfall / mtgch CDN only |
 | Enrichment | Background worker (same logic as `build_common.py`) fills `card_printings` |
@@ -125,14 +125,35 @@ Keep conceptual compatibility with current Supabase schema; add a printing cache
 
 ### 5.1 Tables
 
-**`users`** (auth)
+**`users`** (auth — Option A, self-built)
 
 | Column | Notes |
 |--------|--------|
 | `id` UUID PK | |
-| `email` unique | |
-| `password_hash` | or external IdP subject later |
+| `email` unique, not null | login identity |
+| `password_hash` | bcrypt or argon2id; never store plaintext |
+| `role` | e.g. `user` / `admin` (seed admin) |
 | `created_at` | |
+
+**`invites`** (registration gate at launch)
+
+| Column | Notes |
+|--------|--------|
+| `id` UUID PK | |
+| `code` unique | single-use invite token (high entropy) |
+| `created_by` → users | admin who issued it |
+| `expires_at` | |
+| `used_by` → users nullable | set when redeemed |
+| `used_at` nullable | |
+
+**`refresh_tokens`** (if using rotate-refresh Bearer model)
+
+| Column | Notes |
+|--------|--------|
+| `id` / `jti` | |
+| `user_id` → users | |
+| `token_hash` | store hash only |
+| `expires_at`, `revoked_at` | logout + rotation |
 
 **`profiles`** (same role as today)
 
@@ -182,9 +203,10 @@ Missing enrichment: return row with empty images + flag; worker fills shortly (a
 ### 5.3 Migration from Supabase
 
 1. `pg_dump` or existing `backup_supabase.py` logical dump.  
-2. Import users/profiles/inventory/wants.  
-3. Run enrichment worker over distinct `(set, number, lang)` (reuse `.cache/scryfall` logic from `build_common.py`).  
-4. Dual-run period optional: keep Scheme C until API parity.
+2. Import profiles/inventory/wants; map `seller_id`/`buyer_id` to new `users.id`.  
+3. **Auth passwords:** Supabase Auth hashes are not assumed portable under Option A. Prefer: re-invite users (or seed admin + reset password flow) rather than reverse-engineering GoTrue hashes. Pre-launch with few accounts → re-invite is fine.  
+4. Run enrichment worker over distinct `(set, number, lang)` (reuse `.cache/scryfall` logic from `build_common.py`).  
+5. Dual-run period optional: keep Scheme C until API parity (default cutover is still big-bang).
 
 ---
 
@@ -252,12 +274,28 @@ Base path: `/api/v1`. JSON. Auth: `Authorization: Bearer <access_token>` for wri
 
 Same pattern for `/wants`.
 
-### 6.2 Authenticated (sellers/buyers)
+### 6.2 Auth (Option A — invite-only at launch)
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/auth/login` | email + password → tokens |
-| `POST` | `/auth/logout` | invalidate refresh |
+| `POST` | `/auth/register` | email + password + **invite code** → create user; consume invite |
+| `POST` | `/auth/login` | email + password → access (+ refresh or Set-Cookie) |
+| `POST` | `/auth/refresh` | rotate refresh (Bearer model only) |
+| `POST` | `/auth/logout` | revoke refresh / clear cookie |
+| `POST` | `/auth/invites` | admin: mint invite codes |
+| `GET` | `/auth/invites` | admin: list unused invites (optional) |
+
+Config flag `open_registration` (default **false**): when true later, `/auth/register` may omit invite (still rate-limited; optional email verify / Turnstile). Do not introduce an external IdP for this flag flip.
+
+Session model (pick one in PR3 and stick to it):
+
+- **Preferred for SPA same-origin:** HttpOnly + Secure + SameSite cookies (access short-lived; optional refresh cookie).  
+- **Alternative:** Bearer access JWT (short TTL, e.g. 15m) + rotate refresh stored hashed in DB.
+
+### 6.3 Authenticated business routes (sellers/buyers)
+
+| Method | Path | Purpose |
+|--------|------|---------|
 | `GET` | `/me` | user + profile |
 | `PATCH` | `/me/profile` | nickname/city/contact |
 | `GET/POST/PATCH/DELETE` | `/me/inventory` | CRUD own stock |
@@ -273,7 +311,7 @@ On write to inventory/wants:
 
 **No “publish” button required** for public visibility — commit is the publish. Optional “refresh enrichment” button for stuck printings.
 
-### 6.3 Admin vs public CSP
+### 6.4 Admin vs public CSP
 
 - `connect-src` includes own API origin only (plus Scryfall/mtgch if admin still does client-side preview).  
 - Prefer **server-side** enrichment preview via `GET /api/v1/printings/{set}/{number}?lang=` to avoid browser CORS/CSP sprawl.
@@ -367,14 +405,25 @@ Domain: `claystan.cc` A/AAAA → VPS; keep or drop GitHub Pages.
 
 | Topic | Approach |
 |-------|----------|
-| Auth | HTTP-only secure cookies **or** Bearer access + rotate refresh; short access TTL |
+| Auth (Option A) | Self-built in Go API: password hash (bcrypt/argon2id), invite-gated register, short-lived session; **no Supabase Auth / no IdP at launch** |
+| Session | HTTP-only Secure cookies **or** Bearer access + hashed rotate refresh; short access TTL |
 | Authorization | Server-side owner checks on every write (never trust client seller_id) |
-| Rate limit | Login + public list endpoints (per IP) |
-| Secrets | Env files / Docker secrets; never in git |
+| Rate limit | Login + register + public list endpoints (per IP) |
+| Secrets | Env files / Docker secrets; never in git; JWT signing key high entropy |
 | SQL | Parameterized queries only |
 | CORS | Only own origins |
 | CSP | `img-src` Scryfall + mtgch CDNs; `connect-src` self API |
-| Admin invite | Seed first user; invite-only registration (match current model) |
+| Bootstrap | Seed first admin via env/one-shot CLI; then admin mints invites |
+
+### 11.1 Auth options (decision locked)
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| **A. Go self-built invite login** | `users` + `invites` in Postgres; bcrypt/argon2; JWT/cookie | **Chosen** — matches ~100 sellers, single product, big-bang self-host |
+| **B. Self-hosted IdP** (Keycloak / Authentik / Zitadel) | Full OIDC, MFA policies, multi-app SSO | **Defer** — ops overhead not justified until multi-app SSO or hard compliance needs |
+| **C. Hosted Auth only** (e.g. keep Supabase Auth) | Auth cloud, app/DB self-hosted | **Reject for target** — split failure domain and blocks full cutover |
+
+Revisit B only if: multi-product SSO, mandatory social login you refuse to implement, or enterprise MFA policy. Open registration is **not** a reason to switch IdP — flip `open_registration` on Option A.
 
 ---
 
@@ -429,7 +478,7 @@ Rollback: point DNS back to Pages; Supabase still writable if dual-write not use
 4. **Images remain external hotlinks** — no self-hosted image bandwidth.  
 5. **No publish button for visibility** — DB commit is live; optional re-enrich only.  
 6. **Docker Compose single node first** — delay Kubernetes/microservices.  
-7. **Auth simplified invite-only JWT at launch** — open registration after stable.  
+7. **Auth Option A locked** — Go self-built invite-only login (Postgres `users`/`invites`, bcrypt/argon2, JWT or HttpOnly cookie). No Keycloak/Authentik; no residual Supabase Auth. Open registration later via config flag only.  
 8. **Keep Scheme C until self-hosted is ready, then big-bang to `mtg.claystan.cc`** — pre-launch so cutover cost is low; no dual-write.  
 9. **Go for API + worker** — port enrich from Python; Python stays for legacy Scheme C tools until retired.
 
@@ -444,12 +493,13 @@ Rollback: point DNS back to Pages; Supabase still writable if dual-write not use
 | 1 | API language | **Go** — API + worker as Go services; port enrichment rules from `build_common.py` (Python scripts remain for Scheme C / one-off tools until retired). |
 | 2 | Cutover | **Big-bang**. Product is **not multi-user live yet**, so freeze/dual-write pain is negligible: implement self-hosted path, import any existing Supabase rows once, launch on `mtg.claystan.cc`. Dual-write is explicitly out of scope. |
 | 3 | Domain | **`mtg.claystan.cc`** for the self-hosted product (UI + `/api` same host preferred). Apex `claystan.cc` may remain landing/legacy. |
-| 4 | Registration | **Invite-only at launch**; **open registration after the stack is stable**. |
+| 4 | Registration | **Invite-only at launch**; **open registration after the stack is stable** (`open_registration` flag). |
+| 5 | Auth implementation | **Option A** — self-built in Go (see §11.1). IdP (B) and hosted Auth-only (C) deferred/rejected. Session: prefer same-origin HttpOnly cookies; Bearer+refresh acceptable. |
 
 ### Still open
 
-5. **Timeline:** when to start PR1 vs keep shipping on Scheme C only.  
-6. **Enrichment worker placement:** in-process goroutine vs separate `worker` binary (Compose still runs one worker container either way).
+6. **Timeline:** when to start PR1 vs keep shipping on Scheme C only.  
+7. **Enrichment worker placement:** in-process goroutine vs separate `worker` binary (Compose still runs one worker container either way).
 
 ### 16.1 Go vs Python FastAPI (reference; decided: Go)
 
@@ -472,9 +522,14 @@ Rollback: point DNS back to Pages; Supabase still writable if dual-write not use
 | Dual-write | **Out of scope** (complexity not justified while not live). |
 | Scheme C | Remains the **current** path until self-hosted is ready; then retire snapshot publish for the product domain. |
 
----
+### 16.3 Auth (decided: Option A)
 
-## Document history
+| Choice | Detail |
+|--------|--------|
+| Implementation | Go handlers + Postgres tables (`users`, `invites`, optional `refresh_tokens`) |
+| Launch gate | Invite-only register; seed admin; admin mints codes |
+| Later | `open_registration=true` without changing IdP |
+| Not in scope at launch | OIDC IdP, social OAuth, Supabase Auth residual |
 
 ---
 
@@ -499,9 +554,9 @@ Incremental PRs against a feature branch / new repo section `server/` (or monore
 ### PR3 — Auth & profiles API
 
 - **Title:** `feat(server): invite-only login and profile CRUD`  
-- **Affects:** auth handlers, JWT/cookies, `/me` routes  
+- **Affects:** auth handlers, JWT/cookies, `/me` routes, invite mint  
 - **Depends on:** PR2  
-- **Description:** Password login; profile completeness rules.
+- **Description:** Option A only — bcrypt/argon2 register (invite required), login, logout, refresh-or-cookie session, admin invite mint, profile completeness rules. No external IdP.
 
 ### PR4 — Inventory & wants CRUD + batch
 
@@ -573,3 +628,4 @@ Incremental PRs against a feature branch / new repo section `server/` (or monore
 | 2026-07-17 | Initial design from recommended self-hosted paginated realtime architecture |
 | 2026-07-17 | Record domain `mtg.claystan.cc`, invite-then-open registration; expand Go vs FastAPI and cutover §16 |
 | 2026-07-17 | Decide **Go** API/worker; **big-bang** cutover (pre-launch, no dual-write) |
+| 2026-07-17 | Lock **Auth Option A** (Go invite-only self-built); tables/endpoints/§11.1; reject residual Supabase Auth / defer IdP |
