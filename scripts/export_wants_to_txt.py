@@ -75,8 +75,8 @@ def main() -> int:
         if not profile_complete(prof):
             skipped.append(prof.get("seller_name") or pid)
             continue
-        # name_field=seller_name：buyer 昵称也存 seller_name 列（profiles 共用）
-        write_txt(WANTS_DIR, pid, prof, rows, format_want_line)
+        # name_field=seller_name：buyer 昵称也存 seller_name 列（profiles 共用）；role=buyer 写 `# buyer:` 头
+        write_txt(WANTS_DIR, pid, prof, rows, format_want_line, role="buyer")
         written += 1
         print(f"  · wants/{pid}.txt: {len(rows)} 行（{prof.get('seller_name')}）")
 

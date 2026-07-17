@@ -1,7 +1,8 @@
 /* mtg-ui.js -- 主站 + admin 共享的展示/筛选/分页层（从 app.js 抽出）。
  * 主站 app.js 在本文件之后加载，定义 cart/意向清单、详情弹窗、数据加载、view 切换；
  * 不注册 window.decorateCard -> decorateCards 钩子 no-op，cardHtml 内联购物车按钮照旧（零行为变化）。
- * admin.js override cardHtml + 注册 window.decorateCard 注入编辑/删除按钮。
+ * admin.js override 全局 cardHtml（admin 版含 price + 编辑/删除按钮），不注册 decorateCard
+ * （钩子对 admin no-op，admin 把按钮直接写进自己的 cardHtml）。
  * 经典脚本共享全局（state / filters / cardHtml / matches / renderGrid / ...），CSP script-src 'self' 无需调整。
  */
 const state = {

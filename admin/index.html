@@ -34,6 +34,7 @@
       <div class="admin-user">
         <span id="admin-email" class="admin-email"></span>
         <a href="/" class="btn btn-ghost btn-sm">回主站</a>
+        <button type="button" class="btn btn-ghost btn-sm" id="profile-btn">资料</button>
         <button type="button" class="btn btn-ghost btn-sm" id="publish-btn">立即发布</button>
         <button type="button" class="btn btn-danger-ghost btn-sm" id="signout-btn">登出</button>
       </div>
@@ -65,6 +66,34 @@
     </main>
 
     <div class="toast" id="toast" hidden role="status"></div>
+
+    <!-- 个人资料（seller_name/city/contact 不全则 export 跳过、站点变空，必须填齐才能发布） -->
+    <div class="modal" id="profile-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <div class="modal-backdrop" id="profile-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-handle" aria-hidden="true"></div>
+        <button type="button" class="modal-close" id="profile-close" aria-label="关闭">×</button>
+        <div class="modal-content">
+          <h2 id="profile-title">个人资料</h2>
+          <form id="profile-form">
+            <label class="form-full">昵称（卖家/买家共用，唯一）
+              <input id="p-seller_name" type="text" maxlength="50" required />
+            </label>
+            <label class="form-full">城市
+              <input id="p-city" type="text" maxlength="50" required />
+            </label>
+            <label class="form-full">联系方式
+              <input id="p-contact" type="text" maxlength="100" required />
+            </label>
+            <p class="form-hint" id="p-hint">三项都必填，否则发布的库存/求购会被 export 整批跳过。</p>
+            <div class="modal-actions">
+              <button type="submit" class="btn btn-primary" id="profile-submit">保存</button>
+              <button type="button" class="btn btn-ghost" id="profile-cancel">取消</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- 添加/编辑表单 -->
     <div class="modal" id="form-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="form-title">

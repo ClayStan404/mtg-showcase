@@ -198,9 +198,11 @@
   async function saveCard(form, view) {
     const c = await MTGSupabase.getClient();
     const table = view === "want" ? "wants" : "inventory";
+    const ownerKey = view === "want" ? "buyer_id" : "seller_id";
     const payload = payloadFromForm(form, view);
     if (form.id) {
-      const { error } = await c.from(table).update(payload).eq("id", form.id);
+      // .eq(ownerKey, uid) 防御纵深：即便 RLS 被误改，也只改自己的行
+      const { error } = await c.from(table).update(payload).eq("id", form.id).eq(ownerKey, uid);
       if (error) throw error;
     } else {
       const { error } = await c.from(table).insert(payload);
@@ -211,28 +213,62 @@
   async function deleteCard(id, view) {
     const c = await MTGSupabase.getClient();
     const table = view === "want" ? "wants" : "inventory";
-    const { error } = await c.from(table).delete().eq("id", id);
+    const ownerKey = view === "want" ? "buyer_id" : "seller_id";
+    const { error } = await c.from(table).delete().eq("id", id).eq(ownerKey, uid);
     if (error) throw error;
   }
 
   async function bulkUpsert(rows, view) {
     const c = await MTGSupabase.getClient();
     const table = view === "want" ? "wants" : "inventory";
+    const ownerKey = view === "want" ? "buyer_id" : "seller_id";
+    // 批量/导入：强制 owner = 当前登录用户（parseLine 不返回 owner），
+    // 忽略文件里的 # seller/buyer 头；note strip 归一化与 build 端 note_hash 对齐。
+    const payload = rows.map((r) => ({ ...r, [ownerKey]: uid, note: (r.note || "").trim() }));
     // onConflict 列必须与 DB unique index 完全一致（见 SUPABASE_MIGRATION_PLAN.md 第 4 节
-    // inventory_uniq / wants_uniq），否则 upsert 走不到合并、直接报唯一约束冲突。
-    // 改 index 时这里也要同步。
+    // inventory_uniq / wants_uniq），否则 upsert 走不到合并、直接报唯一约束冲突。改 index 时同步。
     const conflict = view === "want"
       ? "buyer_id,set_code,number,lang,foil,must,price,note"
       : "seller_id,set_code,number,lang,foil,price,note";
-    const { error } = await c.from(table).upsert(rows, { onConflict: conflict });
+    const { error } = await c.from(table).upsert(payload, { onConflict: conflict });
     if (error) throw error;
   }
 
+  // 60s 前端节流（文档第 8 节）：成功触发后倒计时禁用按钮，防连点排队多个 workflow
+  // （workflow concurrency cancel-in-progress=false，多点只会排队白跑）
+  let publishCooldownUntil = 0;
+  let cooldownTimer = null;
+
+  function setPublishCooldown(seconds) {
+    publishCooldownUntil = Date.now() + seconds * 1000;
+    clearInterval(cooldownTimer);
+    const btn = $("#publish-btn");
+    const tick = () => {
+      const remain = Math.ceil((publishCooldownUntil - Date.now()) / 1000);
+      if (!btn) return;
+      if (remain <= 0) {
+        btn.disabled = false;
+        btn.textContent = "立即发布";
+        clearInterval(cooldownTimer);
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = `发布(${remain}s)`;
+    };
+    tick();
+    cooldownTimer = setInterval(tick, 1000);
+  }
+
   async function publish() {
+    const now = Date.now();
+    if (now < publishCooldownUntil) {
+      showToast(`请稍候，${Math.ceil((publishCooldownUntil - now) / 1000)}s 后可再次发布`);
+      return;
+    }
     const session = await MTGSupabase.getSession();
     if (!session) { showToast("未登录"); return; }
     const btn = $("#publish-btn");
-    btn.disabled = true; btn.textContent = "发布中…";
+    if (btn) { btn.disabled = true; btn.textContent = "发布中…"; }
     try {
       const r = await fetch(`${MTGSupabase.site.supabase_url}/functions/v1/publish`, {
         method: "POST",
@@ -243,10 +279,11 @@
         throw new Error(j.error || `HTTP ${r.status}`);
       }
       showToast("已触发发布，约 1 分钟后站点更新");
+      setPublishCooldown(60); // 成功才节流，接管按钮（不走 catch 的恢复）
+      return;
     } catch (e) {
       showToast("发布失败：" + e.message);
-    } finally {
-      btn.disabled = false; btn.textContent = "立即发布";
+      if (btn) { btn.disabled = false; btn.textContent = "立即发布"; } // 失败立即恢复可重试
     }
   }
 
@@ -480,6 +517,11 @@
     $("#import-backdrop")?.addEventListener("click", () => hideModal("import-modal"));
 
     $("#publish-btn")?.addEventListener("click", publish);
+    $("#profile-btn")?.addEventListener("click", openProfileModal);
+    $("#profile-form")?.addEventListener("submit", (e) => { e.preventDefault(); saveProfile(); });
+    $("#profile-cancel")?.addEventListener("click", () => hideModal("profile-modal"));
+    $("#profile-close")?.addEventListener("click", () => hideModal("profile-modal"));
+    $("#profile-backdrop")?.addEventListener("click", () => hideModal("profile-modal"));
     $("#signout-btn")?.addEventListener("click", async () => {
       await MTGSupabase.signOut(); window.location.href = "/";
     });
@@ -489,6 +531,74 @@
         document.querySelectorAll(".modal.open").forEach((m) => hideModal(m.id));
       }
     });
+  }
+
+  // ---------- 个人资料 ----------
+  function profileIsComplete(p) {
+    return !!p && ["seller_name", "city", "contact"].every((f) => (p[f] || "").trim());
+  }
+
+  function updatePublishGuard() {
+    const btn = $("#publish-btn");
+    const warn = $("#profile-warn");
+    const ok = profileIsComplete(profile);
+    if (btn) {
+      btn.disabled = !ok;
+      btn.title = ok ? "" : "请先在「资料」补全昵称/城市/联系，否则发布后库存不展示";
+    }
+    if (warn) {
+      if (ok) {
+        warn.hidden = true;
+      } else {
+        const missing = ["seller_name", "city", "contact"].filter(
+          (f) => !((profile && profile[f]) || "").trim()
+        );
+        warn.hidden = false;
+        warn.textContent = `⚠ 资料缺 ${missing.join(" / ")}，发布被禁用（发布后库存会被 export 跳过、站点变空）。点右上「资料」补全。`;
+      }
+    }
+  }
+
+  function openProfileModal() {
+    $("#p-seller_name").value = (profile && profile.seller_name) || "";
+    $("#p-city").value = (profile && profile.city) || "";
+    $("#p-contact").value = (profile && profile.contact) || "";
+    $("#p-hint").textContent = "三项都必填，否则发布的库存/求购会被 export 整批跳过。";
+    showModal("profile-modal");
+  }
+
+  async function saveProfile() {
+    const payload = {
+      seller_name: $("#p-seller_name").value.trim(),
+      city: $("#p-city").value.trim(),
+      contact: $("#p-contact").value.trim(),
+    };
+    const hint = $("#p-hint");
+    if (!payload.seller_name || !payload.city || !payload.contact) {
+      if (hint) hint.textContent = "三项都必填";
+      return;
+    }
+    const submit = $("#profile-submit");
+    if (submit) submit.disabled = true;
+    try {
+      const c = await MTGSupabase.getClient();
+      const { error } = await c.from("profiles").update(payload).eq("id", uid);
+      if (error) {
+        const msg = /duplicate|unique|23505/i.test(error.message)
+          ? "昵称已被占用"
+          : "保存失败：" + error.message;
+        if (hint) hint.textContent = msg;
+        return;
+      }
+      profile = { ...(profile || {}), ...payload };
+      hideModal("profile-modal");
+      showToast("资料已保存");
+      updatePublishGuard();
+    } catch (e) {
+      if (hint) hint.textContent = "保存失败：" + e.message;
+    } finally {
+      if (submit) submit.disabled = false;
+    }
   }
 
   // ---------- 入口 ----------
@@ -506,15 +616,7 @@
       showToast("读取 profile 失败：" + e.message);
       profile = {};
     }
-    // profile 完整性警告（不全则 export 会跳过，库存不展示）
-    const warn = $("#profile-warn");
-    if (warn) {
-      const missing = ["seller_name", "city", "contact"].filter((f) => !((profile && profile[f]) || "").trim());
-      if (missing.length) {
-        warn.hidden = false;
-        warn.textContent = `⚠ profile 缺 ${missing.join(" / ")}，发布后库存不展示。请先在 Supabase profiles 表补全。`;
-      }
-    }
+    updatePublishGuard(); // profile 不全则禁用发布按钮 + 显警告（带「资料」补全入口）
 
     // override 全局 cardHtml（admin 版）
     cardHtml = adminCardHtml;

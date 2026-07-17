@@ -93,7 +93,7 @@ def validate_meta(
         if not (meta.get(field) or "").strip():
             prefix = f"[{source}] " if source else ""
             label = _META_LABELS.get(field, field)
-            errors.append(f"{prefix}缺少必填项「{label}」（工作表前 15 行内填写 # {field}:）")
+            errors.append(f"{prefix}缺少必填项「{label}」（txt 文件头需有 # {field}:）")
     return errors
 
 
@@ -269,7 +269,12 @@ def want_line_to_fields(line: str) -> tuple[str, str, str, bool, int, bool, floa
 
 
 def merge_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """按 set|number|lang|foil 合并同卡同印刷，数量累加。"""
+    """【legacy，WPS 残留脚本专用】按 set|number|lang|foil 合并同卡同印刷，数量累加。
+
+    不含 price/note（与新 build 内联合并 key 语义不同）。新流程不调用本函数
+    （build_data/build_wants 用各自的 inline 合并 key，含 price+note_hash）。
+    仅供 parse_wps_excel / txt_to_wps_xlsx 等 WPS 残留脚本用，WPS 退役后随删。
+    """
     merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
     for c in cards:
         key = f"{c['set']}|{c['number']}|{c['lang']}|{'f' if c['foil'] else 'nf'}"

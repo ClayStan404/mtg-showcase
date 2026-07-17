@@ -62,9 +62,10 @@ def fetch_all(url: str, key: str, table: str, select: str) -> list[dict[str, Any
     return rows
 
 
-def format_meta_header(name: str, city: str, contact: str) -> str:
-    """生成 txt meta 头：# seller/city/contact。build 的 META_RE 读这些。"""
-    return f"# seller: {name}\n# city: {city}\n# contact: {contact}\n"
+def format_meta_header(name: str, city: str, contact: str, role: str = "seller") -> str:
+    """生成 txt meta 头。role=seller 写 `# seller:`（inventory），role=buyer 写 `# buyer:`（wants）。
+    build 的 META_RE 都接受 buyer|seller|nickname|nick 作为昵称键。"""
+    return f"# {role}: {name}\n# city: {city}\n# contact: {contact}\n"
 
 
 def profile_complete(profile: dict[str, Any]) -> bool:
@@ -81,14 +82,16 @@ def write_txt(
     rows: list[dict[str, Any]],
     line_formatter: Callable[[dict[str, Any]], str],
     name_field: str = "seller_name",
+    role: str = "seller",
 ) -> Path:
-    """写单个 {profile_id}.txt：meta 头 + 每行一条记录。返回写入路径。"""
+    """写单个 {profile_id}.txt：meta 头 + 每行一条记录。返回写入路径。
+    role 控制昵称头是 `# seller:`（inventory）还是 `# buyer:`（wants）。"""
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{profile_id}.txt"
     name = (profile.get(name_field) or "").strip()
     city = (profile.get("city") or "").strip()
     contact = (profile.get("contact") or "").strip()
-    parts = [format_meta_header(name, city, contact)]
+    parts = [format_meta_header(name, city, contact, role)]
     parts.extend(line_formatter(row) for row in rows)
     path.write_text("\n".join(parts) + "\n", encoding="utf-8")
     return path
