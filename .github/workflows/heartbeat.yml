@@ -4,25 +4,19 @@ name: Heartbeat
 # skipped crons; if the self-hosted runner is offline, auto-update fails silently.
 # This workflow runs on GitHub-hosted runners (does not need self-hosted).
 #
-# Cadence: every 2h on schedule (matches THRESHOLD_H) + after each auto-update
-# completes (so a recovery run can close the stale issue promptly).
+# Cadence: schedule only (every 2h). No workflow_run — fewer GitHub-hosted
+# minutes; stale issue may stay open up to ~2h after recovery.
 
 on:
   schedule:
-    # Every 2 hours at :17 UTC (was every 30 min — too noisy vs 2h threshold)
+    # Every 2 hours at :17 UTC
     - cron: '17 */2 * * *'
   workflow_dispatch:
-  # Fire after auto-update finishes so we can auto-close the issue without waiting
-  # for the next schedule tick
-  workflow_run:
-    workflows: ["Auto Update Inventory"]
-    types: [completed]
 
 permissions:
   issues: write   # open/close issues
   actions: read   # list workflow runs
 
-# schedule + workflow_run overlap: cancel the older run
 concurrency:
   group: heartbeat
   cancel-in-progress: true
