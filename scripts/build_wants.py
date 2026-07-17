@@ -29,7 +29,7 @@ from build_common import (  # noqa: E402
     ScryfallClient,
     base_from_cached,
     base_from_card,
-    bump_cache_buster,
+    bump_all_caches,
     load_previous_enrichment,
     load_site_config,
     payload_unchanged,
@@ -327,19 +327,15 @@ def main() -> int:
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
 
-    # 静态资源 cache buster（独立运行 build_wants 时也能刷新 app.js/style.css/mtg-ui.js）
-    for static_file in ("app.js", "style.css", "mtg-ui.js"):
-        p = ROOT / "assets" / static_file
-        if p.exists():
-            bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())
-
     # 先写前端内嵌 JS（即使 JSON 无变化也写，防 JS 被误删后不重建）
     OUT_JS.parent.mkdir(parents=True, exist_ok=True)
     compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     js_bytes = f"window.__MTG_WANTS__={compact};\n".encode()
     OUT_JS.write_bytes(js_bytes)
-    # cache buster 基于剔除 generated_at 的稳定内容，避免每小时时间戳变化导致 ?v= 抖动
-    bump_cache_buster(ROOT / "index.html", "wants-data.js", stable_payload_bytes(payload, "window.__MTG_WANTS__"))
+
+    # cache buster：root index.html + admin/index.html 都 bump（共享静态资源 + 数据文件）
+    # 基于剔除 generated_at 的稳定内容，避免每小时时间戳变化导致 ?v= 抖动
+    bump_all_caches("wants-data.js", stable_payload_bytes(payload, "window.__MTG_WANTS__"))
 
     if payload_unchanged(OUT_JSON, payload):
         print(f"数据无变化，跳过写入 {OUT_JSON}")

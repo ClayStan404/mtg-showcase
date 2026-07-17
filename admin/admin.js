@@ -9,7 +9,7 @@
 (function () {
   "use strict";
 
-  const $ = (s, r = document) => r.querySelector(s);
+  // $ 由 mtg-ui.js 全局提供（admin.html 先于本文件加载 mtg-ui.js），不在此重复定义。
   const LANG_TOK = { e: "en", z: "zhs", j: "ja", o: "other" };
   const LANG_LABEL = { en: "英文", zhs: "简中", ja: "日文", other: "其他" };
   const SCRYFALL_LANG = { en: "en", zhs: "zhs", ja: "ja", other: "en" };
@@ -218,6 +218,9 @@
   async function bulkUpsert(rows, view) {
     const c = await MTGSupabase.getClient();
     const table = view === "want" ? "wants" : "inventory";
+    // onConflict 列必须与 DB unique index 完全一致（见 SUPABASE_MIGRATION_PLAN.md 第 4 节
+    // inventory_uniq / wants_uniq），否则 upsert 走不到合并、直接报唯一约束冲突。
+    // 改 index 时这里也要同步。
     const conflict = view === "want"
       ? "buyer_id,set_code,number,lang,foil,must,price,note"
       : "seller_id,set_code,number,lang,foil,price,note";

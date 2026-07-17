@@ -31,19 +31,49 @@ USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
 
 
 def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> None:
-    """用内容 md5 前 8 位更新 index.html 里 assets/<asset_filename>?v=... 的版本号。
+    """用内容 md5 前 8 位更新 html 里 <asset_filename>?v=... 的版本号。
 
-    让自动部署的 cards-data.js / wants-data.js 内容变化即自动击穿浏览器缓存，
-    无需手动 bump index.html 里的 ?v=N。app.js / style.css 也由 build 脚本统一 bump。
+    正则 path-agnostic（匹配 `assets/x.js?v=`、`/admin/admin.js?v=`、
+    `/assets/vendor/y.min.js?v=` 等），所以同一文件名在 root index.html 和
+    admin/index.html 都能 bump。cards-data.js / wants-data.js 内容变化即自动
+    击穿浏览器缓存，无需手动改 ?v=N。app.js / style.css 等也统一 bump。
     """
     if not html_path.exists():
         return
     digest = hashlib.md5(content).hexdigest()[:8]
     text = html_path.read_text(encoding="utf-8")
-    pattern = re.compile(rf"(assets/{re.escape(asset_filename)}\?v=)[^\"'\s]+")
+    pattern = re.compile(rf"({re.escape(asset_filename)}\?v=)[^\"'\s]+")
     new_text, n = pattern.subn(rf"\g<1>{digest}", text)
     if n and new_text != text:
         html_path.write_text(new_text, encoding="utf-8")
+
+
+# root index.html + admin/index.html 共享引用的静态资源（?v= 需在两处同步 bump，
+# 否则 admin 页用旧缓存——review 指出 admin/index.html 的 ?v=0 不在原 bump 范围内）
+_STATIC_CACHE_ASSETS = [
+    ("app.js", "assets/app.js"),
+    ("style.css", "assets/style.css"),
+    ("mtg-ui.js", "assets/mtg-ui.js"),
+    ("supabase-client.js", "assets/supabase-client.js"),
+    ("supabase-js.min.js", "assets/vendor/supabase-js.min.js"),
+    ("admin.js", "admin/admin.js"),
+    ("admin.css", "admin/admin.css"),
+]
+_HTML_CACHE_TARGETS = [ROOT / "index.html", ROOT / "admin" / "index.html"]
+
+
+def bump_all_caches(data_filename: str, data_content: bytes) -> None:
+    """Bump ?v= for all shared static assets + the data file (cards-data.js /
+    wants-data.js) in BOTH index.html and admin/index.html. Content-hash based：
+    未改动的 asset 保持原 ?v=（不无谓击穿），改动的换新 hash。"""
+    for name, rel in _STATIC_CACHE_ASSETS:
+        path = ROOT / rel
+        if path.exists():
+            content = path.read_bytes()
+            for html in _HTML_CACHE_TARGETS:
+                bump_cache_buster(html, name, content)
+    for html in _HTML_CACHE_TARGETS:
+        bump_cache_buster(html, data_filename, data_content)
 
 
 def stable_payload_bytes(payload: dict[str, Any], var_name: str) -> bytes:
