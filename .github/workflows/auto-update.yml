@@ -60,7 +60,7 @@ jobs:
 
       - name: Verify Python deps
         # 预检 runner apt 装的依赖；包丢失则早失败，避免半途 ImportError
-        run: python3 -c "import requests, openpyxl; print('deps ok')"
+        run: python3 -c "import requests; print('deps ok')"
 
       - name: Lint & test
         # 代码变更时跑 ruff + pytest（数据更新 cron 不跑，省时）

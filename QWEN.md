@@ -8,79 +8,70 @@ Static **Magic: The Gathering buylist + sell list** website for multiple sellers
 - **Repo**: https://github.com/ClayStan404/mtg-showcase
 - **Branch**: `master` (source-only; generated artifacts never committed)
 - **Deploy**: GitHub Pages (CNAME -> `claystan.cc`), workflow mode (`build_type: workflow`)
-- **Automation**: GitHub Actions self-hosted runner — `push` / hourly cron / manual trigger -> fetch from WPS cloud docs -> parse -> Scryfall enrichment -> assemble Pages artifact -> deploy
+- **Automation**: GitHub Actions self-hosted runner - `push` / hourly cron / manual trigger (admin "立即发布" -> Edge Function -> `workflow_dispatch`) -> export from Supabase -> parse -> Scryfall enrichment -> assemble Pages artifact -> deploy
+- **Data source**: **Supabase** (Tokyo) - sellers/buyers manage data via the admin SPA at `/admin/`; the static site is rebuilt hourly from Supabase.
 
 ## Tech Stack
 
-- **Frontend**: Vanilla HTML / CSS / JS (no framework, no build step) — `index.html` + `assets/app.js` + `assets/style.css`
+- **Frontend**: Vanilla HTML / CSS / JS (no framework, no build step) - `index.html` + `assets/mtg-ui.js` (shared display layer) + `assets/app.js` (main-site shell) + `assets/style.css`; admin at `admin/index.html` + `admin/admin.js` + `admin/admin.css`
 - **Data**: `assets/cards-data.js` (`window.__MTG_DATA__` inlined) + `assets/wants-data.js` (`window.__MTG_WANTS__`), same-source as `data/cards.json` / `data/wants.json`
-- **Backend scripts**: Python 3 (`requests` + `openpyxl`) — parse WPS Excel -> fetch Scryfall metadata -> generate site data
+- **Backend**: Supabase (Postgres + Auth + Edge Functions) - `profiles` / `inventory` / `wants` tables with RLS; `publish` Edge Function triggers deploy
+- **Supabase client**: vendored `assets/vendor/supabase-js.min.js` (esbuild IIFE, exposes `window.supabase.createClient`); `assets/supabase-client.js` wraps it (lazy-load on main site, `hasLocalSession` localStorage probe)
+- **Build scripts**: Python 3 (`requests`) - export Supabase -> txt -> fetch Scryfall metadata -> generate site data
 - **Automation**: GitHub Actions + self-hosted runner, hourly cron + push trigger
-- **Data source**: WPS/Kingsoft Docs collaborative spreadsheets (one for inventory, one for wants), downloaded via share link + session Cookie
 
 ## Architecture / Data Flow
 
 ### Automated pipeline (GitHub Actions, hourly)
 
 ```
-WPS inventory doc (share link) -> fetch_wps_share.py -> wps_inventory.xlsx
-WPS wants doc (share link)     -> fetch_wps_share.py -> wps_wants.xlsx
-  ↓
-parse_wps_excel.py        -> inventory/*.txt
-parse_wps_wants_excel.py  -> wants/*.txt
-  ↓
-build_data.py             -> data/cards.json + assets/cards-data.js
-build_wants.py            -> data/wants.json + assets/wants-data.js
-  ↓
-assemble site/ (+CNAME +robots.txt +og-image.png) -> upload-pages-artifact -> deploy-pages
+admin SPA (sellers/buyers write) ──> Supabase (profiles + inventory + wants)
+                                     │   hourly cron / "立即发布" (Edge Function -> workflow_dispatch)
+                                     ▼
+                  export_inventory_to_txt.py  -> inventory/{uid}.txt
+                  export_wants_to_txt.py       -> wants/{uid}.txt
+                                     ▼
+                  build_data.py   -> data/cards.json + assets/cards-data.js
+                  build_wants.py  -> data/wants.json + assets/wants-data.js
+                                     ▼
+                  assemble site/ (+admin/ +CNAME +robots.txt +og-image.png) -> upload-pages-artifact -> deploy-pages
 ```
 
-### ClayStan's personal workflow (data goes through WPS, no local deploy)
+The static site is **not real-time** - it reads `cards.json` / `wants.json` rebuilt on each deploy. Admin edits land on the main site only after the next build (hourly cron or "立即发布"). This is intentional (read/write separation: buyers read fast from static CDN, sellers write to Supabase).
 
-```
-claystan.txt (handwritten, Excel column order: set number lang foil qty)
-  ↓  txt_to_wps_xlsx.py  -> claystan.xlsx (WPS template format)
-  ↓  manually upload to WPS inventory doc
-  ↓  next workflow run auto-syncs (or gh workflow run for immediate trigger)
-```
+### Read/write separation
 
-`claystan.txt` is for personal editing only — **not part of the automated pipeline**. Run `txt_to_wps_xlsx.py` to generate an xlsx, upload it to the WPS doc, and the next workflow run syncs it. **All data goes live via WPS + Actions; there is no local-to-production path.**
-
-### Other sellers/buyers
-
-Edit directly in the WPS collaborative spreadsheet — no local setup needed.
+- **Write (slow OK)**: admin SPA -> Supabase (RLS owner-only).
+- **Read (fast)**: buyers read static `cards.json` on GitHub Pages.
+- **Publish**: admin "立即发布" -> `publish` Edge Function (`verify_jwt=true`) -> `workflow_dispatch` -> export+build+deploy (~1 min). 60s frontend throttle prevents queuing multiple runs.
 
 ## Key Directories
 
 | Path | Purpose |
 |------|---------|
 | `scripts/` | Python scripts (see table below) |
-| `.github/workflows/` | GitHub Actions workflows (`auto-update.yml` deploy + `heartbeat.yml` monitoring) |
-| `inventory/` | Seller inventory txt files (generated by `parse_wps_excel.py`, git-ignored) |
-| `wants/` | Want list txt files (generated by `parse_wps_wants_excel.py`, git-ignored) |
-| `data/` | `cards.json` / `wants.json` — enriched data (git-ignored) |
-| `assets/` | Frontend: `app.js`, `style.css` (source) + `cards-data.js`, `wants-data.js` (generated, git-ignored) + `favicon.svg`, `og-image.png` (social sharing) |
-| `templates/` | WPS collaboration template xlsx files |
-| `tests/` | `test_inventory_format.py` — unit tests for core parsing functions (pytest) |
+| `admin/` | Admin SPA: `index.html` + `admin.js` + `admin.css` (in git, `cp -r admin site/admin` on deploy) |
+| `.github/workflows/` | `auto-update.yml` (deploy) + `heartbeat.yml` (monitoring) |
+| `inventory/` | Seller inventory txt (generated by `export_inventory_to_txt.py`, git-ignored) |
+| `wants/` | Want list txt (generated by `export_wants_to_txt.py`, git-ignored) |
+| `data/` | `cards.json` / `wants.json` - enriched data (git-ignored) |
+| `assets/` | Frontend: `mtg-ui.js`, `app.js`, `supabase-client.js`, `style.css` (source) + `cards-data.js`, `wants-data.js` (generated, git-ignored) + `vendor/supabase-js.min.js` (vendored) + `favicon.svg`, `og-image.png` |
+| `tests/` | `test_inventory_format.py`, `test_export_format.py`, `test_build_common.py` (pytest) |
 | `pyproject.toml` | ruff + pytest config |
-| `requirements-dev.txt` | Dev dependencies: `ruff` + `pytest` |
-| `robots.txt` | Search engine crawler directives (copied to site/ on deploy) |
+| `requirements.txt` | `requests` (runtime); `requirements-dev.txt` adds `ruff` + `pytest` |
 | `.cache/scryfall/` | Scryfall API response cache (git-ignored, persisted on runner workspace) |
 
 ### Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `fetch_wps_share.py` | Download xlsx from WPS share link (Cookie auth, 3 retries with backoff) |
-| `parse_wps_excel.py` | WPS inventory xlsx -> `inventory/*.txt` |
-| `parse_wps_wants_excel.py` | WPS wants xlsx -> `wants/*.txt` (extra "must" column) |
-| `parse_excel_order_txt.py` | Handwritten txt (Excel column order) -> `inventory/*.txt` |
-| `txt_to_wps_xlsx.py` | `claystan.txt` -> WPS template-format xlsx (for upload) |
+| `export_inventory_to_txt.py` | Supabase (service_role) -> `inventory/{uid}.txt` per seller (auto meta header from profiles; skips incomplete profiles; fatal on 0 sellers) |
+| `export_wants_to_txt.py` | Supabase -> `wants/{uid}.txt` per buyer (writes `# buyer:` header; empty wants is non-fatal) |
+| `export_common.py` | Shared: `fetch_all` (paginated REST), `load_supabase_url`, `profile_complete`, `format_meta_header(role)`, `write_txt` |
 | `build_data.py` | `inventory/*.txt` -> Scryfall enrichment -> `data/cards.json` + `assets/cards-data.js` |
 | `build_wants.py` | `wants/*.txt` -> Scryfall enrichment -> `data/wants.json` + `assets/wants-data.js` |
-| `inventory_format.py` | Shared field conventions: lang/foil/qty normalization, slugify, ParseError, validate_meta |
-| `build_common.py` | Shared by build_data/build_wants: ScryfallClient, base_from_cached/base_from_card, bump_cache_buster, payload_unchanged, load_site_config (decoupled) |
-| `wps_excel_common.py` | Shared by parse_wps_*: sheet skip rules, meta/header lookup, workbook traversal, file writing with conflict detection |
+| `inventory_format.py` | Shared field conventions: `card_line_to_fields` / `want_line_to_fields` (positional + `#` note + price), lang/foil/qty/price normalization, `note_hash`, `slugify`, `ParseError`, `validate_meta` |
+| `build_common.py` | Shared by build_data/build_wants: `ScryfallClient`, `base_from_cached`/`base_from_card`, `bump_all_caches` (bumps `?v=` in both index.html + admin/index.html), `payload_unchanged`, `load_site_config` |
 
 ## Build & Run
 
@@ -92,38 +83,24 @@ pip install -r requirements.txt
 # ── Automation (GitHub Actions runs hourly; manual trigger) ──
 gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
 
-# ── ClayStan personal update (data via WPS, no local deploy) ──
-# 1. Edit claystan.txt
-# 2. Generate WPS-format xlsx
-python3 scripts/txt_to_wps_xlsx.py claystan.txt
-# 3. Open WPS inventory doc, update ClayStan sheet with claystan.xlsx content
-# 4. (Optional) Trigger immediate deploy:
-gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
+# ── Export from Supabase to txt (needs service_role key) ──
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/export_inventory_to_txt.py
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/export_wants_to_txt.py
 
 # ── Manual step-by-step (debugging) ──
-# Download xlsx
-python3 scripts/fetch_wps_share.py --share-id cgyl3WizNfp7 --output wps_inventory.xlsx
-python3 scripts/fetch_wps_share.py --share-id cvvaN21e3gm8 --output wps_wants.xlsx
-# Parse
-python3 scripts/parse_wps_excel.py wps_inventory.xlsx
-python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
-# Scryfall enrichment
-python3 scripts/build_data.py
+python3 scripts/build_data.py --validate-only   # parse only, no network
+python3 scripts/build_data.py --no-cache         # ignore .cache/scryfall
+python3 scripts/build_data.py                    # full (Scryfall enrichment)
 python3 scripts/build_wants.py
-# Artifacts are git-ignored; preview locally with python3 -m http.server
 
-# ── Tests + lint (requires pip install -r requirements-dev.txt) ──
+# ── Tests + lint ──
 pip install -r requirements-dev.txt
 python3 -m pytest tests/ -q
 ruff check scripts/ tests/
 ```
 
-Local preview: open `index.html` in a browser, or run `python3 -m http.server` and visit `localhost:8000`.
+Local preview: `python3 -m http.server` and visit `localhost:8000`. Admin at `localhost:8000/admin/` (requires a logged-in Supabase session; redirects to `/` if none).
 
-## Self-Hosted Runner
-
-Access details (machine alias, runner directory, cookie refresh) live in the
-private `config_rc` repo at `infra/mtg-showcase/runner-access.md`.
 ## Conventions
 
 ### Field shorthand
@@ -131,71 +108,82 @@ private `config_rc` repo at `infra/mtg-showcase/runner-access.md`.
 | Field | Rule |
 |-------|------|
 | Language | `e`=English · `z`=Chinese · `j`=Japanese · `o`=Other (displays as "其他"; empty defaults to `e`) |
-| Foil | empty or `0`=non-foil · `1`=foil |
-| Quantity | empty=1; multiples use `2x` prefix |
-| Must (wants) | empty/`0`=any printing OK · `1`=must be this printing (empty defaults to `0`) |
+| Foil | `0`=non-foil · `1`=foil |
+| Quantity | empty=1 |
+| Price | empty/`0`=market (市价) · `>0`=fixed price per card |
+| Must (wants) | empty/`0`=any printing OK · `1`=must be this printing |
 
-- Sold out? **Delete the row** — don't write `0`
-- Same card + same printing + same language on one line, merged by quantity
-- Inventory txt header: `# seller: / # city: / # contact:`
-- Wants txt header: `# buyer: / # city: / # contact:`
-- **`seller`/`buyer`, `city`, `contact` are required** — scripts exit with error if missing
-- `parse_excel_order_txt.py` input uses Excel column order: `set number lang foil qty` (positional, different from inventory txt format)
+### txt line format (positional + `#` note)
+
+```
+inventory: set number lang foil [qty] [price] [# note]
+wants:     set number lang foil [qty] [must] [price] [# note]
+```
+
+- Space-separated, trailing fields optional; middle fields (lang/foil) can't be skipped.
+- `#` to end-of-line = note (can contain spaces, no `#`); line-leading `#` is meta/comment.
+- Same card different price/note = independent entries (上架两次); unique index includes price+note.
+- Sold out? **Delete the row** (admin delete) - don't write `0`.
+- Inventory txt header: `# seller: / # city: / # contact:`; Wants: `# buyer: / # city: / # contact:` (written by export from profiles).
+- **`seller`/`buyer`, `city`, `contact` are required** - `validate_meta` exits if missing; in the new flow they come from `profiles` (admin "资料" form), not hand-written.
 
 ### Frontend conventions
 
-- No build tooling / no npm — pure static files, push to master triggers workflow deploy
-- Card data inlined in `assets/cards-data.js` (`window.__MTG_DATA__`), loaded via `<script>` tag
-- Wishlist stored in `localStorage` (key: `mtg-wishlist-v1`)
-- All DOM queries in `app.js` use `$()` shorthand; rendering via `innerHTML` template strings
-- HTML escaping: `escapeHtml()` / `escapeAttr()` for all user-controlled content (`escapeHtml` escapes single quotes as `&#39;`)
-- CSP meta (`script-src 'self'`, inline `onerror` replaced with `addEventListener` via `bindImgErrors`) + OG/Twitter share cards (`og-image.png` 1200x630) + `favicon.svg` + `<noscript>` fallback
-- `style.css` has `prefers-reduced-motion` fallback (including `scroll-behavior`); card list pagination (`PAGE_SIZE=60`, "load more" appends incrementally without DOM rebuild); footer shows "last updated" time
-- Accessibility: modal/cart open adds `inert` to background; focus save/restore (`_lastFocus`); `role="tablist"/"tab"` + `aria-selected`
-- Security: `setHrefSafe()` validates `http(s)://` to prevent `javascript:` injection; image load failure shows "图加载失败" (image load failed) via CSS `.img-failed::after`
-- Data field: `image_lang` (actual image language; when different from `lang`, modal shows a "图:英文" (image: English) label)
-- Image resolution: card grid uses `normal` (488×680) priority, modal uses `large`; **never downgrade to `small` (146×204) for bandwidth** - it upscales blurry on retina. This is a hard constraint (c7739ea once reverted it for "performance" and was rolled back).
-- Wants view also has `lang` / `foil` filters (same as inventory view)
+- No build tooling / no npm - pure static files, push to master triggers workflow deploy.
+- Shared display layer `assets/mtg-ui.js` (extracted from app.js): `state`, `filters`, `cardHtml`, `matches`, `renderGrid`, `loadMore`, filter UI, `decorateCards(card, el)` hook. Main site `app.js` = shell (cart, modal, login, data loading, view tabs); `admin/admin.js` overrides `cardHtml` (admin version with price + edit/delete buttons) + adds CRUD/batch/import/publish.
+- Card data inlined in `assets/cards-data.js` (`window.__MTG_DATA__`), loaded via `<script>` tag; fallback `fetch data/cards.json`.
+- Wishlist in `localStorage` key `mtg-wishlist-v2` (bumped from v1 because card_id now includes price+note_hash).
+- HTML escaping: `escapeHtml()` for all user-controlled content in `innerHTML` template strings (escapes `& < > " '`).
+- CSP: main site `script-src 'self'; connect-src 'self' https://*.supabase.co`; admin adds `https://api.scryfall.io` (Scryfall preview). Inline handlers replaced with `addEventListener` (`bindImgErrors`).
+- `style.css` has `prefers-reduced-motion`; pagination (`PAGE_SIZE=60`, "load more" appends incrementally); footer "last updated".
+- Accessibility: modal/cart open adds `inert` to background; focus save/restore; `role="tablist"/"tab"` + `aria-selected`.
+- `setHrefSafe()` validates `http(s)://` to prevent `javascript:` injection; image load failure shows "图加载失败" via CSS `.img-failed::after`.
+- `image_lang` (actual image language; when different from `lang`, modal shows "图:英文" label).
+- Image resolution: card grid uses `normal` (488×680) priority, modal uses `large`; **never downgrade to `small` for bandwidth** - upscales blurry on retina (hard constraint, c7739ea once reverted and was rolled back).
+- **price display (option B)**: `price=0` shows no flag (market is default); `price>0` shows `¥X.XX` gold flag (cardHtml) / tag (modal).
 
 ### Python script conventions
 
-- Shared modules: `scripts/inventory_format.py` (lang/foil/qty normalization, slugify, ParseError, `validate_meta()`) + `scripts/build_common.py` (`ScryfallClient`, `base_from_cached` / `base_from_card`, `bump_cache_buster`, `payload_unchanged`, `load_site_config` — enrichment/cache/payload utilities) + `scripts/wps_excel_common.py` (sheet skip / meta / header lookup / file writing with conflict detection)
-- `REQUEST_GAP`, `CACHE_TTL`, `bump_cache_buster` and other constants/functions are defined in `build_common.py` (not in `build_data.py`)
-- Scryfall rate-limited (`REQUEST_GAP = 0.12s`) with disk cache (`.cache/scryfall/`, `CACHE_TTL = 30 days`); 429 respects `Retry-After` header; 404 (invalid set/number) and mtgch negative results also cached via sentinel files (TTL-bound), so they aren't refetched every deploy
-- Both `build_data.py` / `build_wants.py` have two-layer incremental caching (reuse enriched data from existing JSON + Scryfall disk cache); workflow uses `clean: false` to preserve these on the runner workspace
-- `parse_all_inventories` / `parse_all_wants` also merge across files by card_id/wid (same seller/buyer split across sheets/txt deduped, quantity summed); wants `note` concatenated via `;` to align with Excel-side `merge_wants`
-- `build_data.py --validate-only` — parse only, no network (for PR validation)
-- `build_data.py --no-cache` — disable disk cache
-- `fetch_wps_share.py` has 3 retries + 5s/10s backoff; Cookie lookup order: project root `wps_cookies.txt` -> `~/.config/wps_cookies.txt` -> env var `WPS_COOKIES` (fallback)
-- `normalize_qty` strict mode rejects non-integer floats (e.g. `1.9`); non-strict falls back to 1 (no silent truncation)
-- Workflow sanity check: error card ratio > 20% aborts deploy and triggers issue notification
+- Shared modules: `inventory_format.py` (parsers + normalization + `note_hash` + `validate_meta`) + `build_common.py` (`ScryfallClient`, enrichment, `bump_all_caches`, payload utils) + `export_common.py` (Supabase REST + `write_txt`).
+- `REQUEST_GAP = 0.12s`, `CACHE_TTL = 30 days` (`.cache/scryfall/`); 429 respects `Retry-After`; 404 + mtgch negative results cached via sentinel files.
+- Two-layer incremental caching (reuse enriched JSON + Scryfall disk cache); workflow `clean: false` preserves these.
+- `parse_all_inventories` / `parse_all_wants` merge across files by `card_id`/`wid` (which include price + note_hash); same price+note merges quantity, different price/note stays independent.
+- `build_data.py --validate-only` (parse only, no network) / `--no-cache`.
+- `normalize_qty` strict mode rejects non-integer floats; non-strict falls back to 1.
+- Workflow sanity check: error card ratio > 20% aborts deploy.
 
 ## site_config.json
 
-Site-level config: title, subtitle, WPS document URLs, contact info. Read by `build_common.py`'s `load_site_config()`; both `build_data.py` and `build_wants.py` embed it into their JSON's `site` field for frontend rendering. The workflow also reads WPS share IDs from here (single source of truth, not hardcoded in workflow).
+Site-level config: `title`, `subtitle`, `supabase_url`, `supabase_anon_key` (public, embedded into `cards.json` `site` field for frontend + admin). Read by `build_common.py`'s `load_site_config()`.
+
+## Supabase
+
+- Project `rkvtizboyikrjowfogoc` (Tokyo, `ap-northeast-1`). URL `https://rkvtizboyikrjowfogoc.supabase.co`.
+- Tables: `profiles` (id -> auth.users, seller_name/city/contact, partial unique on `lower(seller_name) where <> ''`), `inventory` (seller_id + price + note, unique index includes price+note), `wants` (buyer_id + must + price + note). All RLS owner-only.
+- `publish` Edge Function (`verify_jwt=true`, explicit CORS `ALLOWED_ORIGIN` env, no `publish_log`) triggers `workflow_dispatch`.
+- Keys: `anon` (public, in site_config) + `service_role` (secret, GitHub Actions secret `SUPABASE_SERVICE_ROLE_KEY` + local env, never frontend).
+- See `SUPABASE_MIGRATION_PLAN.md` for the full migration design + history.
 
 ## Git & Deploy
 
-- Branch `master` holds source only — **generated artifacts are never committed**; deploy via GitHub Actions (workflow mode, `build_type: workflow`)
-- **GitHub Actions**: `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch` -> fetch from WPS -> generate artifacts -> assemble `site/` (including `CNAME` / `robots.txt` / `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`. Setup/runbook: `docs/runner-cron.md`
-- **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within the last 2h; if stale, opens/comments on an issue; auto-closes when recovered (GitHub doesn't notify on skipped cron runs); a concurrency group prevents schedule + workflow_run overlap from creating duplicate issues
-- **Hermes bot integration** (separate from this repo): the hermes agent (on a separate host) runs A deploy-alerting (cron, complements heartbeat) / B card-query (skill) / C daily-broadcast (cron) over the TG/微信/QQ bots. See private `config_rc` repo (`infra/mtg-showcase/hermes-integration.md`).
-- Artifacts: `inventory/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/*.txt` are all intermediate/generated products, not committed
-- Frontend CSS/JS cache busting (`?v=N`): `cards-data.js` / `wants-data.js` / `app.js` / `style.css` are all auto-bumped by `build_common.py`'s `bump_cache_buster` using content hash; bumping only happens in the deploy artifact, never written back to master
-- `.gitignore`: `.venv/`, `.cache/`, `__pycache__/`, WPS lock files (`**/.~*`), `wps_cookies.txt`, `*.xlsx` (`!templates/*.xlsx` preserves templates), `site/`, `.qwen/`, `.claude/`, plus generated products `inventory/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`, `wants/`
+- Branch `master` holds source only - **generated artifacts are never committed**; deploy via GitHub Actions (workflow mode).
+- **GitHub Actions**: `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch` (manual or admin "立即发布") -> export from Supabase -> generate artifacts -> assemble `site/` (incl `admin/` + `CNAME` + `robots.txt` + `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`. Setup/runbook: private `config_rc` repo (`infra/mtg-showcase/runner-cron.md`).
+- **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within 2h; if stale, opens/comments on an issue; auto-closes on recovery.
+- **Hermes bot integration** (separate repo): deploy-alerting cron + card-query skill + daily-broadcast over TG/微信/QQ bots. See private `config_rc` repo.
+- Artifacts (git-ignored): `inventory/*.txt`, `wants/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`.
+- Cache busting (`?v=N`): `bump_all_caches` (content hash) bumps `app.js` / `style.css` / `mtg-ui.js` / `supabase-client.js` / `vendor/supabase-js.min.js` / `admin.js` / `admin.css` / `cards-data.js` / `wants-data.js` in **both** `index.html` and `admin/index.html`; only in the deploy artifact, never written back to master.
+- `.gitignore`: `.venv/`, `.cache/`, `__pycache__/`, `**/.~*`, `site/`, `.qwen/`, `.claude/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`.
+- `paths-ignore`: doc-only changes (`CLAUDE.md`, `QWEN.md`, `README.md`, `SUPABASE_MIGRATION_PLAN.md`, `tests/**`, etc.) don't trigger deploy.
+- Global rule: commit messages and PR descriptions in English. Don't `git commit` / `git push` unless explicitly asked.
 
 ### auto-update workflow steps
 
-- `timeout-minutes: 30` — prevents hung processes from locking the runner
-- Verify Python deps — pre-checks `import requests, openpyxl`; fails early if missing
-- Lint & test (push only) — `ruff check` + `pytest` (skipped on cron to save time)
-- Read WPS share IDs from `site_config.json` — single source, not hardcoded in workflow
-- Sanity check enrichment — error card ratio > 20% aborts deploy
-- Issue notification via Python `urllib.request` (no longer curl + JSON string concatenation)
-
-## WPS Share IDs
-
-| Document | Share ID | Link |
-|----------|----------|------|
-| Inventory | `cgyl3WizNfp7` | https://www.kdocs.cn/l/cgyl3WizNfp7 |
-| Wants | `cvvaN21e3gm8` | https://www.kdocs.cn/l/cvvaN21e3gm8 |
+- `timeout-minutes: 30`.
+- Verify Python deps - `import requests`.
+- Lint & test (push only) - `ruff check` + `pytest`.
+- Export inventory / wants from Supabase (`SUPABASE_SERVICE_ROLE_KEY` secret).
+- Clean stale Scryfall cache (>60d unused).
+- Build data / build wants (Scryfall enrichment).
+- Sanity check - error ratio > 20% aborts.
+- Assemble site (`cp -r admin site/admin`), configure/upload/deploy Pages.
+- Notify on failure (Supabase/GH_PAT messaging) / close issue on success.

@@ -6,11 +6,11 @@
 - **仓库**：https://github.com/ClayStan404/mtg-showcase
 - **分支**：`master`
 
-**不做站内下单/支付。** 库存以 WPS 协作文档为准，网站为展示与沟通辅助。
+**不做站内下单/支付。** 库存/求购由卖家/买家在 admin 后台管理（Supabase 后端），网站为展示与沟通辅助。
 
 卖家/买家使用说明已内嵌在网站上（首页「使用说明」折叠面板）。
 
-GitHub Actions 每小时自动同步：self-hosted runner 从 WPS 分享链接下载最新 xlsx → 解析 → Scryfall 富化 → 部署到 claystan.cc。另有 heartbeat workflow 每 30min 检查部署新鲜度，超 2h 无成功部署自动开 issue 告警。
+GitHub Actions 每小时自动同步：self-hosted runner 从 Supabase 导出库存/求购 → 解析 → Scryfall 富化 → 部署到 claystan.cc。另有 heartbeat workflow 每 30min 检查部署新鲜度，超 2h 无成功部署自动开 issue 告警。
 
 ---
 

@@ -38,23 +38,17 @@ from inventory_format import (  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY_DIR = ROOT / "inventory"
-DEFAULT_INVENTORY_FILE = ROOT / "inventory.txt"  # 兼容旧单文件
 DEFAULT_OUTPUT = ROOT / "data" / "cards.json"
 
 
-def discover_inventory_files(inventory_dir: Path, legacy_file: Path) -> list[Path]:
-    files: list[Path] = []
-    if inventory_dir.is_dir():
-        files = sorted(
-            p
-            for p in inventory_dir.glob("*.txt")
-            if p.is_file() and not p.name.startswith("_")
-        )
-    if files:
-        return files
-    if legacy_file.is_file():
-        return [legacy_file]
-    return []
+def discover_inventory_files(inventory_dir: Path) -> list[Path]:
+    if not inventory_dir.is_dir():
+        return []
+    return sorted(
+        p
+        for p in inventory_dir.glob("*.txt")
+        if p.is_file() and not p.name.startswith("_")
+    )
 
 
 def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
@@ -126,11 +120,11 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
     return list(merged.values())
 
 
-def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[str, Any]]:
-    files = discover_inventory_files(inventory_dir, legacy_file)
+def parse_all_inventories(inventory_dir: Path) -> list[dict[str, Any]]:
+    files = discover_inventory_files(inventory_dir)
     if not files:
         raise FileNotFoundError(
-            f"未找到库存文件。请在 {inventory_dir}/ 下添加 *.txt，或提供 {legacy_file.name}"
+            f"未找到库存文件。请在 {inventory_dir}/ 下添加 *.txt（由 export_inventory_to_txt.py 生成）"
         )
 
     all_entries: list[dict[str, Any]] = []
@@ -309,12 +303,6 @@ def main() -> int:
         default=DEFAULT_INVENTORY_DIR,
         help="库存目录（默认 inventory/，读取其中 *.txt）",
     )
-    parser.add_argument(
-        "--legacy-file",
-        type=Path,
-        default=DEFAULT_INVENTORY_FILE,
-        help="兼容旧的单文件 inventory.txt",
-    )
     parser.add_argument("-o", "--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--no-cache", action="store_true", help="禁用 Scryfall 磁盘缓存")
     parser.add_argument(
@@ -326,7 +314,7 @@ def main() -> int:
 
     print("读取库存…")
     try:
-        entries = parse_all_inventories(args.inventory_dir, args.legacy_file)
+        entries = parse_all_inventories(args.inventory_dir)
     except FileNotFoundError as e:
         print(e, file=sys.stderr)
         return 1

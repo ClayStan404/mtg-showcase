@@ -4,15 +4,8 @@ __pycache__/
 .DS_Store
 .cache/
 
-# WPS Cookie / 生成的 xlsx（保留 templates/ 模板）
-wps_cookies.txt
-*.xlsx
-!templates/*.xlsx
-
-# wants/*.txt 是中间产物（parse_wps_wants_excel 生成，不入库）
-wants/
-
 # 生成产物（部署时由 workflow 现场生成，不入库；master 只放源码）
+wants/
 inventory/
 data/cards.json
 data/wants.json
@@ -22,7 +15,7 @@ assets/wants-data.js
 # workflow assemble 生成的站点目录（本地调试会产生）
 site/
 
-# WPS / Office lock files
+# Office lock files
 **/.~*
 
 # 本地 AI 工具目录（Qwen Code / Claude Code 等，不入库）

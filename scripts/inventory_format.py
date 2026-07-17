@@ -6,7 +6,6 @@ from __future__ import annotations
 import hashlib
 import math
 import re
-from collections import OrderedDict
 from typing import Any
 
 # 表格 / 用户输入 → 内部 lang 码（展示与 Scryfall）
@@ -266,20 +265,3 @@ def want_line_to_fields(line: str) -> tuple[str, str, str, bool, int, bool, floa
     must = normalize_strict(parts[5]) if len(parts) > 5 else False
     price = normalize_price(parts[6]) if len(parts) > 6 else 0.0
     return set_code, number, lang, foil, qty, must, price, note
-
-
-def merge_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """【legacy，WPS 残留脚本专用】按 set|number|lang|foil 合并同卡同印刷，数量累加。
-
-    不含 price/note（与新 build 内联合并 key 语义不同）。新流程不调用本函数
-    （build_data/build_wants 用各自的 inline 合并 key，含 price+note_hash）。
-    仅供 parse_wps_excel / txt_to_wps_xlsx 等 WPS 残留脚本用，WPS 退役后随删。
-    """
-    merged: OrderedDict[str, dict[str, Any]] = OrderedDict()
-    for c in cards:
-        key = f"{c['set']}|{c['number']}|{c['lang']}|{'f' if c['foil'] else 'nf'}"
-        if key in merged:
-            merged[key]["quantity"] += c["quantity"]
-        else:
-            merged[key] = dict(c)
-    return list(merged.values())
