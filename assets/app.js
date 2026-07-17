@@ -751,20 +751,6 @@ async function loadJsonFallback(urls, check) {
   throw lastErr || new Error("无法加载数据");
 }
 
-/** Scheme C: public Storage snapshot base from site config (or derived). */
-function siteDataBaseUrl() {
-  const site =
-    (window.__MTG_DATA__ && window.__MTG_DATA__.site) ||
-    (window.__MTG_WANTS__ && window.__MTG_WANTS__.site) ||
-    (window.MTGSupabase && window.MTGSupabase.site) ||
-    {};
-  if (site.data_base_url) return String(site.data_base_url).replace(/\/$/, "");
-  const sb = (site.supabase_url || "").replace(/\/$/, "");
-  if (!sb) return "";
-  const bucket = site.data_bucket || "site-data";
-  return `${sb}/storage/v1/object/public/${bucket}`;
-}
-
 /**
  * Prefer live Storage snapshot (updated without full Pages deploy).
  * Fall back to inlined cards-data.js / local data/*.json if Storage is empty or fails.
@@ -775,7 +761,9 @@ async function loadCatalog(kind) {
   const listKey = isSell ? "cards" : "wants";
   const check = (d) => d && Array.isArray(d[listKey]);
   const bust = Date.now();
-  const base = siteDataBaseUrl();
+  const base =
+    (window.MTGSupabase && typeof MTGSupabase.dataBaseUrl === "function" && MTGSupabase.dataBaseUrl()) ||
+    "";
   const urls = [];
   if (base) urls.push(`${base}/${file}?v=${bust}`);
   urls.push(`data/${file}?v=${bust}`, `data/${file}`);

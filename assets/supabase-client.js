@@ -7,7 +7,7 @@
  *   /assets/vendor/supabase-js.min.js，纯看牌买家首屏零成本。
  * admin：admin.html 直接 <script> include vendor，getClient() 命中 window.supabase 立即返回。
  *
- * 暴露 window.MTGSupabase = { site, getClient, getSession, requireUser, signOut }。
+ * 暴露 window.MTGSupabase = { site, dataBaseUrl, getClient, getSession, requireUser, signOut, hasLocalSession }。
  */
 (function () {
   "use strict";
@@ -19,6 +19,18 @@
 
   let _client = null;
   let _vendorPromise = null;
+
+  /**
+   * Public Storage snapshot base (scheme C).
+   * Prefer site.data_base_url; else derive from supabase_url + data_bucket.
+   */
+  function dataBaseUrl() {
+    if (SITE.data_base_url) return String(SITE.data_base_url).replace(/\/$/, "");
+    const sb = (SITE.supabase_url || "").replace(/\/$/, "");
+    if (!sb) return "";
+    const bucket = SITE.data_bucket || "site-data";
+    return `${sb}/storage/v1/object/public/${bucket}`;
+  }
 
   function loadVendor() {
     if (window.supabase && typeof window.supabase.createClient === "function") {
@@ -82,5 +94,13 @@
     }
   }
 
-  window.MTGSupabase = { site: SITE, getClient, getSession, requireUser, signOut, hasLocalSession };
+  window.MTGSupabase = {
+    site: SITE,
+    dataBaseUrl,
+    getClient,
+    getSession,
+    requireUser,
+    signOut,
+    hasLocalSession,
+  };
 })();

@@ -116,11 +116,9 @@
   /** Prefer live Storage snapshot for richer join after scheme-C publishes. */
   async function refreshDisplayIndexFromLive() {
     try {
-      const site = (window.MTGSupabase && MTGSupabase.site) || {};
-      let base = (site.data_base_url || "").replace(/\/$/, "");
-      if (!base && site.supabase_url) {
-        base = `${String(site.supabase_url).replace(/\/$/, "")}/storage/v1/object/public/${site.data_bucket || "site-data"}`;
-      }
+      const base =
+        (window.MTGSupabase && typeof MTGSupabase.dataBaseUrl === "function" && MTGSupabase.dataBaseUrl()) ||
+        "";
       if (!base) return;
       const r = await fetch(`${base}/cards.json?v=${Date.now()}`, { cache: "no-store" });
       if (!r.ok) return;
@@ -314,29 +312,32 @@
 
   /**
    * Trigger data-only publish (export + Scryfall build + Storage upload).
-   * @param {{ quiet?: boolean }} opts quiet=true: no toast on success (auto-sync)
+   * @param {{ auto?: boolean }} opts
+   *   auto=true: triggered by scheduleAutoSync — suppress guard/error toasts and
+   *   button "同步中…" chrome; still toast once on success so the seller knows
+   *   a build was queued. Does NOT mean fully silent.
    */
   async function publish(opts) {
-    const quiet = !!(opts && opts.quiet);
+    const auto = !!(opts && opts.auto);
     // 防御：按钮被 guard 禁用时点不到，但防控制台/竞态直接调 publish
     if (!profileIsComplete(profile)) {
-      if (!quiet) showToast("请先在「资料」补全昵称/城市/联系");
+      if (!auto) showToast("请先在「资料」补全昵称/城市/联系");
       return false;
     }
     const now = Date.now();
     if (now < publishCooldownUntil) {
-      if (!quiet) {
+      if (!auto) {
         showToast(`请稍候，${Math.ceil((publishCooldownUntil - now) / 1000)}s 后可再次同步`);
       }
       return false;
     }
     const session = await MTGSupabase.getSession();
     if (!session) {
-      if (!quiet) showToast("未登录");
+      if (!auto) showToast("未登录");
       return false;
     }
     const btn = $("#publish-btn");
-    if (btn && !quiet) {
+    if (btn && !auto) {
       btn.disabled = true;
       btn.textContent = "同步中…";
     }
@@ -353,24 +354,38 @@
         const j = await r.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${r.status}`);
       }
-      if (!quiet) showToast("已触发同步，约 1 分钟后主站列表更新");
-      else showToast("已排队同步主站列表");
+      showToast(
+        auto
+          ? "已排队同步主站列表"
+          : "已触发同步，约 1 分钟后主站列表更新"
+      );
       setPublishCooldown(60); // 成功才节流
       return true;
     } catch (e) {
-      if (!quiet) showToast("同步失败：" + e.message);
+      if (!auto) showToast("同步失败：" + e.message);
       updatePublishGuard();
       return false;
     }
   }
 
-  /** After inventory/wants writes: debounce one data-only sync (batch-friendly). */
+  /**
+   * After inventory/wants writes: debounce one data-only sync (batch-friendly).
+   * Must not fire during publish cooldown, or the last save would be silently
+   * dropped until hourly cron. Delay = max(debounce, remaining cooldown + slack);
+   * re-check on fire in case a manual sync extended the cooldown.
+   */
   function scheduleAutoSync() {
     if (!profileIsComplete(profile)) return;
     clearTimeout(autoSyncTimer);
+    const cooldownLeft = Math.max(0, publishCooldownUntil - Date.now());
+    const delay = Math.max(AUTO_SYNC_DEBOUNCE_MS, cooldownLeft + 250);
     autoSyncTimer = setTimeout(() => {
-      publish({ quiet: true }).catch(() => {});
-    }, AUTO_SYNC_DEBOUNCE_MS);
+      if (Date.now() < publishCooldownUntil) {
+        scheduleAutoSync(); // still cooling (e.g. manual sync just fired) — retry later
+        return;
+      }
+      publish({ auto: true }).catch(() => {});
+    }, delay);
   }
 
   // ---------- 视图切换 ----------
