@@ -111,6 +111,7 @@
   function rowToCard(row, view) {
     const k = `${row.set_code}|${row.number}|${row.lang}`;
     const d = displayIndex.get(k) || {};
+    const hasImg = !!(d.image && (d.image.normal || d.image.small));
     const base = {
       id: row.id,
       set: row.set_code, number: row.number, lang: row.lang, foil: row.foil,
@@ -121,6 +122,7 @@
       types: d.types || [], mana_cost: d.mana_cost || "", cmc: d.cmc || 0, text: d.text || "",
       lang_label: LANG_LABEL[row.lang] || row.lang, scryfall_uri: d.scryfall_uri || "",
       _row: row,
+      _needsImage: !hasImg, // join 不到图（新加、还没 build）-> 实时 Scryfall 兜底
     };
     if (view === "sell") {
       base.seller = (profile && profile.seller_name) || "";
@@ -137,7 +139,7 @@
   function adminCardHtml(c) {
     const isWant = state.view === "want";
     const price = Number(c.price) || 0;
-    const priceStr = price > 0 ? `¥${price.toFixed(2)}` : "市价";
+    const priceBadge = price > 0 ? `<span class="card-price">¥${escapeHtml(price.toFixed(2))}</span>` : "";
     const name = c.name_en || c.name_zh || `${(c.set || "").toUpperCase()} #${c.number}`;
     const img = (c.image && (c.image.normal || c.image.small)) || PLACEHOLDER_IMG;
     const flags = [
@@ -148,7 +150,7 @@
     return `<div class="card" data-id="${escapeHtml(c.id)}">
       <div class="card-media">
         <div class="card-img-wrap"><img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" loading="lazy" decoding="async" /></div>
-        <span class="card-price">${escapeHtml(priceStr)}</span>
+        ${priceBadge}
       </div>
       <div class="card-body">
         <p class="card-name">${escapeHtml(name)}</p>
@@ -161,6 +163,30 @@
         </div>
       </div>
     </div>`;
+  }
+
+  // 实时 Scryfall 兜底：join 不到图/名的卡（刚加、还没 build）渲染后异步拉图 + 名。
+  // 由 mtg-ui 的 decorateCards（renderGrid / loadMore 后调用）触发；admin 注册此 hook。
+  function adminDecorateCard(card, el) {
+    if (!card._needsImage) return;
+    const img = el.querySelector("img");
+    if (!img || img.dataset.sfFetched === "1") return;
+    img.dataset.sfFetched = "1"; // 防重入（重渲染同一张不重复拉）
+    const slang = SCRYFALL_LANG[card.lang] || "en";
+    fetch(`https://api.scryfall.io/cards/${encodeURIComponent(card.set)}/${encodeURIComponent(card.number)}/${slang}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!j) return;
+        const url = j.image_uris && (j.image_uris.normal || j.image_uris.small);
+        if (url) img.src = url;
+        const name = j.name || "";
+        if (name) {
+          img.alt = name;
+          const nameEl = el.querySelector(".card-name");
+          if (nameEl) nameEl.textContent = name;
+        }
+      })
+      .catch(() => {});
   }
 
   // ---------- Supabase 读写 ----------
@@ -627,6 +653,8 @@
 
     // override 全局 cardHtml（admin 版）
     cardHtml = adminCardHtml;
+    // 注册 decorateCard：渲染后给 join 不到图的新加拉 Scryfall 图 + 名
+    window.decorateCard = adminDecorateCard;
 
     if (typeof mountFilters === "function") mountFilters();
     bindEvents();
