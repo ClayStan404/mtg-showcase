@@ -8,42 +8,39 @@ Static **Magic: The Gathering buylist + sell list** website for multiple sellers
 - **Repo**: https://github.com/ClayStan404/mtg-showcase
 - **Branch**: `master` (source-only; generated artifacts never committed)
 - **Deploy**: GitHub Pages (CNAME -> `claystan.cc`), workflow mode (`build_type: workflow`)
-- **Automation**: GitHub Actions self-hosted runner - `push` / hourly cron / manual trigger (admin "立即发布" -> Edge Function -> `workflow_dispatch`) -> export from Supabase -> parse -> Scryfall enrichment -> assemble Pages artifact -> deploy
-- **Data source**: **Supabase** (Tokyo) - sellers/buyers manage data via the admin SPA at `/admin/`; the static site is rebuilt hourly from Supabase.
+- **Automation**: GitHub Actions self-hosted runner — `push` (full Pages) / hourly cron / admin sync (`mode=data`) → export Supabase → Scryfall+mtgch enrich → Storage snapshot (+ Pages on full)
+- **Data source**: **Supabase** (Tokyo) — admin SPA at `/admin/`; public lists from Storage snapshots (not live DB reads)
 
 ## Tech Stack
 
-- **Frontend**: Vanilla HTML / CSS / JS (no framework, no build step) - `index.html` + `assets/mtg-ui.js` (shared display layer) + `assets/app.js` (main-site shell) + `assets/style.css`; admin at `admin/index.html` + `admin/admin.js` + `admin/admin.css`
-- **Data**: `assets/cards-data.js` (`window.__MTG_DATA__` inlined) + `assets/wants-data.js` (`window.__MTG_WANTS__`), same-source as `data/cards.json` / `data/wants.json`
-- **Backend**: Supabase (Postgres + Auth + Edge Functions) - `profiles` / `inventory` / `wants` tables with RLS; `publish` Edge Function triggers deploy
-- **Supabase client**: vendored `assets/vendor/supabase-js.min.js` (esbuild IIFE, exposes `window.supabase.createClient`); `assets/supabase-client.js` wraps it (lazy-load on main site, `hasLocalSession` localStorage probe)
-- **Build scripts**: Python 3 (`requests`) - export Supabase -> txt -> fetch Scryfall metadata -> generate site data
-- **Automation**: GitHub Actions + self-hosted runner, hourly cron + push trigger
+- **Frontend**: Vanilla HTML/CSS/JS — `index.html` + `assets/mtg-ui.js` + `assets/app.js` + `assets/style.css`; admin `admin/*`. Header: brand left / account top-right.
+- **Data**: Storage `site-data/cards.json` + `wants.json` (primary); inlined `assets/*-data.js` fallback; same shape as `data/*.json` build outputs
+- **Backend**: Supabase (Postgres + Auth + Edge Functions + Storage) — RLS; `publish` EF; public bucket `site-data`
+- **Supabase client**: vendored `supabase-js.min.js` + `supabase-client.js` (`dataBaseUrl()`, lazy load on main site)
+- **Build**: Python 3 (`requests`) — export → enrich (`build_common.ScryfallClient`, `image_cdn`, zhs art) → upload
+- **Automation**: self-hosted runner + heartbeat on `ubuntu-latest`
 
 ## Architecture / Data Flow
 
-### Automated pipeline (GitHub Actions, hourly)
+### Automated pipeline
 
 ```
-admin SPA (sellers/buyers write) ──> Supabase (profiles + inventory + wants)
-                                     │   hourly cron / "立即发布" (Edge Function -> workflow_dispatch)
-                                     ▼
-                  export_inventory_to_txt.py  -> inventory/{uid}.txt
-                  export_wants_to_txt.py       -> wants/{uid}.txt
-                                     ▼
-                  build_data.py   -> data/cards.json + assets/cards-data.js
-                  build_wants.py  -> data/wants.json + assets/wants-data.js
-                                     ▼
-                  assemble site/ (+admin/ +CNAME +robots.txt +og-image.png) -> upload-pages-artifact -> deploy-pages
+admin SPA ──> Supabase (profiles + inventory + wants)
+                 │  ~45s debounce / 「立即同步」 / hourly / push
+                 ▼
+          export → build (Scryfall + mtgch) → cards.json / wants.json
+                 │
+    mode=data: upload_site_data.py → Storage site-data/   ← main site fetch
+    mode=full / push: also assemble site/ → deploy-pages
 ```
 
-**Scheme C (near-live lists, not DB-direct reads):** inventory writes still go to Supabase; public lists are **Storage snapshots** (`site-data/cards.json`, `wants.json`) rebuilt by the workflow (`mode=data`: export + Scryfall + upload, **skip Pages**). Admin debounces auto-sync ~45s after saves; "立即同步" / hourly cron / push still work. Main site fetches Storage first, falls back to inlined JS. Full Pages deploy only on `push` or `mode=full`. Buyers do **not** hit Postgres for the card grid.
+**Scheme C:** writes are real-time to Supabase; public reads are snapshot JSON. Sync rebuilds the **full** catalog (disk cache speeds Scryfall), not single-card patches. Buyers never hit Postgres for the grid.
 
 ### Read/write separation
 
-- **Write (slow OK)**: admin SPA -> Supabase (RLS owner-only).
-- **Read (fast)**: buyers read static `cards.json` on GitHub Pages.
-- **Publish / sync**: admin save debounce ~45s or "立即同步" -> `publish` Edge Function (`verify_jwt=true`, body `{mode:"data"}`) -> `workflow_dispatch` -> export+build+`upload_site_data.py` (~1 min). 60s frontend throttle. `mode=full` or `push master` also deploys Pages.
+- **Write**: admin → Supabase (RLS).
+- **Read**: Storage CDN JSON + image hotlinks (`cards.scryfall.io` and/or `images.mtgch.com` per `site_config.image_cdn` + zhs art rules).
+- **Sync**: auto debounce ~45s or 「立即同步」 → `publish` `{mode:"data"}` → export+build+upload (~1 min). `mode=full` / push deploys shell.
 
 ## Key Directories
 
