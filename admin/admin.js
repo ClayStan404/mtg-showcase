@@ -287,7 +287,7 @@
       return;
     } catch (e) {
       showToast("发布失败：" + e.message);
-      if (btn) { btn.disabled = false; btn.textContent = "立即发布"; } // 失败立即恢复可重试
+      updatePublishGuard(); // 失败恢复统一走 guard（未成功不进 cooldown，disabled=!ok；与成功/到期路径一致）
     }
   }
 
