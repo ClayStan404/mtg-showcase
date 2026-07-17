@@ -38,7 +38,7 @@
 | 立即同步 / 自动同步 | 全量 export + 重建快照并上传 Storage（**不是**只更新一张卡；Scryfall 磁盘缓存会加速） |
 | 改前端代码 | `push master` → 整站 Pages 部署 |
 
-监控：`heartbeat.yml` **每小时**检查同步新鲜度（仅 schedule）；超过约 2 小时无成功构建会开 issue，恢复后关 issue 最多延迟约 1 小时。云端约 720 分钟/月，一般在私有库免费额度内。
+监控：`heartbeat.yml` **每小时**检查（仅 schedule）：auto-update 超过约 **2h** 无成功、或 db-backup 超过约 **36h** 无成功时各开独立 issue；恢复后关 issue 最多延迟约 1 小时。云端约 720 分钟/月，一般在私有库免费额度内。
 
 ---
 
@@ -84,7 +84,8 @@ SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py --no-upload
 ```
 
 - 定时：GitHub Actions `db-backup.yml`（每天一次，**self-hosted**，不占云端分钟）
-- 恢复表数据：`scripts/restore_supabase_backup.py`（**不会**自动重建登录密码，需重邀用户或自行处理 Auth）
+- 监控：`heartbeat.yml` 除 auto-update 外，还会检查 **db-backup** 最近成功是否超过约 **36h**（独立 issue）
+- 恢复表数据：`scripts/restore_supabase_backup.py`（**默认 dry-run**，需 `--apply` 才写入；按 PK upsert，**不删除**备份里没有的行；**不会**自动重建登录密码）
 - 更省事的平台备份：升 Supabase Pro（每日备份 / 可选 PITR）
 
 ---

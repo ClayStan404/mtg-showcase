@@ -15,6 +15,14 @@ What is NOT included
   - Storage objects other than what you upload here
   - Secrets / JWT private keys
 
+Consistency note
+  Tables are fetched sequentially with offset pagination (same as export).
+  Concurrent writes during the dump can yield a cross-table snapshot that is
+  not perfectly FK-consistent (e.g. inventory row for a profile created mid-
+  backup). At our scale the window is short; acceptable for logical recovery.
+  True transactional snapshots would need Postgres-level tools (pg_dump /
+  Pro PITR), not REST.
+
 Usage
   SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/backup_supabase.py
   SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/backup_supabase.py --no-upload
@@ -27,7 +35,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import tarfile
 import time
@@ -38,7 +45,7 @@ from typing import Any
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from export_common import fetch_all, load_supabase_url  # noqa: E402
+from export_common import fetch_all, load_supabase_url, require_service_role_key  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKUP_ROOT = ROOT / "backups"
@@ -53,11 +60,41 @@ TABLES: list[tuple[str, str]] = [
 ]
 
 
-def _key() -> str:
-    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
-    if not k:
-        sys.exit("FATAL: SUPABASE_SERVICE_ROLE_KEY not set")
-    return k
+def auth_users_page_batch(data: Any) -> list[dict[str, Any]] | None:
+    """Normalize one Auth Admin API page body to a list of user dicts.
+
+    Returns:
+      - list of dicts (possibly empty) when payload is understood
+      - None when the payload shape is unexpected (caller should stop)
+    """
+    batch = data.get("users") if isinstance(data, dict) else data
+    if batch is None:
+        return []
+    if not isinstance(batch, list):
+        return None
+    out: list[dict[str, Any]] = []
+    for u in batch:
+        if isinstance(u, dict):
+            out.append(u)
+    return out
+
+
+def slim_auth_user(u: dict[str, Any]) -> dict[str, Any]:
+    """Keep inventory-restore-relevant fields only (no passwords / tokens)."""
+    return {
+        "id": u.get("id"),
+        "email": u.get("email"),
+        "phone": u.get("phone"),
+        "created_at": u.get("created_at"),
+        "updated_at": u.get("updated_at"),
+        "last_sign_in_at": u.get("last_sign_in_at"),
+        "email_confirmed_at": u.get("email_confirmed_at"),
+        "banned_until": u.get("banned_until"),
+        "role": u.get("role"),
+        "app_metadata": u.get("app_metadata") or {},
+        # user_metadata is user-editable; kept for nickname recovery only
+        "user_metadata": u.get("user_metadata") or {},
+    }
 
 
 def fetch_auth_users(supabase_url: str, key: str) -> list[dict[str, Any]]:
@@ -81,34 +118,13 @@ def fetch_auth_users(supabase_url: str, key: str) -> list[dict[str, Any]]:
             print("⚠ Auth Admin users endpoint 404 — skip auth_users")
             return []
         r.raise_for_status()
-        data = r.json()
-        # API may return {"users": [...]} or a bare list depending on version
-        batch = data.get("users") if isinstance(data, dict) else data
+        batch = auth_users_page_batch(r.json())
+        if batch is None:
+            print("⚠ unexpected auth users payload type")
+            break
         if not batch:
             break
-        if not isinstance(batch, list):
-            print(f"⚠ unexpected auth users payload type: {type(batch)}")
-            break
-        # Drop heavy / sensitive-ish fields we do not need for inventory restore
-        for u in batch:
-            if not isinstance(u, dict):
-                continue
-            users.append(
-                {
-                    "id": u.get("id"),
-                    "email": u.get("email"),
-                    "phone": u.get("phone"),
-                    "created_at": u.get("created_at"),
-                    "updated_at": u.get("updated_at"),
-                    "last_sign_in_at": u.get("last_sign_in_at"),
-                    "email_confirmed_at": u.get("email_confirmed_at"),
-                    "banned_until": u.get("banned_until"),
-                    "role": u.get("role"),
-                    "app_metadata": u.get("app_metadata") or {},
-                    # user_metadata is user-editable; kept for nickname recovery only
-                    "user_metadata": u.get("user_metadata") or {},
-                }
-            )
+        users.extend(slim_auth_user(u) for u in batch)
         if len(batch) < per_page:
             break
         page += 1
@@ -185,18 +201,43 @@ def delete_remote(supabase_url: str, key: str, object_path: str) -> None:
         print(f"deleted remote {object_path}")
 
 
-def prune_local(keep: int) -> None:
-    if keep <= 0:
-        return
-    archives = sorted(
-        BACKUP_ROOT.glob("supabase-*.tar.gz"),
-        key=lambda p: p.stat().st_mtime,
+def local_archives_newest_first(paths: list[Path]) -> list[Path]:
+    """Sort local backup archives newest-first by mtime (then name)."""
+    return sorted(
+        paths,
+        key=lambda p: (p.stat().st_mtime, p.name),
         reverse=True,
     )
+
+
+def remote_archives_newest_first(objs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Filter .tar.gz Storage objects and sort newest-first.
+
+    Prefer updated_at, then created_at. Missing timestamps sort as oldest so
+    undated objects are pruned first (do not use `name` as a time proxy —
+    lexicographic names can outrank real ISO timestamps).
+    """
+    files = [
+        o
+        for o in objs
+        if isinstance(o, dict) and str(o.get("name") or "").endswith(".tar.gz")
+    ]
+    files.sort(
+        key=lambda o: str(o.get("updated_at") or o.get("created_at") or ""),
+        reverse=True,
+    )
+    return files
+
+
+def prune_local(keep: int, backup_root: Path | None = None) -> None:
+    if keep <= 0:
+        return
+    root = backup_root if backup_root is not None else BACKUP_ROOT
+    archives = local_archives_newest_first(list(root.glob("supabase-*.tar.gz")))
     for old in archives[keep:]:
         old.unlink(missing_ok=True)
         # remove matching unpacked dir if present
-        d = BACKUP_ROOT / old.name.replace(".tar.gz", "")
+        d = root / old.name.replace(".tar.gz", "")
         if d.is_dir():
             for f in d.iterdir():
                 f.unlink(missing_ok=True)
@@ -208,17 +249,7 @@ def prune_remote(supabase_url: str, key: str, keep: int) -> None:
     if keep <= 0:
         return
     objs = list_remote_objects(supabase_url, key, prefix="")
-    # Storage list returns name, created_at, updated_at, ...
-    files = [
-        o
-        for o in objs
-        if isinstance(o, dict)
-        and str(o.get("name") or "").endswith(".tar.gz")
-    ]
-    files.sort(
-        key=lambda o: str(o.get("updated_at") or o.get("created_at") or o.get("name")),
-        reverse=True,
-    )
+    files = remote_archives_newest_first(objs)
     for o in files[keep:]:
         name = str(o.get("name") or "")
         if name:
@@ -232,7 +263,7 @@ def run_backup(
     keep_remote: int,
     keep_unpacked: bool,
 ) -> Path:
-    key = _key()
+    key = require_service_role_key()
     url = load_supabase_url()
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out_dir = BACKUP_ROOT / f"supabase-{ts}"

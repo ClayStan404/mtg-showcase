@@ -1,12 +1,16 @@
 name: Heartbeat
 
-# Independent "is the site still updating?" alarm. GitHub does not notify on
-# skipped crons; if the self-hosted runner is offline, auto-update fails silently.
-# This workflow runs on GitHub-hosted runners (does not need self-hosted).
+# Independent "is the site still updating / backing up?" alarm. GitHub does not
+# notify on skipped crons; if the self-hosted runner is offline, auto-update and
+# db-backup fail silently. This workflow runs on GitHub-hosted runners.
 #
 # Cadence: schedule only (hourly). No workflow_run — ~24×~1min GitHub-hosted
 # runs/day ≈ 720 min/month, under free private quota (2000). Stale-issue
 # auto-close may lag up to ~1h after recovery.
+#
+# Checks:
+#   - auto-update.yml last success older than 2h  → deploy issue
+#   - db-backup.yml   last success older than 36h → backup issue
 
 on:
   schedule:
@@ -27,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check auto-update freshness
+      - name: Check auto-update and db-backup freshness
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -40,53 +44,103 @@ jobs:
 
           repo = os.environ["REPO"]
           token = os.environ["GH_TOKEN"]
-          headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
-          TITLE = "Auto-update stale（可能 runner 离线）"
-          THRESHOLD_H = 2
+          headers = {
+              "Authorization": f"token {token}",
+              "Accept": "application/vnd.github+json",
+          }
+
+          # Independent monitors: different thresholds and issue titles so
+          # recovering deploy does not silence a still-stale backup (and vice versa).
+          CHECKS = [
+              {
+                  "workflow": "auto-update.yml",
+                  "title": "Auto-update stale（可能 runner 离线）",
+                  "threshold_h": 2,
+                  "body": (
+                      "auto-update 已 {age} 无成功部署。可能原因：self-hosted runner 离线 / "
+                      "SUPABASE_SERVICE_ROLE_KEY 失效 / Scryfall/mtgch 不可达 / 构建失败。"
+                      "请检查 runner 与最近的失败 run。"
+                  ),
+              },
+              {
+                  "workflow": "db-backup.yml",
+                  "title": "DB backup stale（每日备份可能漏跑）",
+                  "threshold_h": 36,
+                  "body": (
+                      "db-backup 已 {age} 无成功备份。可能原因：self-hosted runner 离线 / "
+                      "SUPABASE_SERVICE_ROLE_KEY 失效 / Storage 桶 db-backups 权限或配额问题。"
+                      "请检查 runner 与最近的 db-backup 失败 run；远程备份默认只保留约 30 天。"
+                  ),
+              },
+          ]
 
           def api(method, url, data=None):
               body = json.dumps(data).encode() if data is not None else None
               req = urllib.request.Request(url, data=body, headers=headers, method=method)
               return json.load(urllib.request.urlopen(req, timeout=15))
 
-          url = (
-              f"https://api.github.com/repos/{repo}/actions/workflows/"
-              f"auto-update.yml/runs?status=completed&conclusion=success&per_page=1"
-          )
-          runs = api("GET", url).get("workflow_runs", [])
-          now = datetime.now(timezone.utc)
-          if not runs:
-              stale, age = True, "无成功记录"
-          else:
+          def last_success_age(workflow: str):
+              url = (
+                  f"https://api.github.com/repos/{repo}/actions/workflows/"
+                  f"{workflow}/runs?status=completed&conclusion=success&per_page=1"
+              )
+              runs = api("GET", url).get("workflow_runs", [])
+              now = datetime.now(timezone.utc)
+              if not runs:
+                  return True, "无成功记录", now
               updated = datetime.fromisoformat(runs[0]["updated_at"].replace("Z", "+00:00"))
               age_h = (now - updated).total_seconds() / 3600
-              stale, age = age_h > THRESHOLD_H, f"{age_h:.1f}h"
-          print(f"auto-update 最近成功 run 距今 {age}; stale={stale}")
+              return age_h, f"{age_h:.1f}h", now
 
-          issues = api("GET", f"https://api.github.com/repos/{repo}/issues?state=open&per_page=100")
-          existing = next((i for i in issues if i.get("title") == TITLE), None)
+          issues = api(
+              "GET", f"https://api.github.com/repos/{repo}/issues?state=open&per_page=100"
+          )
 
-          if stale:
-              body = (
-                  f"auto-update 已 {age} 无成功部署。可能原因：self-hosted runner 离线 / "
-                  f"SUPABASE_SERVICE_ROLE_KEY 失效 / Scryfall/mtgch 不可达 / 构建失败。"
-                  f"请检查 runner 与最近的失败 run。"
+          for chk in CHECKS:
+              age_h, age, now = last_success_age(chk["workflow"])
+              if isinstance(age_h, bool):
+                  stale = age_h  # True when no success runs
+              else:
+                  stale = age_h > chk["threshold_h"]
+              print(
+                  f"{chk['workflow']} 最近成功 run 距今 {age}; "
+                  f"threshold={chk['threshold_h']}h; stale={stale}"
               )
-              if existing:
-                  updated = datetime.fromisoformat(existing["updated_at"].replace("Z", "+00:00"))
-                  since_h = (now - updated).total_seconds() / 3600
-                  if since_h < 6:
-                      print(f"issue #{existing['number']} 最近 {since_h:.1f}h 已评论，跳过")
+
+              existing = next((i for i in issues if i.get("title") == chk["title"]), None)
+              body = chk["body"].format(age=age)
+
+              if stale:
+                  if existing:
+                      updated = datetime.fromisoformat(
+                          existing["updated_at"].replace("Z", "+00:00")
+                      )
+                      since_h = (now - updated).total_seconds() / 3600
+                      if since_h < 6:
+                          print(f"issue #{existing['number']} 最近 {since_h:.1f}h 已更新，跳过")
+                      else:
+                          api(
+                              "POST",
+                              f"https://api.github.com/repos/{repo}/issues/"
+                              f"{existing['number']}/comments",
+                              {"body": body},
+                          )
+                          print(f"已评论现有 issue #{existing['number']} ({chk['workflow']})")
                   else:
-                      api("POST", f"https://api.github.com/repos/{repo}/issues/{existing['number']}/comments", {"body": body})
-                      print(f"已评论现有 issue #{existing['number']}")
+                      api(
+                          "POST",
+                          f"https://api.github.com/repos/{repo}/issues",
+                          {"title": chk["title"], "body": body},
+                      )
+                      print(f"已创建新 issue ({chk['workflow']})")
               else:
-                  api("POST", f"https://api.github.com/repos/{repo}/issues", {"title": TITLE, "body": body})
-                  print("已创建新 issue")
-          else:
-              if existing:
-                  api("PATCH", f"https://api.github.com/repos/{repo}/issues/{existing['number']}", {"state": "closed"})
-                  print(f"已恢复，关闭 issue #{existing['number']}")
-              else:
-                  print("正常，无需操作")
+                  if existing:
+                      api(
+                          "PATCH",
+                          f"https://api.github.com/repos/{repo}/issues/{existing['number']}",
+                          {"state": "closed"},
+                      )
+                      print(f"已恢复，关闭 issue #{existing['number']} ({chk['workflow']})")
+                  else:
+                      print(f"{chk['workflow']} 正常，无需操作")
           PYEOF

@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
 """Restore app tables from a logical backup produced by backup_supabase.py.
 
-WARNING: This overwrites rows by primary key (upsert). It does not recreate
-Auth users with passwords — re-invite or set passwords manually after
-importing profiles.
+WARNING: Default mode is dry-run (prints row counts only). Pass --apply to
+write. Writes use PostgREST upsert by primary key
+(Prefer: resolution=merge-duplicates).
+
+Does NOT delete rows present in the live DB but absent from the backup.
+Restoring onto a non-empty database can leave residual rows. For a true
+table replace, truncate the tables first (or add a future --purge flag),
+then --apply. Empty-DB disaster recovery is unaffected by residual rows.
+
+Does NOT recreate Auth users with passwords — re-invite or set passwords
+manually after importing profiles.
 
 Usage
-  # From unpacked directory
-  SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/restore_supabase_backup.py backups/supabase-20260101T000000Z
-
-  # From tarball
+  # Dry-run (default): print counts only
   SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/restore_supabase_backup.py backups/supabase-20260101T000000Z.tar.gz
 
-  # Dry-run (print counts only)
-  SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/restore_supabase_backup.py path --dry-run
+  # Actually upsert
+  SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/restore_supabase_backup.py backups/supabase-20260101T000000Z --apply
+
+  # From unpacked directory
+  SUPABASE_SERVICE_ROLE_KEY=... python3 scripts/restore_supabase_backup.py backups/supabase-20260101T000000Z --apply
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import tarfile
 import tempfile
@@ -30,19 +37,12 @@ from typing import Any
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from export_common import load_supabase_url  # noqa: E402
+from export_common import load_supabase_url, require_service_role_key  # noqa: E402
 
 REQUEST_TIMEOUT = 60
 # Order: profiles first (FKs from inventory/wants)
 TABLES = ("profiles", "inventory", "wants")
 BATCH = 200
-
-
-def _key() -> str:
-    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
-    if not k:
-        sys.exit("FATAL: SUPABASE_SERVICE_ROLE_KEY not set")
-    return k
 
 
 def unpack_if_needed(path: Path) -> Path:
@@ -52,7 +52,13 @@ def unpack_if_needed(path: Path) -> Path:
         sys.exit(f"FATAL: need a backup dir or .tar.gz, got {path}")
     tmp = Path(tempfile.mkdtemp(prefix="mtg-restore-"))
     with tarfile.open(path, "r:gz") as tar:
-        tar.extractall(tmp)
+        # Explicit data filter: blocks path traversal; silences 3.12+ DeprecationWarning
+        # (3.14 defaults to data). Own tarballs are trusted but filter documents intent.
+        try:
+            tar.extractall(tmp, filter="data")
+        except TypeError:
+            # Python < 3.12 has no filter= kwarg
+            tar.extractall(tmp)
     # expect single top-level dir
     kids = [p for p in tmp.iterdir() if p.is_dir()]
     if len(kids) == 1:
@@ -103,9 +109,22 @@ def upsert_table(
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Restore mtg-showcase logical backup")
+    ap = argparse.ArgumentParser(
+        description=(
+            "Restore mtg-showcase logical backup (default: dry-run; pass --apply to write)"
+        )
+    )
     ap.add_argument("path", type=Path, help="backup directory or .tar.gz")
-    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--apply",
+        action="store_true",
+        help="Actually upsert rows (default is dry-run only)",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Explicit dry-run (default; kept for scripts that already pass it)",
+    )
     ap.add_argument(
         "--skip-auth-note",
         action="store_true",
@@ -113,16 +132,28 @@ def main() -> None:
     )
     args = ap.parse_args()
 
+    if args.apply and args.dry_run:
+        sys.exit("FATAL: pass either --apply or --dry-run, not both")
+
+    dry_run = not args.apply
+
     backup_dir = unpack_if_needed(args.path.resolve())
     manifest_path = backup_dir / "manifest.json"
     if manifest_path.is_file():
         print("manifest:", manifest_path.read_text(encoding="utf-8")[:400])
 
-    key = _key()
+    if dry_run:
+        print("mode: dry-run (no writes; pass --apply to upsert)")
+    else:
+        print(
+            "mode: APPLY — upsert by PK only; rows in DB but not in backup are NOT deleted"
+        )
+
+    key = require_service_role_key()
     url = load_supabase_url()
     for table in TABLES:
         rows = load_rows(backup_dir, table)
-        upsert_table(url, key, table, rows, dry_run=args.dry_run)
+        upsert_table(url, key, table, rows, dry_run=dry_run)
 
     auth_path = backup_dir / "auth_users.json"
     if auth_path.is_file() and not args.skip_auth_note:
@@ -132,7 +163,7 @@ def main() -> None:
             "Auth accounts/passwords. Re-invite users or restore Auth via Supabase "
             "support/Pro backup if needed; then re-link profiles by id."
         )
-    print("done" + (" (dry-run)" if args.dry_run else ""))
+    print("done" + (" (dry-run)" if dry_run else " (applied)"))
 
 
 if __name__ == "__main__":

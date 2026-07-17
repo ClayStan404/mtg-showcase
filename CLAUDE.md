@@ -86,7 +86,8 @@ SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/upload_site_data.py
 # Logical DB backup (daily: workflow db-backup.yml on self-hosted)
 SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py
 SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py --no-upload
-SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/restore_supabase_backup.py backups/supabase-XXXX.tar.gz --dry-run
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/restore_supabase_backup.py backups/supabase-XXXX.tar.gz
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/restore_supabase_backup.py backups/supabase-XXXX.tar.gz --apply
 
 pip install -r requirements-dev.txt
 python3 -m pytest tests/ -q
@@ -104,7 +105,7 @@ ruff check scripts/ tests/
 - Triggers: `push master` (full) / hourly runner cron (`mode=data` default) / admin sync / manual `workflow_dispatch`.
 - `paths-ignore` skips pure docs on some setups; code + `site_config` changes deploy.
 - Checkout `clean: false` keeps `.cache/scryfall` + previous `data/*.json`.
-- Heartbeat: `heartbeat.yml` **hourly** schedule only (GitHub-hosted; no `workflow_run`); opens issue if no success for >2h; recovery close may lag up to ~1h. ~720 min/mo hosted, under free private 2000.
+- Heartbeat: `heartbeat.yml` **hourly** schedule only (GitHub-hosted; no `workflow_run`); opens issue if **auto-update** last success >2h or **db-backup** last success >36h (separate issue titles); recovery close may lag up to ~1h. ~720 min/mo hosted, under free private 2000.
 - Hermes bots (private `config_rc`): deploy alerts + card query + broadcasts.
 - Cache bust `?v=` via `bump_all_caches` in deploy artifact only.
 - `.gitignore`: `site/`, `inventory/`, `wants/`, `backups/`, `data/cards.json`, `data/wants.json`, `assets/*-data.js`, `.cache/`, `.venv/`, etc.

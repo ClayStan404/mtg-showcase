@@ -14,6 +14,7 @@ txt 行格式见 SUPABASE_MIGRATION_PLAN.md 第 5 节（空格分隔 + # note）
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Callable
@@ -25,6 +26,14 @@ SITE_CONFIG = ROOT / "site_config.json"
 
 PAGE_SIZE = 1000  # Supabase REST 默认上限 1000，分页拉全量
 REQUEST_TIMEOUT = 30
+
+
+def require_service_role_key() -> str:
+    """Read SUPABASE_SERVICE_ROLE_KEY from the environment or exit fatally."""
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        sys.exit("FATAL: SUPABASE_SERVICE_ROLE_KEY not set")
+    return k
 
 
 def load_supabase_url() -> str:
