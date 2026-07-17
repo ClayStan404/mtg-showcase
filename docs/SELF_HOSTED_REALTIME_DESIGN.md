@@ -38,7 +38,7 @@ Non-goals:
 |-------|--------|
 | Public UI | Same vanilla SPA (or lightly adapted) served by Nginx |
 | Admin UI | Same admin SPA, talking to our API instead of Supabase JS |
-| API | Small HTTP service (prefer **Go** or **Python FastAPI**; language open) |
+| API | **Go** HTTP service (+ Go enrichment worker) |
 | Database | **Postgres 16** (same schema spirit as current Supabase tables) |
 | Auth | JWT sessions (Postgres `users` + bcrypt, or reverse-proxy OIDC later) |
 | Cache | Optional **Redis** or in-process TTL cache for hot list queries |
@@ -429,8 +429,9 @@ Rollback: point DNS back to Pages; Supabase still writable if dual-write not use
 4. **Images remain external hotlinks** — no self-hosted image bandwidth.  
 5. **No publish button for visibility** — DB commit is live; optional re-enrich only.  
 6. **Docker Compose single node first** — delay Kubernetes/microservices.  
-7. **Auth simplified invite-only JWT** — parity with current product; OIDC later if needed.  
-8. **Keep Scheme C as production until M6** — this design is additive; no forced rewrite of the live path before readiness.
+7. **Auth simplified invite-only JWT at launch** — open registration after stable.  
+8. **Keep Scheme C until self-hosted is ready, then big-bang to `mtg.claystan.cc`** — pre-launch so cutover cost is low; no dual-write.  
+9. **Go for API + worker** — port enrich from Python; Python stays for legacy Scheme C tools until retired.
 
 ---
 
@@ -440,41 +441,36 @@ Rollback: point DNS back to Pages; Supabase still writable if dual-write not use
 
 | # | Question | Decision |
 |---|----------|----------|
-| 3 | Domain | **`mtg.claystan.cc`** for the self-hosted product (API under same origin or `mtg.claystan.cc/api`). Apex `claystan.cc` may remain landing/legacy until cutover. |
+| 1 | API language | **Go** — API + worker as Go services; port enrichment rules from `build_common.py` (Python scripts remain for Scheme C / one-off tools until retired). |
+| 2 | Cutover | **Big-bang**. Product is **not multi-user live yet**, so freeze/dual-write pain is negligible: implement self-hosted path, import any existing Supabase rows once, launch on `mtg.claystan.cc`. Dual-write is explicitly out of scope. |
+| 3 | Domain | **`mtg.claystan.cc`** for the self-hosted product (UI + `/api` same host preferred). Apex `claystan.cc` may remain landing/legacy. |
 | 4 | Registration | **Invite-only at launch**; **open registration after the stack is stable**. |
 
 ### Still open
 
-1. **API language preference:** Go vs Python FastAPI — see comparison in §16.1 (no final pick yet).  
-2. **Cutover strategy:** big-bang vs dual-write — see §16.2 (design **default remains big-bang after dry-run import**).  
-5. **Timeline:** when realtime is a hard requirement vs keep optimizing Scheme C.
+5. **Timeline:** when to start PR1 vs keep shipping on Scheme C only.  
+6. **Enrichment worker placement:** in-process goroutine vs separate `worker` binary (Compose still runs one worker container either way).
 
-### 16.1 Go vs Python FastAPI (for implementers)
+### 16.1 Go vs Python FastAPI (reference; decided: Go)
 
-| Dimension | **Go** | **Python FastAPI** |
-|-----------|--------|---------------------|
+| Dimension | **Go (chosen)** | **Python FastAPI** |
+|-----------|-----------------|---------------------|
 | Performance / RAM | Excellent; small static binary, low idle RAM | Good enough at our QPS; higher baseline RAM |
-| Concurrency | Goroutines; great under many slow clients | Async works well; GIL less relevant for I/O-bound API |
-| Reuse of current code | Must **port** `build_common` enrich logic | Can **import/adapt** Python enrich scripts faster |
-| Ops | Single binary + migrate; simple deploy | Need venv/image layer; familiar if already Python-heavy |
-| Hiring / author familiarity | Depends on author | Matches this repo’s scripts/tests today |
-| Typing / API docs | Manual or codegen | OpenAPI free via FastAPI |
-| Worker + API in one language | Common | Natural (same process or shared package) |
-| Risk at 2000 DAU | Overkill-fast | Still fine |
+| Concurrency | Goroutines; great under many slow clients | Async works well for I/O-bound API |
+| Reuse of current code | **Port** enrich logic from `build_common.py` | Faster to wrap existing Python |
+| Ops | Single binary + migrate; simple deploy | venv/image layer |
+| API docs | chi/echo + OpenAPI codegen or hand routes | Free OpenAPI |
+| Fit | Long-lived VPS footprint | Fastest prototype if enrich reuse dominates |
 
-**Practical recommendation for this repo:** prefer **FastAPI first** if speed-to-parity with enrich/admin matters more than micro-efficiency; prefer **Go** if the goal is a long-lived minimal VPS footprint and you accept a one-time port of enrichment. Either meets scale targets in §4.
+**Decision:** Go for API and enrichment worker. Existing Python remains for current Scheme C pipeline and migration tooling until cutover.
 
-### 16.2 What “cutover strategy (question 2)” means
+### 16.2 Cutover strategy (decided: big-bang, low pain pre-launch)
 
-How traffic and writes move from **today (Supabase + Scheme C snapshots)** to **self-hosted API + Postgres**:
-
-| Strategy | How it works | Pros | Cons |
-|----------|--------------|------|------|
-| **Big-bang (default)** | Freeze writes on Supabase → export/import → point `mtg.claystan.cc` to new stack → sellers use new admin only | Simple; no dual-write bugs | Short downtime or write freeze; need solid backup/rollback |
-| **Dual-write** | For a period, every admin write hits **both** Supabase and new API; reads switch when ready | Safer gradual cutover | Complex; conflict resolution; longer maintenance |
-| **Read dual-run only** | Writes only new DB; keep Pages snapshot as fallback read | Partial | Still need one write cutover |
-
-**Default in this design:** big-bang after successful import dry-run + backup, with DNS rollback to Scheme C if needed within a freeze window.
+| Strategy | Status |
+|----------|--------|
+| **Big-bang** | **Chosen.** Pre-launch → no production dual-write. Import Supabase dump once if any data exists; DNS/`mtg.claystan.cc` goes live on the new stack. |
+| Dual-write | **Out of scope** (complexity not justified while not live). |
+| Scheme C | Remains the **current** path until self-hosted is ready; then retire snapshot publish for the product domain. |
 
 ---
 
@@ -488,10 +484,10 @@ Incremental PRs against a feature branch / new repo section `server/` (or monore
 
 ### PR1 — Scaffold & health
 
-- **Title:** `chore(server): Docker Compose skeleton (nginx, api, postgres)`  
-- **Affects:** `server/docker-compose.yml`, `server/api` hello world, `server/nginx.conf`, `.env.example`  
+- **Title:** `chore(server): Docker Compose skeleton (nginx, Go api, postgres)`  
+- **Affects:** `server/docker-compose.yml`, `server/api` (Go module) hello world, `server/nginx.conf`, `.env.example`  
 - **Depends on:** none  
-- **Description:** Bring-up local stack; `/api/v1/healthz` only.
+- **Description:** Bring-up local stack; `/api/v1/healthz` only. Go toolchain in Dockerfile multi-stage.
 
 ### PR2 — Schema & migrations
 
@@ -576,3 +572,4 @@ Incremental PRs against a feature branch / new repo section `server/` (or monore
 |------|--------|
 | 2026-07-17 | Initial design from recommended self-hosted paginated realtime architecture |
 | 2026-07-17 | Record domain `mtg.claystan.cc`, invite-then-open registration; expand Go vs FastAPI and cutover §16 |
+| 2026-07-17 | Decide **Go** API/worker; **big-bang** cutover (pre-launch, no dual-write) |
