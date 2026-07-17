@@ -81,6 +81,11 @@ python3 scripts/build_data.py --validate-only
 python3 scripts/build_data.py --no-cache
 SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/upload_site_data.py
 
+# Logical DB backup (daily: workflow db-backup.yml on self-hosted)
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py --no-upload
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/restore_supabase_backup.py backups/supabase-XXXX.tar.gz --dry-run
+
 pip install -r requirements-dev.txt
 python3 -m pytest tests/ -q
 ruff check scripts/ tests/
@@ -88,7 +93,7 @@ ruff check scripts/ tests/
 
 ## External dependencies
 
-- **Supabase** (Tokyo): project `rkvtizboyikrjowfogoc`. Tables `profiles` / `inventory` / `wants` + RLS. Secrets: `SUPABASE_SERVICE_ROLE_KEY` (Actions + local export/upload). Public anon key in `site_config.json`. Edge Function `publish` (`verify_jwt=true`) → GitHub `workflow_dispatch` with `{mode}`. Storage bucket `site-data` (public read of snapshot JSON).
+- **Supabase** (Tokyo): project `rkvtizboyikrjowfogoc`. Tables `profiles` / `inventory` / `wants` + RLS. Secrets: `SUPABASE_SERVICE_ROLE_KEY` (Actions + local export/upload/backup). Public anon key in `site_config.json`. Edge Function `publish` (`verify_jwt=true`) → GitHub `workflow_dispatch` with `{mode}`. Storage: `site-data` (public list snapshots); `db-backups` (private logical archives, service_role only). Free plan has **no** platform daily DB backups — use `scripts/backup_supabase.py` / `db-backup.yml` or upgrade to Pro.
 - **Scryfall**: `https://api.scryfall.com/cards/{set}/{number}/{lang}` — rate limit `REQUEST_GAP=0.12s`, disk cache `.cache/scryfall/`, TTL 30d, 404 `.notfound` sentinel, 429 `Retry-After`. CDN `cards.scryfall.io`.
 - **mtgch**: `https://mtgch.com/api/v1/card/{set}/{number}/` — zh names + optional `zhs_image_uris` / `images.mtgch.com`. Disk-cached. Docs: https://mtgch.com/api/v1/docs
 
@@ -100,5 +105,6 @@ ruff check scripts/ tests/
 - Heartbeat: `heartbeat.yml` **hourly** schedule only (GitHub-hosted; no `workflow_run`); opens issue if no success for >2h; recovery close may lag up to ~1h. ~720 min/mo hosted, under free private 2000.
 - Hermes bots (private `config_rc`): deploy alerts + card query + broadcasts.
 - Cache bust `?v=` via `bump_all_caches` in deploy artifact only.
-- `.gitignore`: `site/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/*-data.js`, `.cache/`, `.venv/`, etc.
+- `.gitignore`: `site/`, `inventory/`, `wants/`, `backups/`, `data/cards.json`, `data/wants.json`, `assets/*-data.js`, `.cache/`, `.venv/`, etc.
+- Daily backup: `db-backup.yml` (self-hosted) → local `backups/` + private Storage `db-backups/`.
 - Commit/PR messages in English. Do not commit/push unless the user asks.

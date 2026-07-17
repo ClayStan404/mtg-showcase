@@ -68,6 +68,23 @@ gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase -f mode=full   #
 
 个人库存手记（可选）：根目录 `claystan.txt`（卖家自用记录，非运行时必读）。
 
+### 数据库备份
+
+Free 档 Supabase **没有**官方每日备份。本仓库提供**逻辑备份**（不是整库 `pg_dump`）：
+
+```bash
+# 导出 profiles / inventory / wants + Auth 用户列表（无密码）
+# 本地 backups/*.tar.gz，并上传到私有 Storage 桶 db-backups
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py
+
+# 仅本地
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py --no-upload
+```
+
+- 定时：GitHub Actions `db-backup.yml`（每天一次，**self-hosted**，不占云端分钟）
+- 恢复表数据：`scripts/restore_supabase_backup.py`（**不会**自动重建登录密码，需重邀用户或自行处理 Auth）
+- 更省事的平台备份：升 Supabase Pro（每日备份 / 可选 PITR）
+
 ---
 
 ## 配置要点（`site_config.json`）

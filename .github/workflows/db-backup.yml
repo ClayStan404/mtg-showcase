@@ -1,0 +1,47 @@
+name: DB Backup
+
+# Daily logical backup of Supabase app tables (+ auth user list) to:
+#   1) self-hosted runner disk: backups/supabase-*.tar.gz
+#   2) private Storage bucket db-backups/ (service_role only)
+#
+# Not a substitute for Supabase Pro daily backups / PITR.
+# Free tier: uses self-hosted runner → does not burn GitHub-hosted minutes.
+
+on:
+  schedule:
+    # ~00:27 Asia/Shanghai (UTC+8) → 16:27 UTC previous calendar day in winter;
+    # 16:27 UTC is fine for "once daily" regardless of DST.
+    - cron: '27 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          clean: false
+          set-safe-directory: false
+
+      - name: Verify Python deps
+        run: python3 -c "import requests; print('deps ok')"
+
+      - name: Logical backup + upload private Storage
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/backup_supabase.py \
+            --keep-local 14 \
+            --keep-remote 30
+
+      - name: Show latest local archives
+        run: ls -lah backups/supabase-*.tar.gz 2>/dev/null | tail -5 || echo "(no local archives yet)"

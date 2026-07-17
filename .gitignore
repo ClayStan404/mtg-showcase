@@ -4,6 +4,9 @@ __pycache__/
 .DS_Store
 .cache/
 
+# Local / runner logical DB backups (see scripts/backup_supabase.py)
+backups/
+
 # 生成产物（部署时由 workflow 现场生成，不入库；master 只放源码）
 wants/
 inventory/
