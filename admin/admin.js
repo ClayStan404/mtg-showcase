@@ -188,30 +188,68 @@
     </div>`;
   }
 
-  // ---------- Scryfall 即时富化（新加卡还没进 Storage 快照时用）----------
-  // 官方 API 是 api.scryfall.com（build 脚本同域）；io 作兼容回退。
-  // 双面卡 image_uris 在 card_faces 上；语言印刷不存在时回退无 lang / en。
-  function pickScryfallImage(j) {
-    if (!j) return "";
-    if (j.image_uris) return j.image_uris.normal || j.image_uris.small || "";
-    const faces = j.card_faces;
-    if (Array.isArray(faces)) {
-      for (const f of faces) {
-        if (f && f.image_uris) {
-          const u = f.image_uris.normal || f.image_uris.small;
-          if (u) return u;
-        }
-      }
-    }
-    return "";
+  // ---------- 即时富化（新加卡还没进 Storage 快照时用）----------
+  // 国内优先 mtgch（images.mtgch.com CDN + 中文名）；失败再回退 Scryfall。
+  // mtgch: GET /api/v1/card/{set}/{collector_number}/  （与 build_common.fetch_zh_name 同路径）
+
+  function urisToImage(uris) {
+    if (!uris || typeof uris !== "object") return null;
+    const normal = uris.normal || uris.small || uris.large || "";
+    const small = uris.small || uris.normal || "";
+    const large = uris.large || uris.normal || uris.small || "";
+    if (!normal && !small) return null;
+    return { small, normal: normal || small, large: large || normal || small };
   }
 
-  function pickScryfallName(j) {
-    if (!j) return "";
-    if (j.name) return j.name;
-    const faces = j.card_faces;
-    if (Array.isArray(faces) && faces[0] && faces[0].name) return faces[0].name;
-    return "";
+  /** Pick image bundle from mtgch or Scryfall-shaped JSON. Prefer zhs art when lang=zhs. */
+  function pickImageBundle(j, lang) {
+    if (!j) return null;
+    if (lang === "zhs") {
+      const zhs = urisToImage(j.zhs_image_uris);
+      if (zhs) return zhs;
+    }
+    const top = urisToImage(j.image_uris);
+    if (top) return top;
+    // double-faced: first face with art
+    const faces = j.card_faces || j.faces;
+    if (Array.isArray(faces)) {
+      for (const f of faces) {
+        if (!f) continue;
+        if (lang === "zhs") {
+          const z = urisToImage(f.zhs_image_uris);
+          if (z) return z;
+        }
+        const u = urisToImage(f.image_uris);
+        if (u) return u;
+      }
+    }
+    // mtgch CardDescription-style
+    if (j.image_url) {
+      const u = String(j.image_url);
+      return { small: u, normal: u, large: u };
+    }
+    return null;
+  }
+
+  function pickNames(j) {
+    if (!j) return { name_en: "", name_zh: "" };
+    let name_en =
+      j.name ||
+      j.face_name ||
+      j.primary_name ||
+      j.display_name ||
+      "";
+    if (!name_en && Array.isArray(j.card_faces) && j.card_faces[0]) {
+      name_en = j.card_faces[0].name || "";
+    }
+    const name_zh =
+      j.zhs_name ||
+      j.zhs_face_name ||
+      j.atomic_official_name ||
+      j.atomic_translated_name ||
+      j.display_name_zh ||
+      "";
+    return { name_en: name_en || "", name_zh: name_zh || "" };
   }
 
   /** Seed displayIndex so the next rowToCard/setView has name+image without waiting for Storage. */
@@ -221,16 +259,29 @@
     displayIndex.set(k, { ...prev, ...patch, set: String(set || "").toLowerCase(), number, lang });
   }
 
+  async function fetchMtgchJson(set, number) {
+    const setCode = String(set || "").toLowerCase();
+    const num = String(number || "").trim();
+    if (!setCode || !num) return null;
+    const url =
+      `https://mtgch.com/api/v1/card/${encodeURIComponent(setCode)}/${encodeURIComponent(num)}/`;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
+    }
+  }
+
   async function fetchScryfallJson(set, number, lang) {
     const setCode = String(set || "").toLowerCase();
     const num = String(number || "").trim();
     if (!setCode || !num) return null;
     const slang = SCRYFALL_LANG[lang] || "en";
     const path = `${encodeURIComponent(setCode)}/${encodeURIComponent(num)}`;
-    // Prefer official host; keep .io as fallback for environments that only allow it.
     const hosts = ["https://api.scryfall.com", "https://api.scryfall.io"];
     const paths = [`/cards/${path}/${slang}`, `/cards/${path}`];
-    // If lang already en, skip duplicate path later
     const tried = new Set();
     for (const host of hosts) {
       for (const p of paths) {
@@ -248,32 +299,69 @@
     return null;
   }
 
-  /** Ensure displayIndex has image/name for this printing (used after save + by decorate). */
+  function patchFromJson(j, lang, cur) {
+    if (!j) return null;
+    const { name_en, name_zh } = pickNames(j);
+    const image = pickImageBundle(j, lang);
+    const emptyImg = { small: "", normal: "", large: "" };
+    return {
+      name_en: name_en || (cur && cur.name_en) || "",
+      name_zh: name_zh || (cur && cur.name_zh) || "",
+      name_printed: name_en || name_zh || (cur && cur.name_printed) || "",
+      image: image || (cur && cur.image) || emptyImg,
+      scryfall_uri: j.scryfall_uri || (cur && cur.scryfall_uri) || "",
+      type_line: j.type_line || j.zhs_type_line || (cur && cur.type_line) || "",
+      mana_cost: j.mana_cost || (cur && cur.mana_cost) || "",
+    };
+  }
+
+  /** Ensure displayIndex has image/name: mtgch first (CN-friendly), Scryfall fallback. */
   async function ensureDisplayEnrichment(set, number, lang) {
     const k = `${String(set || "").toLowerCase()}|${number}|${lang}`;
     const cur = displayIndex.get(k);
     if (cur && cur.image && (cur.image.normal || cur.image.small) && (cur.name_en || cur.name_zh)) {
       return cur;
     }
-    const j = await fetchScryfallJson(set, number, lang);
-    if (!j) return cur || null;
-    const url = pickScryfallImage(j);
-    const name = pickScryfallName(j);
-    const patch = {
-      name_en: name || (cur && cur.name_en) || "",
-      name_printed: name || (cur && cur.name_printed) || "",
-      image: url
-        ? { small: url, normal: url, large: url }
-        : (cur && cur.image) || { small: "", normal: "", large: "" },
-      scryfall_uri: j.scryfall_uri || (cur && cur.scryfall_uri) || "",
-      type_line: j.type_line || (cur && cur.type_line) || "",
-      mana_cost: j.mana_cost || (cur && cur.mana_cost) || "",
-    };
+
+    let patch = null;
+    const mtgch = await fetchMtgchJson(set, number);
+    if (mtgch) patch = patchFromJson(mtgch, lang, cur);
+
+    const needMore =
+      !patch ||
+      !(patch.image && (patch.image.normal || patch.image.small)) ||
+      !(patch.name_en || patch.name_zh);
+
+    if (needMore) {
+      const scry = await fetchScryfallJson(set, number, lang);
+      if (scry) {
+        const fromScry = patchFromJson(scry, lang, cur);
+        patch = patch
+          ? {
+              ...fromScry,
+              ...patch,
+              // fill blanks only
+              name_en: patch.name_en || fromScry.name_en,
+              name_zh: patch.name_zh || fromScry.name_zh,
+              name_printed: patch.name_printed || fromScry.name_printed,
+              image:
+                patch.image && (patch.image.normal || patch.image.small)
+                  ? patch.image
+                  : fromScry.image,
+              scryfall_uri: patch.scryfall_uri || fromScry.scryfall_uri,
+              type_line: patch.type_line || fromScry.type_line,
+              mana_cost: patch.mana_cost || fromScry.mana_cost,
+            }
+          : fromScry;
+      }
+    }
+
+    if (!patch) return cur || null;
     seedDisplayIndex(set, number, lang, patch);
     return displayIndex.get(k);
   }
 
-  // 实时 Scryfall 兜底：join 不到图/名的卡渲染后异步拉图 + 名，并写回 displayIndex。
+  // join 不到图/名时：异步 mtgch→Scryfall 补全，写回 displayIndex + DOM。
   function adminDecorateCard(card, el) {
     if (!card._needsImage) return;
     const img = el.querySelector("img");
@@ -284,17 +372,17 @@
         if (!d) return;
         const url = d.image && (d.image.normal || d.image.small);
         if (url) {
-          // undo any prior onImgError hide of the transparent placeholder
           img.style.visibility = "";
           img.parentElement?.classList.remove("img-failed");
           img.src = url;
           card.image = d.image;
           card._needsImage = false;
         }
-        const name = d.name_en || d.name_zh || "";
+        const name = d.name_zh || d.name_en || "";
         if (name) {
           img.alt = name;
-          card.name_en = name;
+          if (d.name_en) card.name_en = d.name_en;
+          if (d.name_zh) card.name_zh = d.name_zh;
           const nameEl = el.querySelector(".card-name");
           if (nameEl) nameEl.textContent = name;
         }
@@ -594,20 +682,14 @@
     }
     if (!set || !number) { $("#form-preview").hidden = true; return; }
     try {
-      const j = await fetchScryfallJson(set, number, lang);
-      const img = pickScryfallImage(j);
-      const name = pickScryfallName(j);
+      // Reuse full enrichment path (mtgch → Scryfall)
+      const d = await ensureDisplayEnrichment(set, number, lang);
+      const img = d && d.image && (d.image.normal || d.image.small);
+      const name = (d && (d.name_zh || d.name_en)) || "";
       if (img) {
         $("#form-preview-img").src = img;
-        $("#form-preview-name").textContent = name || "";
+        $("#form-preview-name").textContent = name;
         $("#form-preview").hidden = false;
-        // Warm displayIndex while the user is still on the form
-        seedDisplayIndex(set, number, lang, {
-          name_en: name,
-          name_printed: name,
-          image: { small: img, normal: img, large: img },
-          scryfall_uri: (j && j.scryfall_uri) || "",
-        });
       } else {
         $("#form-preview").hidden = true;
       }
