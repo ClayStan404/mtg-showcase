@@ -647,9 +647,12 @@ def ensure_image_cdn(
 ) -> dict[str, Any]:
     """Re-resolve image URLs when they do not match the preferred CDN.
 
-    If preferred CDN has no art and we already fell back (same preferred marked
-    via image_cdn_attempted), skip re-resolve so incremental builds do not re-hit
-    mtgch/Scryfall caches every run for permanent fallbacks.
+    Sticky best-effort: if preferred CDN had no art and we already fell back
+    (image_cdn_attempted == pref + non-empty image), skip re-resolve so
+    incremental builds do not re-hit caches every run. Tradeoff: if preferred
+    CDN later gains art, this card will NOT auto-switch until preferred flips
+    (site_config) or image_cdn_attempted is cleared / cache rebuilt. Empty
+    image still retries every build.
     """
     pref = normalize_image_cdn(preferred or image_cdn_preference())
     if image_dict_matches_cdn(base.get("image"), pref):

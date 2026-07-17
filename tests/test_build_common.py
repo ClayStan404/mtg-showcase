@@ -231,18 +231,29 @@ def test_fetch_mtgch_card_404_writes_neg_sentinel(monkeypatch, tmp_path):
     assert client.fetch_mtgch_card("neo", "999") is None
 
 
-def test_fetch_mtgch_card_transient_falls_back_to_cache(monkeypatch, tmp_path):
+def test_fetch_mtgch_card_transient_falls_back_to_stale_cache(monkeypatch, tmp_path):
+    """TTL-expired cache + network error → return stale JSON (except path), not None."""
+    import os
+    import time
+
     monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
     client = build_common.ScryfallClient(use_disk_cache=True)
     cache = tmp_path / "mtgch_neo_1.json"
     cache.write_text(json.dumps({"zhs_name": "旧缓存", "name": "Old"}), encoding="utf-8")
+    # Age past CACHE_TTL so the TTL hit path is skipped and get() is attempted
+    old = time.time() - (build_common.CACHE_TTL + 60)
+    os.utime(cache, (old, old))
+
+    calls = {"n": 0}
 
     def boom(*a, **k):
+        calls["n"] += 1
         raise build_common.requests.RequestException("timeout")
 
     monkeypatch.setattr(client, "get", boom)
     data = client.fetch_mtgch_card("neo", "1")
-    assert data["zhs_name"] == "旧缓存"
+    assert calls["n"] == 1, "must attempt network when cache is past TTL"
+    assert data is not None and data["zhs_name"] == "旧缓存"
 
 
 # ── payload_unchanged ───────────────────────────────────────────────
