@@ -36,7 +36,7 @@
 | 立即同步 / 自动同步 | 全量 export + 重建快照并上传 Storage（**不是**只更新一张卡；Scryfall 磁盘缓存会加速） |
 | 改前端代码 | `push master` → 整站 Pages 部署 |
 
-监控：`heartbeat.yml` 约每 **2 小时**检查同步新鲜度（仅 schedule，不在每次 auto-update 后触发）；超过约 2 小时无成功构建会开 issue，恢复后关 issue 最多延迟约 2 小时。
+监控：`heartbeat.yml` **每小时**检查同步新鲜度（仅 schedule）；超过约 2 小时无成功构建会开 issue，恢复后关 issue 最多延迟约 1 小时。云端约 720 分钟/月，一般在私有库免费额度内。
 
 ---
 

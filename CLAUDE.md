@@ -97,7 +97,7 @@ ruff check scripts/ tests/
 - Triggers: `push master` (full) / hourly runner cron (`mode=data` default) / admin sync / manual `workflow_dispatch`.
 - `paths-ignore` skips pure docs on some setups; code + `site_config` changes deploy.
 - Checkout `clean: false` keeps `.cache/scryfall` + previous `data/*.json`.
-- Heartbeat: `heartbeat.yml` every **2h** schedule only (GitHub-hosted; no `workflow_run`); opens issue if no success for >2h; recovery close may lag up to ~2h.
+- Heartbeat: `heartbeat.yml` **hourly** schedule only (GitHub-hosted; no `workflow_run`); opens issue if no success for >2h; recovery close may lag up to ~1h. ~720 min/mo hosted, under free private 2000.
 - Hermes bots (private `config_rc`): deploy alerts + card query + broadcasts.
 - Cache bust `?v=` via `bump_all_caches` in deploy artifact only.
 - `.gitignore`: `site/`, `inventory/`, `wants/`, `data/cards.json`, `data/wants.json`, `assets/*-data.js`, `.cache/`, `.venv/`, etc.

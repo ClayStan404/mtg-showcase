@@ -4,13 +4,14 @@ name: Heartbeat
 # skipped crons; if the self-hosted runner is offline, auto-update fails silently.
 # This workflow runs on GitHub-hosted runners (does not need self-hosted).
 #
-# Cadence: schedule only (every 2h). No workflow_run — fewer GitHub-hosted
-# minutes; stale issue may stay open up to ~2h after recovery.
+# Cadence: schedule only (hourly). No workflow_run — ~24×~1min GitHub-hosted
+# runs/day ≈ 720 min/month, under free private quota (2000). Stale-issue
+# auto-close may lag up to ~1h after recovery.
 
 on:
   schedule:
-    # Every 2 hours at :17 UTC
-    - cron: '17 */2 * * *'
+    # Every hour at :17 UTC
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
