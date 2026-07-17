@@ -1,12 +1,5 @@
 /* admin/admin.css -- admin 专属样式（复用 /assets/style.css 的卡/工具栏/弹窗/按钮） */
-
-/* 账户区：布局由 style.css .header-actions 提供；保留类名兼容 */
-.admin-user {
-  /* empty: uses .header-actions from style.css */
-}
-.admin-email {
-  /* email truncation/color from .header-actions .auth-email */
-}
+/* .admin-user / .admin-email: layout/color from style.css .header-actions */
 
 /* 卡片上的价格徽标 + 管理按钮 */
 .card-price {

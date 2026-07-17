@@ -281,7 +281,9 @@
     const slang = SCRYFALL_LANG[lang] || "en";
     const path = `${encodeURIComponent(setCode)}/${encodeURIComponent(num)}`;
     const hosts = ["https://api.scryfall.com", "https://api.scryfall.io"];
-    const paths = [`/cards/${path}/${slang}`, `/cards/${path}`];
+    // en lang path and no-lang path are equivalent — skip duplicate for en
+    const paths =
+      slang === "en" ? [`/cards/${path}`] : [`/cards/${path}/${slang}`, `/cards/${path}`];
     const tried = new Set();
     for (const host of hosts) {
       for (const p of paths) {
@@ -299,21 +301,41 @@
     return null;
   }
 
+  /** Prefer non-empty override fields; never clobber with "" / null. */
+  function mergeKeepExisting(base, override) {
+    const out = { ...(base || {}) };
+    if (!override) return out;
+    for (const [k, v] of Object.entries(override)) {
+      if (v == null) continue;
+      if (typeof v === "string" && v === "") continue;
+      if (k === "image") {
+        const has =
+          v && typeof v === "object" && (v.normal || v.small);
+        if (!has) continue;
+      }
+      out[k] = v;
+    }
+    return out;
+  }
+
   function patchFromJson(j, lang, cur) {
     if (!j) return null;
     const { name_en, name_zh } = pickNames(j);
     const image = pickImageBundle(j, lang);
     const emptyImg = { small: "", normal: "", large: "" };
-    return {
-      name_en: name_en || (cur && cur.name_en) || "",
-      name_zh: name_zh || (cur && cur.name_zh) || "",
-      name_printed: name_en || name_zh || (cur && cur.name_printed) || "",
-      image: image || (cur && cur.image) || emptyImg,
-      scryfall_uri: j.scryfall_uri || (cur && cur.scryfall_uri) || "",
-      type_line: j.type_line || j.zhs_type_line || (cur && cur.type_line) || "",
-      mana_cost: j.mana_cost || (cur && cur.mana_cost) || "",
-    };
+    return mergeKeepExisting(cur || {}, {
+      name_en,
+      name_zh,
+      name_printed: name_en || name_zh || "",
+      image: image || emptyImg,
+      scryfall_uri: j.scryfall_uri || "",
+      type_line: j.type_line || j.zhs_type_line || "",
+      mana_cost: j.mana_cost || "",
+    });
   }
+
+  // In-flight de-dupe: save prefetch + decorate can hit the same key together
+  const _enrichInflight = new Map();
 
   /** Ensure displayIndex has image/name: mtgch first (CN-friendly), Scryfall fallback. */
   async function ensureDisplayEnrichment(set, number, lang) {
@@ -322,43 +344,37 @@
     if (cur && cur.image && (cur.image.normal || cur.image.small) && (cur.name_en || cur.name_zh)) {
       return cur;
     }
+    if (_enrichInflight.has(k)) return _enrichInflight.get(k);
 
-    let patch = null;
-    const mtgch = await fetchMtgchJson(set, number);
-    if (mtgch) patch = patchFromJson(mtgch, lang, cur);
+    const work = (async () => {
+      let patch = null;
+      const mtgch = await fetchMtgchJson(set, number);
+      if (mtgch) patch = patchFromJson(mtgch, lang, cur);
 
-    const needMore =
-      !patch ||
-      !(patch.image && (patch.image.normal || patch.image.small)) ||
-      !(patch.name_en || patch.name_zh);
+      const needMore =
+        !patch ||
+        !(patch.image && (patch.image.normal || patch.image.small)) ||
+        !(patch.name_en || patch.name_zh);
 
-    if (needMore) {
-      const scry = await fetchScryfallJson(set, number, lang);
-      if (scry) {
-        const fromScry = patchFromJson(scry, lang, cur);
-        patch = patch
-          ? {
-              ...fromScry,
-              ...patch,
-              // fill blanks only
-              name_en: patch.name_en || fromScry.name_en,
-              name_zh: patch.name_zh || fromScry.name_zh,
-              name_printed: patch.name_printed || fromScry.name_printed,
-              image:
-                patch.image && (patch.image.normal || patch.image.small)
-                  ? patch.image
-                  : fromScry.image,
-              scryfall_uri: patch.scryfall_uri || fromScry.scryfall_uri,
-              type_line: patch.type_line || fromScry.type_line,
-              mana_cost: patch.mana_cost || fromScry.mana_cost,
-            }
-          : fromScry;
+      if (needMore) {
+        const scry = await fetchScryfallJson(set, number, lang);
+        if (scry) {
+          const fromScry = patchFromJson(scry, lang, cur);
+          patch = patch ? mergeKeepExisting(fromScry, patch) : fromScry;
+        }
       }
-    }
 
-    if (!patch) return cur || null;
-    seedDisplayIndex(set, number, lang, patch);
-    return displayIndex.get(k);
+      if (!patch) return cur || null;
+      seedDisplayIndex(set, number, lang, patch);
+      return displayIndex.get(k);
+    })();
+
+    _enrichInflight.set(k, work);
+    try {
+      return await work;
+    } finally {
+      _enrichInflight.delete(k);
+    }
   }
 
   // join 不到图/名时：异步 mtgch→Scryfall 补全，写回 displayIndex + DOM。

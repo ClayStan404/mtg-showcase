@@ -113,6 +113,138 @@ def test_load_site_config_image_cdn(tmp_path, monkeypatch):
     assert build_common.load_site_config()["image_cdn"] == "scryfall"
 
 
+def test_resolve_images_mtgch_then_scryfall_fallback(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    monkeypatch.setattr(client, "fetch_mtgch_card", lambda *a, **k: None)
+    monkeypatch.setattr(
+        client,
+        "fetch_card",
+        lambda *a, **k: {
+            "image_uris": {
+                "small": "https://cards.scryfall.io/s.jpg",
+                "normal": "https://cards.scryfall.io/n.jpg",
+            }
+        },
+    )
+    imgs = client.resolve_images("neo", "1", "en", "mtgch")
+    assert "scryfall.io" in imgs["normal"]
+
+
+def test_resolve_images_prefers_mtgch_when_present(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    monkeypatch.setattr(
+        client,
+        "fetch_mtgch_card",
+        lambda *a, **k: {
+            "image_uris": {
+                "normal": "https://images.mtgch.com/n.jpg",
+                "small": "https://images.mtgch.com/s.jpg",
+            }
+        },
+    )
+
+    def fail_scry(*a, **k):
+        raise AssertionError("should not call scryfall")
+
+    monkeypatch.setattr(client, "fetch_card", fail_scry)
+    imgs = client.resolve_images("neo", "1", "en", "mtgch")
+    assert "mtgch.com" in imgs["normal"]
+
+
+def test_ensure_image_cdn_skips_after_best_effort(monkeypatch, tmp_path):
+    """mtgch preferred but only Scryfall art: second ensure must not re-resolve."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls = {"n": 0}
+
+    def resolve(*a, **k):
+        calls["n"] += 1
+        return {
+            "small": "https://cards.scryfall.io/s.jpg",
+            "normal": "https://cards.scryfall.io/n.jpg",
+            "large": "https://cards.scryfall.io/l.jpg",
+        }
+
+    monkeypatch.setattr(client, "resolve_images", resolve)
+    base = {
+        "image": {
+            "small": "https://cards.scryfall.io/s.jpg",
+            "normal": "https://cards.scryfall.io/n.jpg",
+            "large": "",
+        },
+        "image_cdn_attempted": "",
+    }
+    once = build_common.ensure_image_cdn(base, client, "neo", "1", "en", "mtgch")
+    assert once["image_cdn_attempted"] == "mtgch"
+    assert calls["n"] == 1
+    twice = build_common.ensure_image_cdn(once, client, "neo", "1", "en", "mtgch")
+    assert calls["n"] == 1  # no second resolve
+    assert twice["image"]["normal"] == once["image"]["normal"]
+
+
+def test_ensure_image_cdn_retries_when_pref_changes(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls = {"n": 0}
+
+    def resolve(set_code, number, lang, preferred=None, scryfall_card=None):
+        calls["n"] += 1
+        host = "mtgch.com" if preferred == "mtgch" else "scryfall.io"
+        return {
+            "normal": f"https://images.{host}/n.jpg",
+            "small": "s",
+            "large": "",
+        }
+
+    monkeypatch.setattr(client, "resolve_images", resolve)
+    base = {
+        "image": {"normal": "https://images.mtgch.com/n.jpg", "small": "s", "large": ""},
+        "image_cdn_attempted": "mtgch",
+    }
+    # switch preferred to scryfall → must re-resolve
+    out = build_common.ensure_image_cdn(base, client, "neo", "1", "en", "scryfall")
+    assert calls["n"] == 1
+    assert out["image_cdn_attempted"] == "scryfall"
+    assert "scryfall" in out["image"]["normal"]
+
+
+def test_fetch_mtgch_card_404_writes_neg_sentinel(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+
+    class _HTTPError(build_common.requests.HTTPError):
+        def __init__(self):
+            self.response = type("R", (), {"status_code": 404})()
+
+    def boom(*a, **k):
+        raise _HTTPError()
+
+    monkeypatch.setattr(client, "get", boom)
+    assert client.fetch_mtgch_card("neo", "999") is None
+    assert (tmp_path / "mtgch_neo_999.notfound").exists()
+    # second call uses sentinel, no get
+    monkeypatch.setattr(
+        client, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no get"))
+    )
+    assert client.fetch_mtgch_card("neo", "999") is None
+
+
+def test_fetch_mtgch_card_transient_falls_back_to_cache(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    cache = tmp_path / "mtgch_neo_1.json"
+    cache.write_text(json.dumps({"zhs_name": "旧缓存", "name": "Old"}), encoding="utf-8")
+
+    def boom(*a, **k):
+        raise build_common.requests.RequestException("timeout")
+
+    monkeypatch.setattr(client, "get", boom)
+    data = client.fetch_mtgch_card("neo", "1")
+    assert data["zhs_name"] == "旧缓存"
+
+
 # ── payload_unchanged ───────────────────────────────────────────────
 def test_payload_unchanged_missing_file(tmp_path):
     assert build_common.payload_unchanged(tmp_path / "no.json", {"a": 1}) is False

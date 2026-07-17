@@ -91,7 +91,7 @@ ruff check scripts/ tests/
 
 - **Supabase** (Tokyo, `ap-northeast-1`): project `rkvtizboyikrjowfogoc`. `profiles` / `inventory` / `wants` tables with RLS (owner-only CRUD). `service_role` key is secret (GitHub Actions secret `SUPABASE_SERVICE_ROLE_KEY` + local env, never frontend); `anon` key is public (in `site_config.json` -> `cards.json` `site` field -> frontend). `publish` Edge Function (`verify_jwt=true`) triggers `workflow_dispatch`. See `SUPABASE_MIGRATION_PLAN.md`.
 - **Scryfall API**: `https://api.scryfall.com/cards/{set}/{number}/{lang}` - rate-limited (`REQUEST_GAP=0.12s`), disk-cached (`.cache/scryfall/`, `CACHE_TTL=30 days`; 404 negative results cached via `.notfound` sentinel), 429 respects `Retry-After`. Used for card metadata; images may still hotlink Scryfall CDN when preferred or as fallback.
-- **mtgch API**: `https://mtgch.com/api/v1/card/{set}/{number}/` - Chinese names + preferred image URLs (`images.mtgch.com`). Snapshots store **hotlink URLs only** (no image proxy). Toggle via `site_config.json` → `"image_cdn": "mtgch"` (default) or `"scryfall"` to roll back; next build rewrites `image.*` in cards/wants JSON.
+- **mtgch API**: `https://mtgch.com/api/v1/card/{set}/{number}/` - Chinese names + preferred image URLs (`images.mtgch.com`). Snapshots store **hotlink URLs only** (no image proxy). Toggle via `site_config.json` → `"image_cdn": "mtgch"` or `"scryfall"` (current default for production after A/B); next build rewrites `image.*`. If preferred CDN has no art, fall back to the other and set `image_cdn_attempted` so incremental builds do not re-resolve every run. When mtgch only exposes a single `image_url`, small/normal/large are the same URL (modal cannot get a true larger asset).
 
 ## Git / deploy notes
 

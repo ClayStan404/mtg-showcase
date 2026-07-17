@@ -299,14 +299,18 @@ class ScryfallClient:
             cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         return data
 
-    def _mtgch_cache_path(self, set_code: str, number: str) -> Path:
+    @staticmethod
+    def _mtgch_safe_names(set_code: str, number: str) -> tuple[str, str]:
         safe_set = re.sub(r"[^\w.-]", "_", set_code)
         safe_num = re.sub(r"[^\w.-]", "_", number)
+        return safe_set, safe_num
+
+    def _mtgch_cache_path(self, set_code: str, number: str) -> Path:
+        safe_set, safe_num = self._mtgch_safe_names(set_code, number)
         return CACHE_DIR / f"mtgch_{safe_set}_{safe_num}.json"
 
     def _mtgch_neg_path(self, set_code: str, number: str) -> Path:
-        safe_set = re.sub(r"[^\w.-]", "_", set_code)
-        safe_num = re.sub(r"[^\w.-]", "_", number)
+        safe_set, safe_num = self._mtgch_safe_names(set_code, number)
         return CACHE_DIR / f"mtgch_{safe_set}_{safe_num}.notfound"
 
     def fetch_mtgch_card(self, set_code: str, number: str) -> dict[str, Any] | None:
@@ -341,8 +345,7 @@ class ScryfallClient:
                     or data.get("atomic_translated_name")
                     or ""
                 )
-                safe_set = re.sub(r"[^\w.-]", "_", set_code)
-                safe_num = re.sub(r"[^\w.-]", "_", number)
+                safe_set, safe_num = self._mtgch_safe_names(set_code, number)
                 (CACHE_DIR / f"zhname_{safe_set}_{safe_num}.txt").write_text(
                     name, encoding="utf-8"
                 )
@@ -480,7 +483,8 @@ def pick_images(card: dict[str, Any], lang: str = "en") -> dict[str, str]:
             u = _uris_to_image(face.get("image_uris"))
             if u:
                 return u
-    # mtgch CardDescription-style single URL
+    # mtgch CardDescription-style single URL: only one size available, so
+    # small/normal/large are identical (modal "large" is same quality as grid).
     if card.get("image_url"):
         u = str(card["image_url"])
         return {"small": u, "normal": u, "large": u}
@@ -585,6 +589,8 @@ def base_from_cached(
         "number": cached.get("number") or number,
         "lang": cached.get("lang") or lang,
         "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
+        # Best-effort marker: skip re-resolve when preferred CDN had no art last time
+        "image_cdn_attempted": cached.get("image_cdn_attempted") or "",
     }
 
 
@@ -627,6 +633,7 @@ def base_from_card(
         "number": card.get("collector_number") or number,
         "lang": card.get("lang") or lang,
         "image_lang": card.get("lang") or lang,
+        "image_cdn_attempted": preferred,
     }
 
 
@@ -638,10 +645,22 @@ def ensure_image_cdn(
     lang: str,
     preferred: str | None = None,
 ) -> dict[str, Any]:
-    """If base.image does not match preferred CDN, re-resolve image URLs only."""
+    """Re-resolve image URLs when they do not match the preferred CDN.
+
+    If preferred CDN has no art and we already fell back (same preferred marked
+    via image_cdn_attempted), skip re-resolve so incremental builds do not re-hit
+    mtgch/Scryfall caches every run for permanent fallbacks.
+    """
     pref = normalize_image_cdn(preferred or image_cdn_preference())
     if image_dict_matches_cdn(base.get("image"), pref):
         return base
+    # Already attempted this preferred CDN; keep best-effort URLs (e.g. Scryfall
+    # when image_cdn=mtgch but mtgch has no printing). Empty image still retries.
+    img = base.get("image") or {}
+    has_any = bool(img.get("normal") or img.get("small"))
+    if has_any and base.get("image_cdn_attempted") == pref:
+        return base
     base = dict(base)
     base["image"] = client.resolve_images(set_code, number, lang, pref)
+    base["image_cdn_attempted"] = pref
     return base
