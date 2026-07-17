@@ -139,7 +139,46 @@ def load_site_config() -> dict[str, Any]:
         )
         if derived:
             cfg["data_base_url"] = derived
+    # Image CDN preference for built snapshots (mtgch | scryfall). Easy rollback.
+    cfg["image_cdn"] = normalize_image_cdn(str(cfg.get("image_cdn") or ""))
     return cfg
+
+
+# Preferred image host written into cards.json / wants.json.
+# "mtgch" = images.mtgch.com (better for CN); "scryfall" = cards.scryfall.io.
+IMAGE_CDN_MTGCH = "mtgch"
+IMAGE_CDN_SCRYFALL = "scryfall"
+DEFAULT_IMAGE_CDN = IMAGE_CDN_MTGCH
+
+
+def normalize_image_cdn(value: str | None) -> str:
+    v = (value or "").strip().lower()
+    if v in (IMAGE_CDN_SCRYFALL, "sf", "scry", "scryfall.com", "cards.scryfall.io"):
+        return IMAGE_CDN_SCRYFALL
+    return IMAGE_CDN_MTGCH
+
+
+def image_cdn_preference(cfg: dict[str, Any] | None = None) -> str:
+    if cfg is None:
+        cfg = load_site_config()
+    return normalize_image_cdn(str(cfg.get("image_cdn") or DEFAULT_IMAGE_CDN))
+
+
+def image_url_matches_cdn(url: str, preferred: str) -> bool:
+    u = (url or "").lower()
+    if not u:
+        return False
+    if preferred == IMAGE_CDN_MTGCH:
+        return "mtgch.com" in u
+    return "scryfall" in u
+
+
+def image_dict_matches_cdn(image: dict[str, Any] | None, preferred: str) -> bool:
+    if not image:
+        return False
+    return image_url_matches_cdn(
+        str(image.get("normal") or image.get("small") or ""), preferred
+    )
 
 
 class ScryfallClient:
@@ -260,34 +299,124 @@ class ScryfallClient:
             cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         return data
 
-    def fetch_zh_name(self, set_code: str, number: str) -> str:
+    def _mtgch_cache_path(self, set_code: str, number: str) -> Path:
         safe_set = re.sub(r"[^\w.-]", "_", set_code)
         safe_num = re.sub(r"[^\w.-]", "_", number)
-        cache_path = CACHE_DIR / f"zhname_{safe_set}_{safe_num}.txt"
+        return CACHE_DIR / f"mtgch_{safe_set}_{safe_num}.json"
+
+    def _mtgch_neg_path(self, set_code: str, number: str) -> Path:
+        safe_set = re.sub(r"[^\w.-]", "_", set_code)
+        safe_num = re.sub(r"[^\w.-]", "_", number)
+        return CACHE_DIR / f"mtgch_{safe_set}_{safe_num}.notfound"
+
+    def fetch_mtgch_card(self, set_code: str, number: str) -> dict[str, Any] | None:
+        """Full card JSON from mtgch (shared by zh name + image CDN preference).
+
+        Caches positive JSON and 404 negative sentinel under .cache/scryfall/.
+        """
+        cache_path = self._mtgch_cache_path(set_code, number)
+        neg_path = self._mtgch_neg_path(set_code, number)
+        if self.use_disk_cache and neg_path.exists():
+            if time.time() - neg_path.stat().st_mtime < CACHE_TTL:
+                return None
         if self.use_disk_cache and cache_path.exists():
-            # 负结果也缓存（空文件作哨兵），避免每次重试失败的 mtgch 请求；同样受 TTL
             if time.time() - cache_path.stat().st_mtime < CACHE_TTL:
-                return cache_path.read_text(encoding="utf-8").strip()
+                try:
+                    return json.loads(cache_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    pass
 
         url = f"https://mtgch.com/api/v1/card/{set_code}/{number}/"
         try:
+            # throttle=False: mtgch is separate from Scryfall rate limit; zh+image share cache.
             data = self.get(url, throttle=False).json()
-            name = (
-                data.get("zhs_name")
-                or data.get("atomic_official_name")
-                or data.get("atomic_translated_name")
-                or ""
-            )
+            if not isinstance(data, dict):
+                return None
             if self.use_disk_cache:
-                # 仅在 API 正常返回时缓存正/负结果（有名字写名字，无名字写空文件作哨兵）
-                cache_path.write_text(name, encoding="utf-8")
+                cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                # Keep legacy zhname_*.txt for tooling/tests that peek that path
+                name = (
+                    data.get("zhs_name")
+                    or data.get("atomic_official_name")
+                    or data.get("atomic_translated_name")
+                    or ""
+                )
+                safe_set = re.sub(r"[^\w.-]", "_", set_code)
+                safe_num = re.sub(r"[^\w.-]", "_", number)
+                (CACHE_DIR / f"zhname_{safe_set}_{safe_num}.txt").write_text(
+                    name, encoding="utf-8"
+                )
+            return data
+        except requests.HTTPError as e:
+            status = e.response.status_code if e.response is not None else 0
+            if status == 404 and self.use_disk_cache:
+                neg_path.write_text("", encoding="utf-8")
+            elif self.use_disk_cache and cache_path.exists():
+                try:
+                    return json.loads(cache_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    pass
+            return None
         except (requests.RequestException, json.JSONDecodeError, ValueError):
-            # 瞬时故障（超时/5xx/非法 JSON）不缓存；回退到过期缓存（如有）
+            # Transient network/5xx/parse: do not write negative sentinel
             if self.use_disk_cache and cache_path.exists():
-                name = cache_path.read_text(encoding="utf-8").strip()
-            else:
-                name = ""
-        return name
+                try:
+                    return json.loads(cache_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    pass
+            return None
+
+    def fetch_zh_name(self, set_code: str, number: str) -> str:
+        data = self.fetch_mtgch_card(set_code, number)
+        if not data:
+            return ""
+        return (
+            data.get("zhs_name")
+            or data.get("atomic_official_name")
+            or data.get("atomic_translated_name")
+            or ""
+        )
+
+    def resolve_images(
+        self,
+        set_code: str,
+        number: str,
+        lang: str,
+        preferred: str | None = None,
+        scryfall_card: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
+        """Pick image URLs for snapshots: preferred CDN first, other as fallback.
+
+        preferred: 'mtgch' | 'scryfall' (from site_config.image_cdn).
+        Only stores hotlink URLs — no image bytes downloaded.
+        """
+        pref = normalize_image_cdn(preferred or image_cdn_preference())
+
+        def from_scry() -> dict[str, str]:
+            card = scryfall_card
+            if card is None:
+                try:
+                    card = self.fetch_card(set_code, number, lang)
+                except (requests.RequestException, json.JSONDecodeError, ValueError):
+                    card = None
+            return pick_images(card or {}, lang=lang)
+
+        def from_mtgch() -> dict[str, str]:
+            data = self.fetch_mtgch_card(set_code, number)
+            if not data:
+                return {"small": "", "normal": "", "large": ""}
+            return pick_images(data, lang=lang)
+
+        if pref == IMAGE_CDN_MTGCH:
+            imgs = from_mtgch()
+            if imgs.get("normal") or imgs.get("small"):
+                return imgs
+            return from_scry()
+        # scryfall preferred
+        imgs = from_scry()
+        if imgs.get("normal") or imgs.get("small"):
+            return imgs
+        return from_mtgch()
 
 
 def load_previous_enrichment(
@@ -312,23 +441,50 @@ def load_previous_enrichment(
     return cache
 
 
-def pick_images(card: dict[str, Any]) -> dict[str, str]:
-    if card.get("image_uris"):
-        uris = card["image_uris"]
-        return {
-            "small": uris.get("small", ""),
-            "normal": uris.get("normal", ""),
-            "large": uris.get("large", ""),
-        }
-    faces = card.get("card_faces") or []
-    if faces and faces[0].get("image_uris"):
-        uris = faces[0]["image_uris"]
-        return {
-            "small": uris.get("small", ""),
-            "normal": uris.get("normal", ""),
-            "large": uris.get("large", ""),
-        }
-    return {"small": "", "normal": "", "large": ""}
+def _uris_to_image(uris: dict[str, Any] | None) -> dict[str, str] | None:
+    if not uris or not isinstance(uris, dict):
+        return None
+    small = (uris.get("small") or uris.get("normal") or "") or ""
+    normal = (uris.get("normal") or uris.get("small") or "") or ""
+    large = (uris.get("large") or uris.get("normal") or uris.get("small") or "") or ""
+    if not (small or normal):
+        return None
+    return {"small": small, "normal": normal, "large": large}
+
+
+def pick_images(card: dict[str, Any], lang: str = "en") -> dict[str, str]:
+    """Extract small/normal/large image URLs from Scryfall- or mtgch-shaped JSON.
+
+    For lang=zhs prefer zhs_image_uris when present (mtgch Chinese art).
+    """
+    empty = {"small": "", "normal": "", "large": ""}
+    if not card:
+        return empty
+    prefer_zhs = lang == "zhs"
+    if prefer_zhs:
+        zhs = _uris_to_image(card.get("zhs_image_uris"))
+        if zhs:
+            return zhs
+    top = _uris_to_image(card.get("image_uris"))
+    if top:
+        return top
+    faces = card.get("card_faces") or card.get("faces") or []
+    if isinstance(faces, list):
+        for face in faces:
+            if not isinstance(face, dict):
+                continue
+            if prefer_zhs:
+                zhs = _uris_to_image(face.get("zhs_image_uris"))
+                if zhs:
+                    return zhs
+            u = _uris_to_image(face.get("image_uris"))
+            if u:
+                return u
+    # mtgch CardDescription-style single URL
+    if card.get("image_url"):
+        u = str(card["image_url"])
+        return {"small": u, "normal": u, "large": u}
+    return empty
 
 
 def pick_text(card: dict[str, Any]) -> tuple[str, str]:
@@ -435,7 +591,7 @@ def base_from_cached(
 def base_from_card(
     card: dict[str, Any], client: ScryfallClient, set_code: str, number: str, lang: str
 ) -> dict[str, Any]:
-    """从 Scryfall 卡对象构建 base（inventory / wants 共用，含中文名 fetch）。"""
+    """从 Scryfall 卡对象构建 base（inventory / wants 共用，含中文名 + 图 CDN 偏好）。"""
     name_en = card.get("name") or ""
     name_printed = card.get("printed_name") or ""
     if not name_printed and card.get("card_faces"):
@@ -446,6 +602,14 @@ def base_from_card(
         name_zh = client.fetch_zh_name(set_code, number)
     text, type_line = pick_text(card)
     meta = enrich_fields_from_scryfall(card)
+    preferred = image_cdn_preference()
+    if client is not None and hasattr(client, "resolve_images"):
+        image = client.resolve_images(
+            set_code, number, lang, preferred, scryfall_card=card
+        )
+    else:
+        # Tests may pass a stub client; fall back to Scryfall-shaped card images only.
+        image = pick_images(card, lang=lang)
     return {
         "name_en": name_en,
         "name_zh": name_zh,
@@ -456,7 +620,7 @@ def base_from_card(
         "mana_cost": meta["mana_cost"],
         "cmc": meta["cmc"],
         "text": text,
-        "image": pick_images(card),
+        "image": image,
         "scryfall_uri": card.get("scryfall_uri") or "",
         "set": card.get("set") or set_code,
         "set_name": card.get("set_name") or set_code.upper(),
@@ -464,3 +628,20 @@ def base_from_card(
         "lang": card.get("lang") or lang,
         "image_lang": card.get("lang") or lang,
     }
+
+
+def ensure_image_cdn(
+    base: dict[str, Any],
+    client: ScryfallClient,
+    set_code: str,
+    number: str,
+    lang: str,
+    preferred: str | None = None,
+) -> dict[str, Any]:
+    """If base.image does not match preferred CDN, re-resolve image URLs only."""
+    pref = normalize_image_cdn(preferred or image_cdn_preference())
+    if image_dict_matches_cdn(base.get("image"), pref):
+        return base
+    base = dict(base)
+    base["image"] = client.resolve_images(set_code, number, lang, pref)
+    return base

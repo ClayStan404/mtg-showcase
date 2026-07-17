@@ -65,6 +65,54 @@ def test_load_site_config_explicit_data_base_url_wins(tmp_path, monkeypatch):
     assert cfg["data_base_url"] == "https://cdn.example/data"
 
 
+def test_normalize_image_cdn():
+    assert build_common.normalize_image_cdn("mtgch") == "mtgch"
+    assert build_common.normalize_image_cdn("scryfall") == "scryfall"
+    assert build_common.normalize_image_cdn("sf") == "scryfall"
+    assert build_common.normalize_image_cdn("") == "mtgch"
+    assert build_common.normalize_image_cdn(None) == "mtgch"
+
+
+def test_image_dict_matches_cdn():
+    assert build_common.image_dict_matches_cdn(
+        {"normal": "https://images.mtgch.com/sf/normal/x.jpg"}, "mtgch"
+    )
+    assert build_common.image_dict_matches_cdn(
+        {"normal": "https://cards.scryfall.io/normal/front/x.jpg"}, "scryfall"
+    )
+    assert not build_common.image_dict_matches_cdn(
+        {"normal": "https://cards.scryfall.io/normal/front/x.jpg"}, "mtgch"
+    )
+    assert not build_common.image_dict_matches_cdn({}, "mtgch")
+
+
+def test_pick_images_prefers_zhs_uris():
+    card = {
+        "image_uris": {
+            "small": "https://en.example/s.jpg",
+            "normal": "https://en.example/n.jpg",
+        },
+        "zhs_image_uris": {
+            "small": "https://zhs.example/s.jpg",
+            "normal": "https://zhs.example/n.jpg",
+        },
+    }
+    en = build_common.pick_images(card, lang="en")
+    zhs = build_common.pick_images(card, lang="zhs")
+    assert en["normal"] == "https://en.example/n.jpg"
+    assert zhs["normal"] == "https://zhs.example/n.jpg"
+
+
+def test_load_site_config_image_cdn(tmp_path, monkeypatch):
+    cfg_path = tmp_path / "site_config.json"
+    cfg_path.write_text(
+        json.dumps({"supabase_url": "https://x.supabase.co", "image_cdn": "scryfall"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(build_common, "SITE_CONFIG", cfg_path)
+    assert build_common.load_site_config()["image_cdn"] == "scryfall"
+
+
 # ── payload_unchanged ───────────────────────────────────────────────
 def test_payload_unchanged_missing_file(tmp_path):
     assert build_common.payload_unchanged(tmp_path / "no.json", {"a": 1}) is False
@@ -180,7 +228,11 @@ def test_load_site_config_normal(monkeypatch, tmp_path):
     cfg = tmp_path / "site_config.json"
     cfg.write_text('{"title": "T", "subtitle": "S"}')
     monkeypatch.setattr(build_common, "SITE_CONFIG", cfg)
-    assert build_common.load_site_config() == {"title": "T", "subtitle": "S"}
+    assert build_common.load_site_config() == {
+        "title": "T",
+        "subtitle": "S",
+        "image_cdn": "mtgch",
+    }
 
 
 def test_load_site_config_missing_returns_default(monkeypatch, tmp_path):

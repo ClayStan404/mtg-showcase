@@ -19,6 +19,8 @@ from build_common import (  # noqa: E402
     ScryfallClient,
     base_from_cached,
     base_from_card,
+    ensure_image_cdn,
+    image_cdn_preference,
     bump_all_caches,
     load_previous_enrichment,
     load_site_config,
@@ -179,6 +181,7 @@ def enrich(
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     total = len(entries)
+    preferred_cdn = image_cdn_preference()
 
     for i, entry in enumerate(entries, 1):
         set_code = entry["set"]
@@ -202,6 +205,10 @@ def enrich(
             and "mana_cost" in cached
         ):
             base = base_from_cached(cached, set_code, number, lang)
+            # image_cdn switched (mtgch <-> scryfall): re-resolve image URLs only
+            base = ensure_image_cdn(
+                base, client, set_code, number, lang, preferred_cdn
+            )
 
         if base is None:
             try:
