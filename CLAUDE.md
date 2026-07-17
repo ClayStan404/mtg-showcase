@@ -1,6 +1,8 @@
 # CLAUDE.md
 
 > See `QWEN.md` for the full reference. This file is a concise guide for quick orientation.
+>
+> **Future architecture (not implemented):** `docs/SELF_HOSTED_REALTIME_DESIGN.md` — self-hosted paginated realtime reads.
 
 ## What this project is
 

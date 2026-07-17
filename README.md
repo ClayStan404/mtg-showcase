@@ -9,6 +9,8 @@
 
 **不做站内下单/支付。** 库存/求购在 admin 写入 **Supabase**；公开展示读的是 **构建后的 JSON 快照**（不是访客直查数据库）。
 
+> 若将来改为「自建服务器 + 分页实时查库」，见设计文档：[`docs/SELF_HOSTED_REALTIME_DESIGN.md`](docs/SELF_HOSTED_REALTIME_DESIGN.md)（尚未实现）。
+
 卖家/买家使用说明见网站首页「使用说明」折叠面板。
 
 ---
