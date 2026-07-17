@@ -11,7 +11,7 @@
     <meta name="description" content="万智牌 Sales List" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'"
+      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'"
     />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://cards.scryfall.io" crossorigin />
@@ -28,7 +28,16 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="万智牌 Sales List" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="assets/style.css?v=fef04aa9" />
+    <link rel="stylesheet" href="assets/style.css?v=21598412" />
+    <style>
+      /* 登录/管理入口（主站） */
+      .auth-area { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
+      .auth-area .auth-email { color:var(--muted,#9aa3b2); font-size:.85rem; }
+      #login-form { display:flex; flex-direction:column; gap:.6rem; }
+      #login-form label { display:flex; flex-direction:column; gap:.2rem; font-size:.85rem; color:var(--muted,#9aa3b2); }
+      #login-form input { background:#1a1f29; border:1px solid #2a3140; color:#e6e9f0; border-radius:6px; padding:.45rem .55rem; font-size:.95rem; }
+      #login-form .form-hint { color:var(--muted,#9aa3b2); font-size:.82rem; min-height:1em; }
+    </style>
   </head>
   <body>
     <noscript><p style="text-align:center;padding:2rem">本站需要 JavaScript 才能运行，请启用后刷新。</p></noscript>
@@ -45,34 +54,41 @@
         <span id="stat-qty-label">张数</span> <strong id="total-qty">0</strong>
         <span>显示</span> <strong id="visible-count">0</strong>
       </div>
+      <div class="auth-area" id="auth-area">
+        <button type="button" class="btn btn-ghost btn-sm" id="login-btn" hidden>登录</button>
+        <span class="auth-email" id="auth-email" hidden></span>
+        <a href="/admin/" class="btn btn-primary btn-sm" id="admin-link" hidden>管理</a>
+        <button type="button" class="btn btn-ghost btn-sm" id="logout-btn" hidden>登出</button>
+      </div>
     </header>
 
     <details class="guide wrap" id="guide">
       <summary>使用说明</summary>
       <div class="guide-body">
         <section class="guide-section">
-          <h3>卖家必读</h3>
+          <h3>卖家 / 买家录入</h3>
           <ol>
-            <li>打开 <a id="guide-wps-inv" href="#" target="_blank" rel="noopener">WPS 库存</a>（金山文档）</li>
-            <li>在「模板」工作表上右键 → 创建副本，重命名为自己的名字</li>
-            <li>若没有编辑权限，联系 QQ 417592443 申请</li>
-            <li>在自己的表里填：昵称 / 城市 / 联系 + 卡牌行，保存即可</li>
-            <li>保存后一小时内自动上线（每小时自动同步）</li>
+            <li>点右上角「登录」（邀请制，无账号请联系管理员开通）</li>
+            <li>登录后点「管理」进入后台，在「库存」/「求购」tab 填卡牌、保存</li>
+            <li>点「立即发布」立刻上线，或等每小时自动同步</li>
           </ol>
           <table class="guide-table">
             <thead><tr><th>字段</th><th>规则</th></tr></thead>
             <tbody>
               <tr><td>语言</td><td><code>e</code>=英文 · <code>z</code>=中文 · <code>j</code>=日文 · <code>o</code>=其他（空默认 <code>e</code>）</td></tr>
-              <tr><td>闪</td><td>空或 <code>0</code>=非闪 · <code>1</code>=闪</td></tr>
+              <tr><td>闪</td><td><code>0</code>=非闪 · <code>1</code>=闪</td></tr>
               <tr><td>数量</td><td>空=<code>1</code></td></tr>
+              <tr><td>价格</td><td>空或 <code>0</code>=市价/私聊 · <code>&gt;0</code>=每张固定价</td></tr>
+              <tr><td>必须此版（求购）</td><td><code>0</code>=可替其他版 · <code>1</code>=必须此印刷</td></tr>
+              <tr><td>备注</td><td>行尾 <code># 备注内容</code></td></tr>
             </tbody>
           </table>
-          <p class="guide-note">卖光请删行。</p>
+          <p class="guide-note">卖光请在后台删除该条（不要写 0）。同卡不同价/不同备注算独立条目。</p>
         </section>
         <section class="guide-section">
           <h3>买家</h3>
           <p><strong>在售：</strong>搜索、筛选：出售人 / 城市 / 语言 / 闪卡。意向清单：加入卡牌 → 复制文本或截图模式 → 发给对应卖家。</p>
-          <p><strong>求购：</strong>打开 <a id="guide-wps-want" href="#" target="_blank" rel="noopener">WPS 求购</a>（金山文档），在「模板」上右键 → 创建副本，重命名为自己的名字，无权限时联系 QQ 417592443。填写后保存。</p>
+          <p><strong>求购：</strong>切到「求购」tab 浏览买家求购，按联系方式对接。</p>
         </section>
       </div>
     </details>
@@ -161,6 +177,25 @@
       </div>
     </div>
 
+    <div class="modal" id="login-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <div class="modal-backdrop" id="login-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-handle" aria-hidden="true"></div>
+        <button type="button" class="modal-close" id="login-close" aria-label="关闭">×</button>
+        <div class="modal-content">
+          <h2 id="login-title">登录</h2>
+          <form id="login-form">
+            <label>邮箱<input id="login-email" type="email" required autocomplete="username" /></label>
+            <label>密码<input id="login-password" type="password" required autocomplete="current-password" /></label>
+            <p class="form-hint" id="login-hint">邀请制，无账号请联系管理员。</p>
+            <div class="modal-actions">
+              <button type="submit" class="btn btn-primary" id="login-submit">登录</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="toast" id="toast" hidden role="status"></div>
 
     <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -202,8 +237,10 @@
       </div>
     </div>
 
-    <script src="assets/cards-data.js?v=803974c4"></script>
-    <script src="assets/wants-data.js?v=7f4d81eb"></script>
-    <script src="assets/app.js?v=66dd1df1"></script>
+    <script src="assets/cards-data.js?v=d5b0fa0b"></script>
+    <script src="assets/wants-data.js?v=5abbd468"></script>
+    <script src="assets/mtg-ui.js?v=d7b48ad2"></script>
+    <script src="assets/supabase-client.js?v=0"></script>
+    <script src="assets/app.js?v=5c912bb0"></script>
   </body>
 </html>

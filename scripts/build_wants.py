@@ -2,11 +2,13 @@
 """Parse wants/*.txt → assets/wants-data.js (+ data/wants.json)
 
 统一求购行（合并「指定 / 可替」）:
-  [Nx] set number [lang] [foil] [must] [| 备注]
+  set number lang foil [qty] [must] [price] [# note]
 
   lang: e/z/j/o（空=e）
   foil: 0/1（空=0）
   must: 0=其他版本也可以，1=必须此印刷（空=0）
+  price: 空=0（面议/私聊），>0=出价
+  note: `#` 后到行尾
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from build_common import (  # noqa: E402
 from inventory_format import (  # noqa: E402
     ParseError,
     lang_label,
+    note_hash,
     slugify,
     validate_meta,
     want_line_to_fields,
@@ -87,7 +90,7 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
                 continue
 
             try:
-                set_code, number, lang, foil, qty, must, note = want_line_to_fields(line)
+                set_code, number, lang, foil, qty, must, price, note = want_line_to_fields(line)
             except ParseError as e:
                 print(f"[warn] {path.name}:{line_num} {e}，跳过: {line}", file=sys.stderr)
                 continue
@@ -105,6 +108,7 @@ def parse_want_file(path: Path) -> list[dict[str, Any]]:
                     "lang": lang,
                     "foil": foil,
                     "quantity": qty,
+                    "price": price,
                     "note": note,
                     "buyer": buyer_name,
                     "buyer_id": buyer_id,
@@ -146,19 +150,18 @@ def parse_all_wants(wants_dir: Path) -> list[dict[str, Any]]:
             print(f"  · {e}", file=sys.stderr)
         raise SystemExit(1)
 
-    # 跨文件合并：同 buyer 的相同求购可能出现在多个 sheet/txt，按 wid 键合并数量
+    # 跨文件合并：同 buyer 的相同求购可能出现在多个 sheet/txt，按 wid 键合并数量。
+    # 同价同备注才合并（key 含 price+note_hash）；不同价/不同备注保持独立条目。
+    # 新架构下 export 按 buyer 一个文件 + DB unique 保证基本 no-op，但保留兜底。
     merged_all: OrderedDict[str, dict[str, Any]] = OrderedDict()
     for e in all_e:
         key = (
-            f"{e['buyer_id']}|{e['set']}|{e['number']}|{e['lang']}-"
-            f"{'f' if e['foil'] else 'nf'}-{'1' if e['must'] else '0'}"
+            f"{e['buyer_id']}|{e['set']}|{e['number']}|{e['lang']}"
+            f"|{'f' if e['foil'] else 'nf'}|{'1' if e['must'] else '0'}"
+            f"|{e['price']:.2f}|{note_hash(e['note'])}"
         )
         if key in merged_all:
             merged_all[key]["quantity"] += e["quantity"]
-            # note 用分号拼接，对齐 Excel 侧 merge_wants 语义，避免跨文件合并丢备注
-            if e.get("note"):
-                existing = merged_all[key].get("note", "")
-                merged_all[key]["note"] = f"{existing}; {e['note']}" if existing else e["note"]
         else:
             merged_all[key] = e
     return list(merged_all.values())
@@ -184,6 +187,7 @@ def enrich_wants(
         wid = (
             f"{e['buyer_id']}-{set_code}-{number}-{lang}-"
             f"{'f' if e['foil'] else 'nf'}-{'1' if e['must'] else '0'}"
+            f"-{e['price']:.2f}-{note_hash(e['note'])}"
         )
 
         # 复用上一份 wants.json 的富化结果（加速重建，对齐 build_data 的两层增量）
@@ -217,6 +221,7 @@ def enrich_wants(
                         "city": e["city"],
                         "contact": e["contact"],
                         "quantity": e["quantity"],
+                        "price": e["price"],
                         "note": e.get("note") or "",
                         "set": set_code,
                         "set_name": set_code.upper(),
@@ -254,6 +259,7 @@ def enrich_wants(
                 "city": e["city"],
                 "contact": e["contact"],
                 "quantity": e["quantity"],
+                "price": e["price"],
                 "note": e.get("note") or "",
                 "set": base["set"],
                 "set_name": base["set_name"],
@@ -321,8 +327,8 @@ def main() -> int:
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
 
-    # 静态资源 cache buster（独立运行 build_wants 时也能刷新 app.js/style.css）
-    for static_file in ("app.js", "style.css"):
+    # 静态资源 cache buster（独立运行 build_wants 时也能刷新 app.js/style.css/mtg-ui.js）
+    for static_file in ("app.js", "style.css", "mtg-ui.js"):
         p = ROOT / "assets" / static_file
         if p.exists():
             bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())

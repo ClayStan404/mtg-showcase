@@ -663,6 +663,18 @@ main {
   border: 1px solid rgba(110, 168, 254, 0.35);
 }
 
+.flag-price {
+  background: #fff3d6;
+  color: #8a6a00;
+  border: 1px solid rgba(201, 162, 39, 0.5);
+}
+
+.flag-market {
+  background: rgba(154, 163, 178, 0.15);
+  color: var(--muted, #9aa3b2);
+  border: 1px solid rgba(154, 163, 178, 0.25);
+}
+
 .card-body {
   padding: 0.7rem 0.75rem 0.85rem;
 }

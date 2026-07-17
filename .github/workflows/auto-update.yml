@@ -17,6 +17,7 @@ on:
       - '.github/dependabot.yml'
       - 'SECURITY.md'
       - 'docs/**'
+      - 'SUPABASE_MIGRATION_PLAN.md'
   workflow_dispatch:  # 支持手动触发
     # 不再用 GitHub schedule：官方文档明确 schedule 在整点高负载时会被延迟甚至丢弃
     # (实测本仓库 cron '0 *' 一天被跳过近一半，间隔常拉到 1.5–3h)。
@@ -70,42 +71,21 @@ jobs:
           /tmp/lint-venv/bin/ruff check scripts/ tests/
           /tmp/lint-venv/bin/pytest tests/ -q
 
-      - name: Read WPS share IDs from site_config.json
-        # 单一来源：share ID 只在 site_config.json 维护，workflow 不再硬编码
-        id: cfg
-        run: |
-          INV=$(python3 -c "import json;print(json.load(open('site_config.json'))['wps_inventory_url'].rstrip('/').split('/')[-1])")
-          WANTS=$(python3 -c "import json;print(json.load(open('site_config.json'))['wps_wants_url'].rstrip('/').split('/')[-1])")
-          echo "inventory share: $INV"
-          echo "wants share: $WANTS"
-          echo "inv_share=$INV" >> "$GITHUB_OUTPUT"
-          echo "wants_share=$WANTS" >> "$GITHUB_OUTPUT"
-
-      - name: Fetch inventory xlsx from WPS
+      - name: Export inventory from Supabase
+        # 从 Supabase 读 profiles + inventory（service_role bypass RLS），按 seller 写 inventory/{uid}.txt
+        # 失败（0 seller / 全 profile 不全 / 请求失败）exit 非零，让 step 失败、不部署空站点
         env:
-          INV_SHARE: ${{ steps.cfg.outputs.inv_share }}
-        run: |
-          python3 scripts/fetch_wps_share.py --share-id "$INV_SHARE" --output wps_inventory.xlsx
-          echo "✅ 在售 xlsx 下载完成"
-
-      - name: Fetch wants xlsx from WPS
-        env:
-          WANTS_SHARE: ${{ steps.cfg.outputs.wants_share }}
-        run: |
-          python3 scripts/fetch_wps_share.py --share-id "$WANTS_SHARE" --output wps_wants.xlsx
-          echo "✅ 求购 xlsx 下载完成"
-
-      - name: Parse inventory
-        # 先清空旧产物，避免卖家从 WPS 删除工作表后旧 txt 残留导致站点展示已下架的卡
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           rm -f inventory/*.txt
-          python3 scripts/parse_wps_excel.py wps_inventory.xlsx
+          python3 scripts/export_inventory_to_txt.py
 
-      - name: Parse wants
-        # 同上：清空旧 wants txt，避免已退出的买家残留
+      - name: Export wants from Supabase
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           rm -f wants/*.txt
-          python3 scripts/parse_wps_wants_excel.py wps_wants.xlsx
+          python3 scripts/export_wants_to_txt.py
 
       - name: Clean stale Scryfall cache
         # 删除 60 天未访问的缓存文件，避免已售卡数据长期堆积
@@ -151,6 +131,7 @@ jobs:
           cp index.html site/
           cp -r assets/. site/assets/
           cp -r data/. site/data/
+          cp -r admin site/admin 2>/dev/null || true
           cp CNAME site/
           cp LICENSE site/ 2>/dev/null || true
           cp robots.txt site/ 2>/dev/null || true
@@ -183,7 +164,7 @@ jobs:
           repo = os.environ["REPO"]
           token = os.environ["GITHUB_TOKEN"]
           run_url = f"https://github.com/{repo}/actions/runs/{os.environ['RUN_ID']}"
-          body = f"自动部署失败，请检查。常见原因：WPS Cookie 过期（需从浏览器复制新值到 runner 的 ~/.config/wps_cookies.txt）。失败运行：{run_url}"
+          body = f"自动部署失败，请检查。常见原因：Supabase 请求失败 / SUPABASE_SERVICE_ROLE_KEY 未配或失效 / GH_PAT 失效。失败运行：{run_url}"
           api = f"https://api.github.com/repos/{repo}/issues"
           headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
           list_ok = False

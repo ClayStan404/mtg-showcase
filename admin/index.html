@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f1218" />
+    <meta name="description" content="MTG Showcase 管理" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co https://api.scryfall.io; frame-ancestors 'none'"
+    />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://cards.scryfall.io" crossorigin />
+    <title>管理 · MTG Showcase</title>
+    <link rel="stylesheet" href="/assets/style.css?v=0" />
+    <link rel="stylesheet" href="/admin/admin.css?v=0" />
+  </head>
+  <body>
+    <header class="site-header wrap">
+      <h1 id="site-title">管理</h1>
+      <p class="subtitle" id="site-subtitle">库存 / 求购 管理</p>
+      <nav class="view-tabs" id="view-tabs" aria-label="库存与求购" role="tablist">
+        <button type="button" class="view-tab active" data-view="sell" role="tab" aria-selected="true" tabindex="0">库存</button>
+        <button type="button" class="view-tab" data-view="want" role="tab" aria-selected="false" tabindex="-1">求购</button>
+      </nav>
+      <div class="stats">
+        <span id="stat-kinds-label">种类</span> <strong id="total-kinds">0</strong>
+        <span id="stat-qty-label">张数</span> <strong id="total-qty">0</strong>
+        <span>显示</span> <strong id="visible-count">0</strong>
+      </div>
+      <div class="admin-user">
+        <span id="admin-email" class="admin-email"></span>
+        <a href="/" class="btn btn-ghost btn-sm">回主站</a>
+        <button type="button" class="btn btn-ghost btn-sm" id="publish-btn">立即发布</button>
+        <button type="button" class="btn btn-danger-ghost btn-sm" id="signout-btn">登出</button>
+      </div>
+    </header>
+
+    <div class="toolbar" id="toolbar">
+      <div class="toolbar-inner wrap">
+        <div class="search-row">
+          <label class="search">
+            <span class="sr-only">搜索</span>
+            <input id="search" type="search" enterkeyhint="search" placeholder="搜索牌名 / 系列…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </label>
+          <button type="button" class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="filters">
+            筛选<span class="filter-toggle-dot" id="filter-toggle-dot" hidden></span>
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" id="add-btn">添加</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="batch-btn">批量</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="import-btn">导入</button>
+        </div>
+        <div class="filters" id="filters"></div>
+      </div>
+    </div>
+    <div class="dd-scrim" id="dd-scrim" hidden></div>
+
+    <main class="wrap">
+      <p id="profile-warn" class="empty" role="status" aria-live="polite" hidden></p>
+      <p id="empty" class="empty" role="status" aria-live="polite" hidden>没有数据</p>
+      <div id="grid" class="grid" tabindex="-1"></div>
+    </main>
+
+    <div class="toast" id="toast" hidden role="status"></div>
+
+    <!-- 添加/编辑表单 -->
+    <div class="modal" id="form-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="form-title">
+      <div class="modal-backdrop" id="form-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-handle" aria-hidden="true"></div>
+        <button type="button" class="modal-close" id="form-close" aria-label="关闭">×</button>
+        <div class="modal-content">
+          <h2 id="form-title">添加</h2>
+          <form id="card-form" autocomplete="off">
+            <input type="hidden" id="f-id" />
+            <div class="form-row">
+              <label>系列<input id="f-set" type="text" placeholder="neo" required /></label>
+              <label>编号<input id="f-number" type="text" placeholder="111" required /></label>
+              <label>语言
+                <select id="f-lang">
+                  <option value="e">e 英文</option>
+                  <option value="z">z 中文</option>
+                  <option value="j">j 日文</option>
+                  <option value="o">o 其他</option>
+                </select>
+              </label>
+              <label>闪
+                <select id="f-foil"><option value="0">非闪</option><option value="1">闪</option></select>
+              </label>
+              <label>数量<input id="f-qty" type="number" min="1" step="1" value="1" required /></label>
+              <label>价格<input id="f-price" type="number" min="0" step="0.01" value="0" /></label>
+              <label class="want-only">必须此版
+                <select id="f-must"><option value="0">可替</option><option value="1">必须</option></select>
+              </label>
+            </div>
+            <label class="form-full">备注<input id="f-note" type="text" placeholder="右下角破损 / 急收…" maxlength="200" /></label>
+            <div class="form-preview" id="form-preview" hidden>
+              <img id="form-preview-img" src="" alt="" />
+              <p id="form-preview-name"></p>
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn btn-primary" id="form-submit">保存</button>
+              <button type="button" class="btn btn-ghost" id="form-cancel">取消</button>
+            </div>
+            <p class="form-hint" id="form-hint"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量 -->
+    <div class="modal" id="batch-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="batch-title">
+      <div class="modal-backdrop" id="batch-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-handle" aria-hidden="true"></div>
+        <button type="button" class="modal-close" id="batch-close" aria-label="关闭">×</button>
+        <div class="modal-content">
+          <h2 id="batch-title">批量添加</h2>
+          <p class="form-hint">每行一条，格式见下方说明。owner 强制为当前登录用户。</p>
+          <textarea id="batch-text" class="batch-text" rows="10" placeholder="sta 124 j 0 2 50 # 签名&#10;neo 111 e 1 1 0"></textarea>
+          <pre class="format-help" id="batch-help"></pre>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-primary" id="batch-submit">导入</button>
+            <button type="button" class="btn btn-ghost" id="batch-cancel">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导入 -->
+    <div class="modal" id="import-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="modal-backdrop" id="import-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-handle" aria-hidden="true"></div>
+        <button type="button" class="modal-close" id="import-close" aria-label="关闭">×</button>
+        <div class="modal-content">
+          <h2 id="import-title">从文件导入</h2>
+          <p class="form-hint">上传 txt（inventory/wants 格式，含 meta 头则忽略 seller/buyer）。仅支持新格式（空格 + #）。</p>
+          <input type="file" id="import-file" accept=".txt,text/plain" />
+          <pre class="format-help" id="import-help"></pre>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-primary" id="import-submit">导入</button>
+            <button type="button" class="btn btn-ghost" id="import-cancel">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/assets/cards-data.js?v=0"></script>
+    <script src="/assets/wants-data.js?v=0"></script>
+    <script src="/assets/mtg-ui.js?v=0"></script>
+    <script src="/assets/vendor/supabase-js.min.js?v=0"></script>
+    <script src="/assets/supabase-client.js?v=0"></script>
+    <script src="/admin/admin.js?v=0"></script>
+  </body>
+</html>

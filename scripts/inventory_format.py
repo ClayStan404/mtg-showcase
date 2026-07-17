@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from collections import OrderedDict
@@ -180,81 +181,91 @@ def normalize_strict(raw: Any, *, strict: bool = True) -> bool:
     raise ParseError(f"版本要求无效「{raw}」（空/0=可替，1=必须此版）")
 
 
-def card_line_to_fields(parts: list[str]) -> tuple[str, str, str, bool, int]:
-    """解析卖牌库存行。
-
-    格式: [Nx] set number [lang] [foil]
-    lang/foil 可省略；foil 与 lang 用集合识别（兼容旧写法）。
-    """
-    if not parts:
-        raise ParseError("空行")
-    qty = 1
-    if QTY_RE.match(parts[0]):
-        qty = normalize_qty(parts[0])
-        parts = parts[1:]
-    if len(parts) < 2:
-        raise ParseError("至少需要 系列 + 编号")
-    if len(parts) > 4:
-        raise ParseError("字段过多，格式: 系列 编号 [语言] [闪]")
-
-    set_code = parts[0].lower()
-    number = parts[1]
-    lang_raw = ""
-    foil_raw = ""
-
-    for token in parts[2:]:
-        low = token.lower()
-        if low in FOIL_TRUE or low in FOIL_FALSE:
-            if foil_raw:
-                raise ParseError(f"闪字段重复: {low}")
-            foil_raw = low
-        elif low in LANG_INPUT_MAP:
-            if lang_raw:
-                raise ParseError(f"语言字段重复: {low}")
-            lang_raw = low
-        else:
-            raise ParseError(f"无法识别的字段「{token}」（仅支持 e/z/j/o 语言，0/1 闪）")
-
-    lang = normalize_lang(lang_raw)
-    foil = normalize_foil(foil_raw) if foil_raw != "" else False
-
-    return set_code, number, lang, foil, qty
+def normalize_price(raw: Any) -> float:
+    """价格：0=市价/私聊，>0=固定价。空=0；非负。统一返回 float。"""
+    s = cell_str(raw)
+    if s == "":
+        return 0.0
+    try:
+        p = float(s)
+    except ValueError as e:
+        raise ParseError(f"价格无效「{raw}」（空=0 市价，>0 固定价）") from e
+    if p < 0:
+        raise ParseError(f"价格须 ≥ 0，得到「{raw}」")
+    return p
 
 
-def want_line_to_fields(line: str) -> tuple[str, str, str, bool, int, bool, str]:
-    """解析求购行（指定印刷 + 是否必须此版）。
+def note_hash(note: str) -> str:
+    """note 的 8 位 md5 摘要，用于合并 key 与 card_id/wid，保持 id ASCII 稳定
+    并避免 note 含中文/空格/引号/`|` 污染分隔符或 data-id 选择器。"""
+    return hashlib.md5((note or "").encode()).hexdigest()[:8]
 
-    格式: [Nx] set number [lang] [foil] [must]
-          [| 备注]
-    - lang: e/z/j/o，空=e
-    - foil: 0/1，空=0
-    - must: 0=其他版本也可，1=必须此印刷，空=0
+
+def card_line_to_fields(line: str) -> tuple[str, str, str, bool, int, float, str]:
+    """解析卖牌库存行（位置格式 + `#` note）。
+
+    格式: set number lang foil [qty] [price] [# note]
+    - 空格分隔，字段按位置依次填，尾部可省略（省略=默认值）
+    - 中间字段（lang/foil）不能跳过；要填 price 时 qty 也要显式写
+    - `#` 后到行尾 = note（可含空格，不含 `#`）；无 `#` 则无 note
+    - lang: e/z/j/o，空=e；foil: 0/1，空=0；qty: 空=1；price: 空=0（市价）
+
+    返回 7 元组 (set, number, lang, foil, qty, price, note)，price 为 float。
     """
     note = ""
     raw = line.strip()
-    if "|" in raw:
-        raw, note = raw.split("|", 1)
+    if "#" in raw:
+        raw, note = raw.split("#", 1)
         note = note.strip()
     parts = raw.split()
     if not parts:
         raise ParseError("空行")
-
-    qty = 1
-    if QTY_RE.match(parts[0]):
-        qty = normalize_qty(parts[0])
-        parts = parts[1:]
-    if len(parts) < 2:
-        raise ParseError("至少需要 系列 + 编号")
-    if len(parts) > 5:
-        raise ParseError("字段过多，格式: 系列 编号 [语言] [闪] [必须此版]")
+    if len(parts) < 4:
+        raise ParseError("至少需要 系列 编号 语言 闪（位置格式，中间字段不能省）")
+    if len(parts) > 6:
+        raise ParseError("字段过多，格式: set number lang foil [qty] [price] [# note]")
 
     set_code = parts[0].lower()
     number = parts[1]
-    # 位置固定：lang, foil, must
-    lang = normalize_lang(parts[2] if len(parts) > 2 else "")
-    foil = normalize_foil(parts[3] if len(parts) > 3 else "")
-    must = normalize_strict(parts[4] if len(parts) > 4 else "")
-    return set_code, number, lang, foil, qty, must, note
+    lang = normalize_lang(parts[2])
+    foil = normalize_foil(parts[3])
+    qty = normalize_qty(parts[4]) if len(parts) > 4 else 1
+    price = normalize_price(parts[5]) if len(parts) > 5 else 0.0
+    return set_code, number, lang, foil, qty, price, note
+
+
+def want_line_to_fields(line: str) -> tuple[str, str, str, bool, int, bool, float, str]:
+    """解析求购行（位置格式 + `#` note）。
+
+    格式: set number lang foil [qty] [must] [price] [# note]
+    - 空格分隔，尾部可省略；中间字段（lang/foil）不能跳过
+    - 要填 price 时 qty 和 must 都要显式写（must 在 price 前）
+    - `#` 后到行尾 = note；无 `#` 则无 note
+    - lang: e/z/j/o，空=e；foil: 0/1，空=0；qty: 空=1；must: 空=0（可替）；price: 空=0
+
+    返回 8 元组 (set, number, lang, foil, qty, must, price, note)，price 为 float。
+    """
+    note = ""
+    raw = line.strip()
+    if "#" in raw:
+        raw, note = raw.split("#", 1)
+        note = note.strip()
+    parts = raw.split()
+    if not parts:
+        raise ParseError("空行")
+    if len(parts) < 4:
+        raise ParseError("至少需要 系列 编号 语言 闪（位置格式，中间字段不能省）")
+    if len(parts) > 7:
+        raise ParseError("字段过多，格式: set number lang foil [qty] [must] [price] [# note]")
+
+    set_code = parts[0].lower()
+    number = parts[1]
+    lang = normalize_lang(parts[2])
+    foil = normalize_foil(parts[3])
+    qty = normalize_qty(parts[4]) if len(parts) > 4 else 1
+    must = normalize_strict(parts[5]) if len(parts) > 5 else False
+    price = normalize_price(parts[6]) if len(parts) > 6 else 0.0
+    return set_code, number, lang, foil, qty, must, price, note
 
 
 def merge_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:

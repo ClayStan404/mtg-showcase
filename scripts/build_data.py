@@ -31,6 +31,7 @@ from inventory_format import (  # noqa: E402
     ParseError,
     card_line_to_fields,
     lang_label,
+    note_hash,
     slugify,
     validate_meta,
 )
@@ -84,16 +85,19 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
                         contact = val
                 continue
 
-            parts = line.split()
             try:
-                set_code, number, lang, is_foil, qty = card_line_to_fields(parts)
+                set_code, number, lang, is_foil, qty, price, note = card_line_to_fields(line)
             except ParseError as e:
                 print(f"[warn] {path.name}:{line_num} {e}，跳过: {raw.rstrip()}", file=sys.stderr)
                 continue
 
             seller_name = seller or source
             seller_id = slugify(seller_name, source)
-            key = f"{seller_id}|{set_code}|{number}|{lang}|{'foil' if is_foil else 'nf'}"
+            # 同价同备注才合并数量；不同价/不同备注保持独立条目（card_id 也含 price+note_hash）
+            key = (
+                f"{seller_id}|{set_code}|{number}|{lang}|{'foil' if is_foil else 'nf'}"
+                f"|{price:.2f}|{note_hash(note)}"
+            )
 
             if key in merged:
                 merged[key]["quantity"] += qty
@@ -104,6 +108,8 @@ def parse_inventory_file(path: Path) -> list[dict[str, Any]]:
                     "lang": lang,
                     "foil": is_foil,
                     "quantity": qty,
+                    "price": price,
+                    "note": note,
                     "source_file": path.name,
                     "seller": seller_name,
                     "seller_id": seller_id,
@@ -144,9 +150,13 @@ def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[s
 
     # 跨文件合并：同 seller 的相同印刷可能出现在多个 sheet/txt（write_sheets 按
     # sheet 拆文件不改 seller_id），按 card_id 键合并数量，避免重复 card_id。
+    # 同价同备注才合并；不同价/不同备注保持独立条目。
     merged_all: OrderedDict[str, dict[str, Any]] = OrderedDict()
     for e in all_entries:
-        key = f"{e['seller_id']}|{e['set']}|{e['number']}|{e['lang']}|{'foil' if e['foil'] else 'nf'}"
+        key = (
+            f"{e['seller_id']}|{e['set']}|{e['number']}|{e['lang']}"
+            f"|{'foil' if e['foil'] else 'nf'}|{e['price']:.2f}|{note_hash(e['note'])}"
+        )
         if key in merged_all:
             merged_all[key]["quantity"] += e["quantity"]
         else:
@@ -155,10 +165,11 @@ def parse_all_inventories(inventory_dir: Path, legacy_file: Path) -> list[dict[s
 
 
 def card_id(entry: dict[str, Any]) -> str:
+    # id 含 price + note_hash：同卡不同价/不同备注算独立条目，避免 cardIndex 覆盖丢数据
     return (
         f"{entry['seller_id']}-"
         f"{entry['set']}-{entry['number']}-{entry['lang']}-"
-        f"{'f' if entry['foil'] else 'nf'}"
+        f"{'f' if entry['foil'] else 'nf'}-{entry['price']:.2f}-{note_hash(entry['note'])}"
     )
 
 
@@ -217,6 +228,8 @@ def enrich(
                         "lang_label": lang_label(lang),
                         "foil": entry["foil"],
                         "quantity": entry["quantity"],
+                        "price": entry["price"],
+                        "note": entry["note"],
                         "seller": entry["seller"],
                         "seller_id": entry["seller_id"],
                         "city": entry["city"],
@@ -252,6 +265,8 @@ def enrich(
                 "lang_label": lang_label(entry["lang"]),
                 "foil": entry["foil"],
                 "quantity": entry["quantity"],
+                "price": entry["price"],
+                "note": entry["note"],
                 "seller": entry["seller"],
                 "seller_id": entry["seller_id"],
                 "city": entry["city"],
@@ -348,8 +363,8 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     # 静态资源的 cache buster 无论数据是否变化都要 bump
-    # （app.js / style.css 可能被手动修改但卡数据没变）
-    for static_file in ("app.js", "style.css"):
+    # （app.js / style.css / mtg-ui.js 可能被手动修改但卡数据没变）
+    for static_file in ("app.js", "style.css", "mtg-ui.js"):
         p = ROOT / "assets" / static_file
         if p.exists():
             bump_cache_buster(ROOT / "index.html", static_file, p.read_bytes())

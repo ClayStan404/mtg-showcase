@@ -1,0 +1,106 @@
+/* admin/admin.css -- admin 专属样式（复用 /assets/style.css 的卡/工具栏/弹窗/按钮） */
+
+.admin-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.admin-email {
+  color: var(--muted, #9aa3b2);
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
+
+/* 卡片上的价格徽标 + 管理按钮 */
+.card-price {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(15, 18, 24, 0.85);
+  color: #ffd54f;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.card-media { position: relative; }
+.card-admin-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+/* 表单 */
+#card-form { display: flex; flex-direction: column; gap: 0.6rem; }
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.form-row label,
+.form-full {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted, #9aa3b2);
+}
+.form-row label { flex: 1 1 120px; min-width: 110px; }
+.form-full { width: 100%; }
+#card-form input,
+#card-form select,
+#card-form textarea {
+  background: var(--bg-input, #1a1f29);
+  border: 1px solid var(--border, #2a3140);
+  color: var(--text, #e6e9f0);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.95rem;
+}
+.form-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.form-preview img { width: 60px; height: 84px; object-fit: cover; border-radius: 4px; }
+.form-preview p { margin: 0; font-weight: 600; }
+.form-hint { color: var(--muted, #9aa3b2); font-size: 0.82rem; margin: 0.25rem 0; }
+.form-hint:empty { margin: 0; }
+
+/* 批量/导入 */
+.batch-text {
+  width: 100%;
+  background: var(--bg-input, #1a1f29);
+  border: 1px solid var(--border, #2a3140);
+  color: var(--text, #e6e9f0);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+.format-help {
+  background: var(--bg-input, #1a1f29);
+  border: 1px solid var(--border, #2a3140);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--muted, #9aa3b2);
+  white-space: pre-wrap;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+.modal-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* profile 警告条 */
+#profile-warn {
+  background: rgba(255, 180, 0, 0.12);
+  border: 1px solid rgba(255, 180, 0, 0.4);
+  color: #ffd54f;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
