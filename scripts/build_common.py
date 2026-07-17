@@ -106,17 +106,40 @@ def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
     return old_wo_ts == new_wo_ts
 
 
+def data_base_url_from_supabase(supabase_url: str, bucket: str = "site-data") -> str:
+    """Public Storage URL prefix for scheme-C snapshots (cards.json / wants.json)."""
+    base = (supabase_url or "").strip().rstrip("/")
+    if not base:
+        return ""
+    return f"{base}/storage/v1/object/public/{bucket}"
+
+
 def load_site_config() -> dict[str, Any]:
     if SITE_CONFIG.exists():
         try:
-            return json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
+            cfg = json.loads(SITE_CONFIG.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as e:
             # site_config.json 损坏时回退默认配置，避免直接崩掉整轮 build
             print(f"⚠ site_config.json 解析失败，使用默认配置: {e}", file=sys.stderr)
-    return {
-        "title": "万智牌 Sales List",
-        "subtitle": "实体卡展示 · 站外联系成交",
-    }
+            cfg = {
+                "title": "万智牌 Sales List",
+                "subtitle": "实体卡展示 · 站外联系成交",
+            }
+    else:
+        cfg = {
+            "title": "万智牌 Sales List",
+            "subtitle": "实体卡展示 · 站外联系成交",
+        }
+    # Scheme C: always expose public snapshot base URL for the frontend.
+    # Explicit data_base_url in site_config wins; otherwise derive from supabase_url.
+    if not (cfg.get("data_base_url") or "").strip():
+        derived = data_base_url_from_supabase(
+            str(cfg.get("supabase_url") or ""),
+            str(cfg.get("data_bucket") or "site-data"),
+        )
+        if derived:
+            cfg["data_base_url"] = derived
+    return cfg
 
 
 class ScryfallClient:

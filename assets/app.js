@@ -751,31 +751,54 @@ async function loadJsonFallback(urls, check) {
   throw lastErr || new Error("无法加载数据");
 }
 
-async function loadData() {
-  // 在售
-  let sell;
-  if (window.__MTG_DATA__ && Array.isArray(window.__MTG_DATA__.cards)) {
-    sell = window.__MTG_DATA__;
-  } else {
-    sell = await loadJsonFallback(
-      [`data/cards.json?v=${Date.now()}`, "data/cards.json"],
-      (d) => d && Array.isArray(d.cards)
-    );
+/** Scheme C: public Storage snapshot base from site config (or derived). */
+function siteDataBaseUrl() {
+  const site =
+    (window.__MTG_DATA__ && window.__MTG_DATA__.site) ||
+    (window.__MTG_WANTS__ && window.__MTG_WANTS__.site) ||
+    (window.MTGSupabase && window.MTGSupabase.site) ||
+    {};
+  if (site.data_base_url) return String(site.data_base_url).replace(/\/$/, "");
+  const sb = (site.supabase_url || "").replace(/\/$/, "");
+  if (!sb) return "";
+  const bucket = site.data_bucket || "site-data";
+  return `${sb}/storage/v1/object/public/${bucket}`;
+}
+
+/**
+ * Prefer live Storage snapshot (updated without full Pages deploy).
+ * Fall back to inlined cards-data.js / local data/*.json if Storage is empty or fails.
+ */
+async function loadCatalog(kind) {
+  const isSell = kind === "sell";
+  const file = isSell ? "cards.json" : "wants.json";
+  const listKey = isSell ? "cards" : "wants";
+  const check = (d) => d && Array.isArray(d[listKey]);
+  const bust = Date.now();
+  const base = siteDataBaseUrl();
+  const urls = [];
+  if (base) urls.push(`${base}/${file}?v=${bust}`);
+  urls.push(`data/${file}?v=${bust}`, `data/${file}`);
+
+  try {
+    return await loadJsonFallback(urls, check);
+  } catch (liveErr) {
+    const inline = isSell ? window.__MTG_DATA__ : window.__MTG_WANTS__;
+    if (inline && Array.isArray(inline[listKey])) return inline;
+    throw liveErr;
   }
+}
+
+async function loadData() {
+  // 在售：Storage 快照优先，内联/本地兜底
+  const sell = await loadCatalog("sell");
 
   // 求购（可选，失败则空列表）
   let wants = { wants: [] };
-  if (window.__MTG_WANTS__ && Array.isArray(window.__MTG_WANTS__.wants)) {
-    wants = window.__MTG_WANTS__;
-  } else {
-    try {
-      wants = await loadJsonFallback(
-        [`data/wants.json?v=${Date.now()}`, "data/wants.json"],
-        (d) => d && Array.isArray(d.wants)
-      );
-    } catch {
-      wants = { wants: [] };
-    }
+  try {
+    wants = await loadCatalog("want");
+  } catch {
+    wants = { wants: [] };
   }
 
   return { sell, wants };

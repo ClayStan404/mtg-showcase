@@ -97,15 +97,40 @@
     return { rows, errors };
   }
 
-  // ---------- 显示 join（cards.json 提供 name/image/type）----------
-  function buildDisplayIndex() {
-    const cards = (window.__MTG_DATA__ && window.__MTG_DATA__.cards) || [];
+  // ---------- 显示 join（cards.json / Storage 快照提供 name/image/type）----------
+  function indexFromCards(cards) {
     const m = new Map();
-    for (const c of cards) {
+    for (const c of cards || []) {
       const k = `${c.set}|${c.number}|${c.lang}`;
       if (!m.has(k)) m.set(k, c); // 首个命中即可（显示用，foil 不影响图/名）
     }
-    displayIndex = m;
+    return m;
+  }
+
+  function buildDisplayIndex() {
+    displayIndex = indexFromCards(
+      (window.__MTG_DATA__ && window.__MTG_DATA__.cards) || []
+    );
+  }
+
+  /** Prefer live Storage snapshot for richer join after scheme-C publishes. */
+  async function refreshDisplayIndexFromLive() {
+    try {
+      const site = (window.MTGSupabase && MTGSupabase.site) || {};
+      let base = (site.data_base_url || "").replace(/\/$/, "");
+      if (!base && site.supabase_url) {
+        base = `${String(site.supabase_url).replace(/\/$/, "")}/storage/v1/object/public/${site.data_bucket || "site-data"}`;
+      }
+      if (!base) return;
+      const r = await fetch(`${base}/cards.json?v=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data && Array.isArray(data.cards) && data.cards.length) {
+        displayIndex = indexFromCards(data.cards);
+      }
+    } catch {
+      /* keep inlined index */
+    }
   }
 
   function rowToCard(row, view) {
@@ -260,10 +285,13 @@
     if (error) throw error;
   }
 
-  // 60s 前端节流（文档第 8 节）：成功触发后倒计时禁用按钮，防连点排队多个 workflow
+  // 60s 前端节流：成功触发后倒计时禁用按钮，防连点排队多个 workflow
   // （workflow concurrency cancel-in-progress=false，多点只会排队白跑）
+  // Scheme C: 改库存后 debounce 自动同步 Storage 快照；按钮仍可手动立即同步。
   let publishCooldownUntil = 0;
   let cooldownTimer = null;
+  let autoSyncTimer = null;
+  const AUTO_SYNC_DEBOUNCE_MS = 45 * 1000;
 
   function setPublishCooldown(seconds) {
     publishCooldownUntil = Date.now() + seconds * 1000;
@@ -278,43 +306,71 @@
         return;
       }
       btn.disabled = true;
-      btn.textContent = `发布(${remain}s)`;
+      btn.textContent = `同步(${remain}s)`;
     };
     tick();
     cooldownTimer = setInterval(tick, 1000);
   }
 
-  async function publish() {
+  /**
+   * Trigger data-only publish (export + Scryfall build + Storage upload).
+   * @param {{ quiet?: boolean }} opts quiet=true: no toast on success (auto-sync)
+   */
+  async function publish(opts) {
+    const quiet = !!(opts && opts.quiet);
     // 防御：按钮被 guard 禁用时点不到，但防控制台/竞态直接调 publish
     if (!profileIsComplete(profile)) {
-      showToast("请先在「资料」补全昵称/城市/联系");
-      return;
+      if (!quiet) showToast("请先在「资料」补全昵称/城市/联系");
+      return false;
     }
     const now = Date.now();
     if (now < publishCooldownUntil) {
-      showToast(`请稍候，${Math.ceil((publishCooldownUntil - now) / 1000)}s 后可再次发布`);
-      return;
+      if (!quiet) {
+        showToast(`请稍候，${Math.ceil((publishCooldownUntil - now) / 1000)}s 后可再次同步`);
+      }
+      return false;
     }
     const session = await MTGSupabase.getSession();
-    if (!session) { showToast("未登录"); return; }
+    if (!session) {
+      if (!quiet) showToast("未登录");
+      return false;
+    }
     const btn = $("#publish-btn");
-    if (btn) { btn.disabled = true; btn.textContent = "发布中…"; }
+    if (btn && !quiet) {
+      btn.disabled = true;
+      btn.textContent = "同步中…";
+    }
     try {
       const r = await fetch(`${MTGSupabase.site.supabase_url}/functions/v1/publish`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mode: "data" }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${r.status}`);
       }
-      showToast("已触发发布，约 1 分钟后站点更新");
-      setPublishCooldown(60); // 成功才节流，接管按钮（不走 catch 的恢复）
-      return;
+      if (!quiet) showToast("已触发同步，约 1 分钟后主站列表更新");
+      else showToast("已排队同步主站列表");
+      setPublishCooldown(60); // 成功才节流
+      return true;
     } catch (e) {
-      showToast("发布失败：" + e.message);
-      updatePublishGuard(); // 失败恢复统一走 guard（未成功不进 cooldown，disabled=!ok；与成功/到期路径一致）
+      if (!quiet) showToast("同步失败：" + e.message);
+      updatePublishGuard();
+      return false;
     }
+  }
+
+  /** After inventory/wants writes: debounce one data-only sync (batch-friendly). */
+  function scheduleAutoSync() {
+    if (!profileIsComplete(profile)) return;
+    clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(() => {
+      publish({ quiet: true }).catch(() => {});
+    }, AUTO_SYNC_DEBOUNCE_MS);
   }
 
   // ---------- 视图切换 ----------
@@ -401,6 +457,7 @@
       await saveCard(form, view);
       hideModal("form-modal");
       showToast(form.id ? "已更新" : "已添加");
+      scheduleAutoSync();
       await setView(view);
     } catch (e) {
       $("#form-hint").textContent = "保存失败：" + e.message;
@@ -447,6 +504,7 @@
       await bulkUpsert(rows, state.view);
       hideModal("batch-modal");
       showToast(`已导入 ${rows.length} 条`);
+      scheduleAutoSync();
       await setView(state.view);
     } catch (e) {
       showToast("导入失败：" + e.message);
@@ -464,6 +522,7 @@
       await bulkUpsert(rows, state.view);
       hideModal("import-modal");
       showToast(`已导入 ${rows.length} 条`);
+      scheduleAutoSync();
       await setView(state.view);
     } catch (e) {
       showToast("导入失败：" + e.message);
@@ -519,7 +578,9 @@
       else if (btn.dataset.act === "del") {
         if (!confirm("删除该条？")) return;
         deleteCard(id, state.view).then(() => {
-          showToast("已删除"); setView(state.view);
+          showToast("已删除");
+          scheduleAutoSync();
+          setView(state.view);
         }).catch((err) => showToast("删除失败：" + err.message));
       }
     });
@@ -577,7 +638,7 @@
       // 感知 cooldown：冷却中也保持 disabled（冷却 textContent 由 setPublishCooldown 的 tick 管）
       btn.disabled = !ok || cooling;
       btn.title = ok ? "" : "请先在「资料」补全昵称/城市/联系，否则发布后库存不展示";
-      if (!cooling) btn.textContent = "立即发布";
+      if (!cooling) btn.textContent = "立即同步";
     }
     if (warn) {
       if (ok) {
@@ -587,7 +648,7 @@
           (f) => !((profile && profile[f]) || "").trim()
         );
         warn.hidden = false;
-        warn.textContent = `⚠ 资料缺 ${missing.join(" / ")}，发布被禁用（发布后库存会被 export 跳过、站点变空）。点右上「资料」补全。`;
+        warn.textContent = `⚠ 资料缺 ${missing.join(" / ")}，同步被禁用（同步后库存会被 export 跳过、站点变空）。点右上「资料」补全。`;
       }
     }
   }
@@ -643,13 +704,14 @@
     $("#admin-email").textContent = user.email || "";
 
     buildDisplayIndex();
+    await refreshDisplayIndexFromLive();
     try {
       profile = await loadProfile();
     } catch (e) {
       showToast("读取 profile 失败：" + e.message);
       profile = {};
     }
-    updatePublishGuard(); // profile 不全则禁用发布按钮 + 显警告（带「资料」补全入口）
+    updatePublishGuard(); // profile 不全则禁用同步按钮 + 显警告（带「资料」补全入口）
 
     // override 全局 cardHtml（admin 版）
     cardHtml = adminCardHtml;

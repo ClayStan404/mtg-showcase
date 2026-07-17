@@ -37,13 +37,13 @@ admin SPA (sellers/buyers write) ──> Supabase (profiles + inventory + wants)
                   assemble site/ (+admin/ +CNAME +robots.txt +og-image.png) -> upload-pages-artifact -> deploy-pages
 ```
 
-The static site is **not real-time** - it reads `cards.json` / `wants.json` rebuilt on each deploy. Admin edits land on the main site only after the next build (hourly cron or "立即发布"). This is intentional (read/write separation: buyers read fast from static CDN, sellers write to Supabase).
+**Scheme C (near-live lists, not DB-direct reads):** inventory writes still go to Supabase; public lists are **Storage snapshots** (`site-data/cards.json`, `wants.json`) rebuilt by the workflow (`mode=data`: export + Scryfall + upload, **skip Pages**). Admin debounces auto-sync ~45s after saves; "立即同步" / hourly cron / push still work. Main site fetches Storage first, falls back to inlined JS. Full Pages deploy only on `push` or `mode=full`. Buyers do **not** hit Postgres for the card grid.
 
 ### Read/write separation
 
 - **Write (slow OK)**: admin SPA -> Supabase (RLS owner-only).
 - **Read (fast)**: buyers read static `cards.json` on GitHub Pages.
-- **Publish**: admin "立即发布" -> `publish` Edge Function (`verify_jwt=true`) -> `workflow_dispatch` -> export+build+deploy (~1 min). 60s frontend throttle prevents queuing multiple runs.
+- **Publish / sync**: admin save debounce ~45s or "立即同步" -> `publish` Edge Function (`verify_jwt=true`, body `{mode:"data"}`) -> `workflow_dispatch` -> export+build+`upload_site_data.py` (~1 min). 60s frontend throttle. `mode=full` or `push master` also deploys Pages.
 
 ## Key Directories
 

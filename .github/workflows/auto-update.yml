@@ -18,12 +18,21 @@ on:
       - 'SECURITY.md'
       - 'docs/**'
       - 'SUPABASE_MIGRATION_PLAN.md'
-  workflow_dispatch:  # 支持手动触发
+  workflow_dispatch:  # 手动 / 小时 cron / admin「立即发布」
     # 不再用 GitHub schedule：官方文档明确 schedule 在整点高负载时会被延迟甚至丢弃
     # (实测本仓库 cron '0 *' 一天被跳过近一半，间隔常拉到 1.5–3h)。
     # 改由 self-hosted runner 本机 cron 每小时调 workflow_dispatch 触发
     # (runner-local trigger.sh，见 config_rc/infra/mtg-showcase/runner-cron.md)；heartbeat.yml
     # 仍在 GitHub 侧 2h 兜底告警（runner 离线 / cron 挂了都能捕获）。
+    inputs:
+      mode:
+        description: "data = export+build+upload Storage only; full = also deploy Pages"
+        required: false
+        default: data
+        type: choice
+        options:
+          - data
+          - full
 
 permissions:
   contents: read      # 只读 master 源码（不再 commit 回 master）
@@ -40,6 +49,8 @@ jobs:
   build-deploy:
     runs-on: self-hosted
     timeout-minutes: 30  # 防止挂起进程锁死 runner（默认 360min 太长）
+    # Scheme C: push / mode=full → Pages deploy; dispatch default mode=data → Storage only.
+    # Keep github-pages env always (deploy step is conditional; page_url empty on data-only).
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -121,7 +132,17 @@ jobs:
           print('sanity check passed')
           PYEOF
 
+      # Scheme C: always push snapshots to public Storage so the main site can
+      # fetch fresh lists without a full Pages redeploy.
+      - name: Upload site data to Supabase Storage
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upload_site_data.py
+
+      # Full site shell (HTML/JS/CSS) only on push, or explicit mode=full.
+      # Data-only runs (admin publish / hourly cron) skip Pages entirely.
       - name: Assemble site
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full')
         # 组装干净站点目录：源码 + 产物 + CNAME（自定义域名 claystan.cc 必需）。
         # 不含 scripts/、.github/、templates/、site_config.json（已内嵌进 JSON）、文档。
         # 产物不入 git，每次部署现场生成后打包进 artifact。
@@ -139,19 +160,22 @@ jobs:
           ls -la site/ site/assets/ site/data/
 
       - name: Configure Pages
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full')
         uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full')
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
       - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full')
         id: deploy
         uses: actions/deploy-pages@v5
 
       - name: Notify on failure
-        # Cookie 过期是最高频故障；默认无通知会导致站点静默展示过期数据数天
+        # 默认无通知会导致站点静默展示过期数据数天
         # 复用同一 open issue 评论，避免刷屏
         if: failure()
         env:
@@ -164,7 +188,7 @@ jobs:
           repo = os.environ["REPO"]
           token = os.environ["GITHUB_TOKEN"]
           run_url = f"https://github.com/{repo}/actions/runs/{os.environ['RUN_ID']}"
-          body = f"自动部署失败，请检查。常见原因：Supabase 请求失败 / SUPABASE_SERVICE_ROLE_KEY 未配或失效 / GH_PAT 失效。失败运行：{run_url}"
+          body = f"自动部署/数据同步失败，请检查。常见原因：Supabase 请求失败 / SUPABASE_SERVICE_ROLE_KEY 未配或失效 / GH_PAT 失效 / Storage 上传失败。失败运行：{run_url}"
           api = f"https://api.github.com/repos/{repo}/issues"
           headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
           list_ok = False

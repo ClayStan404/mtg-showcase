@@ -4,15 +4,18 @@
 
 ## What this project is
 
-Static **MTG buylist + sell list** website (GitHub Pages, `claystan.cc`). Sellers/buyers manage data in an **admin SPA** (at `/admin/`) backed by **Supabase** (Tokyo). The site does search/filter/wishlist - visitors screenshot or copy text to contact sellers off-site. No in-site checkout or payment.
+Static **MTG buylist + sell list** website (GitHub Pages shell + Supabase Storage data snapshots, `claystan.cc`). Sellers/buyers manage data in an **admin SPA** (at `/admin/`) backed by **Supabase** (Tokyo). The site does search/filter/wishlist - visitors screenshot or copy text to contact sellers off-site. No in-site checkout or payment.
 
-`master` holds source only; **generated artifacts are never committed**. Deploy is via GitHub Actions (workflow mode): `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / manual trigger (admin "立即发布" button -> Edge Function -> `workflow_dispatch`) -> export from Supabase -> generate artifacts -> assemble Pages artifact -> deploy.
+`master` holds source only; **generated artifacts are never committed**.
+
+**Scheme C (near-live lists):** admin saves → debounced auto-sync (or "立即同步") → Edge Function `publish` → `workflow_dispatch` `mode=data` → export → Scryfall build → **upload `cards.json`/`wants.json` to public Storage bucket `site-data`**. Main site **prefers fetch from Storage** (fallback: inlined `cards-data.js` / local `data/*.json`). Full GitHub Pages redeploy only on `push master` (or manual `mode=full`).
 
 ## Data flow
 
 ```
 sellers/buyers (write)  admin SPA ──> Supabase (profiles + inventory + wants)
-                                     │   hourly cron / "立即发布" (Edge Function -> workflow_dispatch)
+                                     │   save debounce ~45s / "立即同步" / hourly cron
+                                     │   (Edge Function publish -> workflow_dispatch mode=data)
                                      ▼
                   export_inventory_to_txt.py  -> inventory/{uid}.txt
                   export_wants_to_txt.py       -> wants/{uid}.txt
@@ -20,12 +23,14 @@ sellers/buyers (write)  admin SPA ──> Supabase (profiles + inventory + wants
                   build_data.py   -> data/cards.json + assets/cards-data.js
                   build_wants.py  -> data/wants.json + assets/wants-data.js
                                      ▼
-                  assemble site/ (+admin/ +CNAME +robots.txt +og-image.png) -> upload-pages-artifact -> deploy-pages
+                  upload_site_data.py -> Storage site-data/{cards,wants}.json  ← buyers read this
+                                     │
+                  push master only: assemble site/ -> deploy-pages (HTML/JS shell)
 ```
 
 Two parallel pipelines (inventory + wants), structurally symmetric. Both build scripts share `build_common.py` (`ScryfallClient`, `base_from_cached` / `base_from_card`, payload tools, `bump_all_caches`). Both export scripts share `export_common.py` (Supabase REST fetch, `profile_complete`, `write_txt` with meta header). Field conventions + line parsers live in `inventory_format.py` (`card_line_to_fields` / `want_line_to_fields`, positional format + `#` note + price).
 
-Frontend reads `window.__MTG_DATA__` (inlined `cards-data.js`) first, falls back to `fetch data/cards.json` if not inlined. Same pattern for wants via `window.__MTG_WANTS__`. This is intentional - inlined data is more reliable behind proxies/DNS.
+Frontend prefers live Storage snapshots (`site.data_base_url` / derived from `supabase_url` + bucket `site-data`), falls back to inlined `window.__MTG_DATA__` / `data/cards.json`. Same for wants. Inline remains a resilience fallback when Storage is empty or unreachable.
 
 Shared display layer: `assets/mtg-ui.js` (state / filters / `cardHtml` / `matches` / `renderGrid` / pagination / `decorateCards` hook). Main site `assets/app.js` is the shell (cart/意向清单, modal, login, data loading, view tabs); `admin/admin.js` overrides `cardHtml` + adds CRUD/batch/import/publish. Supabase client: vendored `assets/vendor/supabase-js.min.js` (esbuild IIFE, `window.supabase.createClient`) + `assets/supabase-client.js` (lazy-load on main site, `hasLocalSession` probe).
 
@@ -58,16 +63,20 @@ Shared display layer: `assets/mtg-ui.js` (state / filters / `cardHtml` / `matche
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Trigger deploy
-gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase
+# Trigger data-only sync (Storage snapshot; default)
+gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase -f mode=data
 
-# Export from Supabase to txt (needs service_role key; admin "立即发布" does this via workflow)
+# Full Pages + data (same as push master shell deploy)
+gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase -f mode=full
+
+# Export from Supabase to txt (needs service_role key; admin sync does this via workflow)
 SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/export_inventory_to_txt.py
 SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/export_wants_to_txt.py
 
 # Manual step-by-step (debug)
 python3 scripts/build_data.py --validate-only   # parse without network
 python3 scripts/build_data.py --no-cache        # ignore .cache/scryfall
+SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/upload_site_data.py   # push JSON to Storage
 
 # Tests + lint
 pip install -r requirements-dev.txt

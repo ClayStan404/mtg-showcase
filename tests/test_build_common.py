@@ -14,6 +14,57 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import build_common  # noqa: E402
 
 
+# ── data_base_url / scheme C ─────────────────────────────────────────
+def test_data_base_url_from_supabase():
+    assert (
+        build_common.data_base_url_from_supabase(
+            "https://abc.supabase.co", "site-data"
+        )
+        == "https://abc.supabase.co/storage/v1/object/public/site-data"
+    )
+    assert build_common.data_base_url_from_supabase("") == ""
+    assert build_common.data_base_url_from_supabase("https://x.supabase.co/") == (
+        "https://x.supabase.co/storage/v1/object/public/site-data"
+    )
+
+
+def test_load_site_config_derives_data_base_url(tmp_path, monkeypatch):
+    cfg_path = tmp_path / "site_config.json"
+    cfg_path.write_text(
+        json.dumps(
+            {
+                "title": "T",
+                "subtitle": "S",
+                "supabase_url": "https://proj.supabase.co",
+                "supabase_anon_key": "anon",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(build_common, "SITE_CONFIG", cfg_path)
+    cfg = build_common.load_site_config()
+    assert (
+        cfg["data_base_url"]
+        == "https://proj.supabase.co/storage/v1/object/public/site-data"
+    )
+
+
+def test_load_site_config_explicit_data_base_url_wins(tmp_path, monkeypatch):
+    cfg_path = tmp_path / "site_config.json"
+    cfg_path.write_text(
+        json.dumps(
+            {
+                "supabase_url": "https://proj.supabase.co",
+                "data_base_url": "https://cdn.example/data",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(build_common, "SITE_CONFIG", cfg_path)
+    cfg = build_common.load_site_config()
+    assert cfg["data_base_url"] == "https://cdn.example/data"
+
+
 # ── payload_unchanged ───────────────────────────────────────────────
 def test_payload_unchanged_missing_file(tmp_path):
     assert build_common.payload_unchanged(tmp_path / "no.json", {"a": 1}) is False
