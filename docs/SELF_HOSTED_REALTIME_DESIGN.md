@@ -434,13 +434,51 @@ Rollback: point DNS back to Pages; Supabase still writable if dual-write not use
 
 ---
 
-## 16. Open Questions
+## 16. Open Questions & decisions
 
-1. **API language preference:** Go (static binary, low RAM) vs Python FastAPI (reuse `build_common` more easily)?  
-2. **Cutover strategy:** big-bang vs temporary dual-write? (Design default: big-bang after import dry-run.)  
-3. **Domain:** keep `claystan.cc` only, or `api.claystan.cc` subdomain?  
-4. **Registration:** remain fully invite-only, or allow open signup with moderation?  
-5. **Timeline:** when is realtime a hard requirement vs keep optimizing Scheme C?
+### Resolved (2026-07-17)
+
+| # | Question | Decision |
+|---|----------|----------|
+| 3 | Domain | **`mtg.claystan.cc`** for the self-hosted product (API under same origin or `mtg.claystan.cc/api`). Apex `claystan.cc` may remain landing/legacy until cutover. |
+| 4 | Registration | **Invite-only at launch**; **open registration after the stack is stable**. |
+
+### Still open
+
+1. **API language preference:** Go vs Python FastAPI — see comparison in §16.1 (no final pick yet).  
+2. **Cutover strategy:** big-bang vs dual-write — see §16.2 (design **default remains big-bang after dry-run import**).  
+5. **Timeline:** when realtime is a hard requirement vs keep optimizing Scheme C.
+
+### 16.1 Go vs Python FastAPI (for implementers)
+
+| Dimension | **Go** | **Python FastAPI** |
+|-----------|--------|---------------------|
+| Performance / RAM | Excellent; small static binary, low idle RAM | Good enough at our QPS; higher baseline RAM |
+| Concurrency | Goroutines; great under many slow clients | Async works well; GIL less relevant for I/O-bound API |
+| Reuse of current code | Must **port** `build_common` enrich logic | Can **import/adapt** Python enrich scripts faster |
+| Ops | Single binary + migrate; simple deploy | Need venv/image layer; familiar if already Python-heavy |
+| Hiring / author familiarity | Depends on author | Matches this repo’s scripts/tests today |
+| Typing / API docs | Manual or codegen | OpenAPI free via FastAPI |
+| Worker + API in one language | Common | Natural (same process or shared package) |
+| Risk at 2000 DAU | Overkill-fast | Still fine |
+
+**Practical recommendation for this repo:** prefer **FastAPI first** if speed-to-parity with enrich/admin matters more than micro-efficiency; prefer **Go** if the goal is a long-lived minimal VPS footprint and you accept a one-time port of enrichment. Either meets scale targets in §4.
+
+### 16.2 What “cutover strategy (question 2)” means
+
+How traffic and writes move from **today (Supabase + Scheme C snapshots)** to **self-hosted API + Postgres**:
+
+| Strategy | How it works | Pros | Cons |
+|----------|--------------|------|------|
+| **Big-bang (default)** | Freeze writes on Supabase → export/import → point `mtg.claystan.cc` to new stack → sellers use new admin only | Simple; no dual-write bugs | Short downtime or write freeze; need solid backup/rollback |
+| **Dual-write** | For a period, every admin write hits **both** Supabase and new API; reads switch when ready | Safer gradual cutover | Complex; conflict resolution; longer maintenance |
+| **Read dual-run only** | Writes only new DB; keep Pages snapshot as fallback read | Partial | Still need one write cutover |
+
+**Default in this design:** big-bang after successful import dry-run + backup, with DNS rollback to Scheme C if needed within a freeze window.
+
+---
+
+## Document history
 
 ---
 
@@ -537,3 +575,4 @@ Incremental PRs against a feature branch / new repo section `server/` (or monore
 | Date | Change |
 |------|--------|
 | 2026-07-17 | Initial design from recommended self-hosted paginated realtime architecture |
+| 2026-07-17 | Record domain `mtg.claystan.cc`, invite-then-open registration; expand Go vs FastAPI and cutover §16 |
