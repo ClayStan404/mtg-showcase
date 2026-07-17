@@ -29,22 +29,23 @@
     <meta property="og:image:alt" content="万智牌 Sales List" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="assets/style.css?v=21598412" />
-    <style>
-      /* 登录/管理入口（主站） */
-      .auth-area { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
-      .auth-area .auth-email { color:var(--muted,#9aa3b2); font-size:.85rem; }
-      #login-form { display:flex; flex-direction:column; gap:.6rem; }
-      #login-form label { display:flex; flex-direction:column; gap:.2rem; font-size:.85rem; color:var(--muted,#9aa3b2); }
-      #login-form input { background:#1a1f29; border:1px solid #2a3140; color:#e6e9f0; border-radius:6px; padding:.45rem .55rem; font-size:.95rem; }
-      #login-form .form-hint { color:var(--muted,#9aa3b2); font-size:.82rem; min-height:1em; }
-    </style>
   </head>
   <body>
     <noscript><p style="text-align:center;padding:2rem">本站需要 JavaScript 才能运行，请启用后刷新。</p></noscript>
     <a href="#grid" class="skip-link">跳到卡牌列表</a>
     <header class="site-header wrap">
-      <h1 id="site-title">万智牌 Sales List</h1>
-      <p class="subtitle" id="site-subtitle">实体卡展示 · 站外联系成交</p>
+      <div class="header-top">
+        <div class="header-brand">
+          <h1 id="site-title">万智牌 Sales List</h1>
+          <p class="subtitle" id="site-subtitle">实体卡展示 · 站外联系成交</p>
+        </div>
+        <div class="header-actions auth-area" id="auth-area" aria-label="账户">
+          <button type="button" class="btn btn-ghost btn-sm header-login" id="login-btn" hidden>登录</button>
+          <span class="auth-email" id="auth-email" hidden title=""></span>
+          <a href="/admin/" class="btn btn-primary btn-sm" id="admin-link" hidden>管理</a>
+          <button type="button" class="btn btn-ghost btn-sm" id="logout-btn" hidden>登出</button>
+        </div>
+      </div>
       <nav class="view-tabs" id="view-tabs" aria-label="在售与求购" role="tablist">
         <button type="button" class="view-tab active" data-view="sell" role="tab" aria-selected="true" tabindex="0">在售</button>
         <button type="button" class="view-tab" data-view="want" role="tab" aria-selected="false" tabindex="-1">求购</button>
@@ -53,12 +54,6 @@
         <span id="stat-kinds-label">种类</span> <strong id="total-kinds">0</strong>
         <span id="stat-qty-label">张数</span> <strong id="total-qty">0</strong>
         <span>显示</span> <strong id="visible-count">0</strong>
-      </div>
-      <div class="auth-area" id="auth-area">
-        <button type="button" class="btn btn-ghost btn-sm" id="login-btn" hidden>登录</button>
-        <span class="auth-email" id="auth-email" hidden></span>
-        <a href="/admin/" class="btn btn-primary btn-sm" id="admin-link" hidden>管理</a>
-        <button type="button" class="btn btn-ghost btn-sm" id="logout-btn" hidden>登出</button>
       </div>
     </header>
 

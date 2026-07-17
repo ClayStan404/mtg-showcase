@@ -79,19 +79,130 @@ a:hover {
 }
 
 header.site-header {
-  padding: 2.5rem 0 1.25rem;
+  padding: 1.75rem 0 1.25rem;
 }
 
-.site-header h1 {
-  margin: 0 0 0.35rem;
-  font-size: clamp(1.45rem, 4.5vw, 2.2rem);
+/* Brand left · account / actions top-right (common web pattern) */
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+}
+
+.header-brand {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.site-header h1,
+.header-brand h1 {
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.35rem, 4.2vw, 2.1rem);
   letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
-.site-header .subtitle {
+.site-header .subtitle,
+.header-brand .subtitle {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex: 0 1 auto;
+  max-width: min(100%, 28rem);
+  /* Stay visually pinned top-right; wrap under brand only if forced */
+  margin-top: 0.1rem;
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.auth-area .auth-email,
+.header-actions .auth-email,
+.header-actions .admin-email {
+  display: inline-block;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.2;
+  padding: 0 0.15rem;
+  vertical-align: middle;
+}
+
+/* Login: compact pill, still ≥ ~44px touch height on touch devices via media below */
+.header-actions .btn-sm {
+  min-height: 2.15rem;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.header-actions .header-login {
+  border-color: rgba(110, 168, 254, 0.45);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.header-actions .header-login:hover {
+  border-color: var(--accent);
+  filter: brightness(1.06);
+  text-decoration: none;
+}
+
+.header-actions a.btn {
+  text-decoration: none;
+}
+
+.header-actions a.btn:hover {
+  text-decoration: none;
+}
+
+/* Login modal form (was inline on index.html) */
+#login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+#login-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+#login-form input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  font-size: 1rem; /* ≥16px avoids iOS zoom on focus */
+  min-height: 2.75rem;
+}
+
+#login-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+#login-form .form-hint {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  min-height: 1em;
+  margin: 0;
 }
 
 .view-tabs {
@@ -201,6 +312,14 @@ header.site-header {
 @media (max-width: 640px) {
   .guide-body {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Very narrow: hide email text, keep actions */
+@media (max-width: 380px) {
+  .header-actions .auth-email,
+  .header-actions .admin-email {
+    display: none;
   }
 }
 
@@ -1356,12 +1475,37 @@ footer {
   }
 
   header.site-header {
-    padding: 1.15rem 0 0.75rem;
+    padding: 1rem 0 0.75rem;
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
   }
 
-  .site-header .subtitle {
-    font-size: 0.86rem;
-    line-height: 1.4;
+  .header-top {
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+  }
+
+  .header-brand .subtitle {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .header-actions {
+    max-width: none;
+    gap: 0.35rem;
+  }
+
+  /* Prefer ≥44px touch targets on phones */
+  .header-actions .btn-sm {
+    min-height: 2.5rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .auth-area .auth-email,
+  .header-actions .auth-email,
+  .header-actions .admin-email {
+    max-width: 6.5rem;
+    font-size: 0.75rem;
   }
 
   .stats {

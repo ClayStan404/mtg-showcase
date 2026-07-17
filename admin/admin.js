@@ -716,7 +716,11 @@
     const user = await MTGSupabase.requireUser();
     if (!user) return;
     uid = user.id;
-    $("#admin-email").textContent = user.email || "";
+    const emailEl = $("#admin-email");
+    if (emailEl) {
+      emailEl.textContent = user.email || "";
+      if (user.email) emailEl.title = user.email;
+    }
 
     buildDisplayIndex();
     await refreshDisplayIndexFromLive();

@@ -800,7 +800,16 @@ function showAuthArea(loggedIn, email) {
   const adminLink = $("#admin-link");
   const logoutBtn = $("#logout-btn");
   if (loginBtn) loginBtn.hidden = loggedIn;
-  if (emailEl) { emailEl.hidden = !loggedIn; if (loggedIn && email) emailEl.textContent = email; }
+  if (emailEl) {
+    emailEl.hidden = !loggedIn;
+    if (loggedIn && email) {
+      emailEl.textContent = email;
+      emailEl.title = email; // full address on hover when truncated
+    } else {
+      emailEl.textContent = "";
+      emailEl.removeAttribute("title");
+    }
+  }
   if (adminLink) adminLink.hidden = !loggedIn;
   if (logoutBtn) logoutBtn.hidden = !loggedIn;
 }

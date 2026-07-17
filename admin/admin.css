@@ -1,16 +1,11 @@
 /* admin/admin.css -- admin 专属样式（复用 /assets/style.css 的卡/工具栏/弹窗/按钮） */
 
+/* 账户区：布局由 style.css .header-actions 提供；保留类名兼容 */
 .admin-user {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
+  /* empty: uses .header-actions from style.css */
 }
 .admin-email {
-  color: var(--muted, #9aa3b2);
-  font-size: 0.85rem;
-  margin-right: 0.25rem;
+  /* email truncation/color from .header-actions .auth-email */
 }
 
 /* 卡片上的价格徽标 + 管理按钮 */
@@ -103,4 +98,23 @@
   padding: 0.6rem 0.9rem;
   border-radius: 6px;
   margin-bottom: 0.75rem;
+}
+
+/* Admin has more header buttons — wrap cleanly on phones */
+@media (max-width: 720px) {
+  .header-actions.admin-user {
+    max-width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-header .header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .header-actions.admin-user {
+    justify-content: flex-start;
+    margin-top: 0.35rem;
+  }
 }
