@@ -67,7 +67,7 @@ create table public.profiles (
 -- seller_name 唯一:只约束非空值,空字符串(未填)不参与,允许多个未填 profile 共存
 -- (handle_new_user 触发器建用户时插空 profile,seller_name='')
 create unique index profiles_seller_name_uniq
-  on public.profiles (seller_name) where seller_name <> '';
+  on public.profiles (lower(seller_name)) where seller_name <> '';
 
 -- inventory: 卖家库存。set_code(NOT "set",SQL 保留词);lang 存内部码;+price +note
 create table public.inventory (
@@ -148,7 +148,7 @@ create policy "wants delete own" on public.wants for delete using (auth.uid() = 
 
 **关键决策**:
 - `publish_log` 表**砍掉**(原防抖需求取消,见第 8 节)。已建项目里若有,`drop table public.publish_log;`(时机见步骤 8:新版 Edge Function deploy 后,非步骤 1)。
-- `seller_name` 用 **partial unique index**(`where seller_name <> ''`)而非列级 unique -- 否则两个未填昵称的新用户(空字符串)会撞约束导致注册失败。改昵称撞名时数据库报冲突,admin 前端友好提示。
+- `seller_name` 用 **partial unique index on `lower(seller_name)`**(`where seller_name <> ''`)而非列级 unique -- 否则两个未填昵称的新用户(空字符串)会撞约束导致注册失败;`lower()` 防 "ClayStan"/"claystan" 大小写碰撞(slugify 后 seller_id 相同 -> 合并/覆盖)。改昵称撞名时数据库报冲突,admin 前端友好提示。
 - inventory/wants 的 unique 含 `price + note`:同卡不同价/不同品相算独立条目(上架两次)。**已建项目有旧 unique 约束(`inventory_seller_id_set_code_number_lang_foil_key` / `wants_buyer_id_set_code_number_lang_foil_must_key`,不含 price/note),必须先 drop 再建新的,否则同卡不同价第二行撞旧约束失败**(语句见步骤 1)。合并按 price+note 分组(见第 5 节全链路清单)。note 写入前 `strip()` 归一化(只去首尾,不归一化中间空格/全角空格/大小写 -- 保守选择,避免过度归一化丢用户意图),避免尾空格导致同 note 算两条。
 - price 用 `numeric(10,2) not null default 0`,不用 nullable -- 0=市价,排序时 0 自然排最前,无需处理 null。展示层把 0 渲染成"市价/私聊"文案。
 
@@ -209,11 +209,11 @@ wants(must 在 qty 和 price 之间):
 
 `card_line_to_fields` / `want_line_to_fields`(Python,`inventory_format.py`)按新格式重写:
 1. **签名变更**:`card_line_to_fields` 现签名是 `parts: list[str]`(:183,预 split),改为 `line: str`(与 `want_line_to_fields` :224 统一),内部处理 `#` split + 空格 split。**代码调用点仅 `build_data.py:89`**(`parse_excel_order_txt.py` 用自己的 `parse_excel_order_line`、不调本函数,且是 WPS 残留要删);`want_line_to_fields` 仅 `build_wants.py:90`。测试(`tests/test_inventory_format.py`)同步改
-2. **返回值变化**(调用方解包要同步,否则 `ValueError: too many values to unpack`):
-   - `card_line_to_fields`:5 元组 `(set,number,lang,foil,qty)` -> 6 元组 `(set,number,lang,foil,qty,price)`(note 在外部 `#` split 处理)
-   - `want_line_to_fields`:7 元组 `(set,number,lang,foil,qty,must,note)` -> 8 元组 `(set,number,lang,foil,qty,must,price,note)`
+2. **返回值变化**(note 在函数内 `#` split 处理、进返回值,card/want 对称;调用方解包不同步会 `ValueError`):
+   - `card_line_to_fields`:5 元组 `(set,number,lang,foil,qty)` -> **7 元组 `(set,number,lang,foil,qty,price,note)`**
+   - `want_line_to_fields`:7 元组 `(set,number,lang,foil,qty,must,note)` -> **8 元组 `(set,number,lang,foil,qty,must,price,note)`**
    - `build_data.py:89`、`build_wants.py:90` 解包语句同步改
-3. 先按第一个 `#` split:前半按空格 split 字段,后半 strip 作 note
+3. 先按第一个 `#` split:前半按空格 split 字段,后半 strip 作 note(函数内,note 进返回值)
 4. 字段按位置依次填(set/number/lang/foil/qty/...),尾部缺失用默认值
 5. 中间字段缺失报错(位置格式不能跳)
 
@@ -238,8 +238,8 @@ admin 侧 JS 版同步重写,和 Python 交叉测试(同输入同输出)。
    - **删 `build_wants.py:158-161` 的 note `;` 拼接**:新分组语义下 note 是分组键、相同才合并,永远不走拼接分支,留着与分组语义矛盾
    - **新架构下合并基本是 no-op**:export 按 seller 一个文件 + DB unique 保证同 seller 同卡同价同 note 在 txt 里只出现一次,build 合并很少触发。真正关键的是第 7 点 id 唯一性(否则同卡不同价后条覆盖前条、`cardIndex` 丢数据)
 7. **`card_id`/`wid` 必须加 price+note**(关键,否则同卡不同价 id 冲突):
-   - `build_data.py:157` `card_id = {seller_id}-{set}-{number}-{lang}-{foil/nf}-{price}-{note}`
-   - `build_wants.py:184` `wid = {buyer_id}-{set}-{number}-{lang}-{foil/nf}-{must}-{price}-{note}`
+   - `build_data.py:157` `card_id = {seller_id}-{set}-{number}-{lang}-{foil/nf}-{price}-{note_hash8}`
+   - `build_wants.py:184` `wid = {buyer_id}-{set}-{number}-{lang}-{foil/nf}-{must}-{price}-{note_hash8}`
    - 前端 `app.js` 的 `cardIndex`(id->card Map)、购物车、模态框都按 id 查 -- id 不唯一会让同卡不同价的后条覆盖前条、数据丢失
    - **note 不进 id 原文,用 `hashlib.md5(note.encode()).hexdigest()[:8]` 进 id**(id 保持 ASCII 稳定,note 作独立字段写进 json)。理由:`data-id` 属性含中文/空格/`"`/`]` 时,`querySelector('[data-id="..."]')` 即使 `CSS.escape` 也有 edge case(`CSS.escape` 转义选择器语法,但 HTML 属性值引号匹配是另一层);`cardIndex` Map key 用原文虽没问题,但 `data-id` selector 风险面更大。hash 方案让 id 保持 ASCII,回归测试压力小
    - **price 类型统一 + 格式化**:`card_line_to_fields`/`want_line_to_fields` 解析后 price 一律返回 `float`(全项目统一,不混 int/float/Decimal);**合并 key(第 6 点三处)和 card_id 的 price 都用 `f"{price:.2f}"`,不裸 `str(price)`** -- `str(50)="50"` vs `str(50.0)="50.0"` 会让同卡同价两条 key 不一致、不合并、生成同 id 条目 -> `cardIndex` 覆盖丢数据。`f"{price:.2f}"` 要求 price 已数值化,若 price 是 str 会 TypeError,必须先 `float(price)`
@@ -252,7 +252,7 @@ admin 侧 JS 版同步重写,和 Python 交叉测试(同输入同输出)。
 ## 6. 脚本
 
 ### `scripts/export_inventory_to_txt.py`(替代 fetch_wps + parse_wps_excel)
-- `service_role` key 调 Supabase REST bypass RLS,读 profiles + inventory(含 price/note)
+- `service_role` key 调 Supabase REST bypass RLS,读 profiles + inventory(含 price/note)。**URL 从 `site_config.json` 的 `supabase_url` 读(公开,不进 secret);key 从 env `SUPABASE_SERVICE_ROLE_KEY` 读**
 - 按 seller 写 `inventory/{profile_uid}.txt`:
   - **文件名用 UID**(唯一,不冲突);build 脚本从 `# seller:` 头读昵称生成 seller_id,**不依赖文件名**(`profile_uid` ≠ build 里的 `seller_id`,后者是 `slugify(昵称)`)
   - export 自动补 meta 头:`# seller: {seller_name}` / `# city:` / `# contact:`(从 profiles)
@@ -323,8 +323,8 @@ admin 侧 JS 版同步重写,和 Python 交叉测试(同输入同输出)。
 admin 列表图 URL 取 cards.json 的 `image.normal`(和主站同一份 URL) -> 浏览器 HTTP 缓存命中,主站加载过的图 admin 不重复下载。admin 新加的卡(cards.json 没有)实时调 Scryfall 拉,URL 和未来 build 一致,缓存可延续。不需要 Service Worker,浏览器默认缓存够用。
 
 ### 部署与依赖
-- **源码目录**:admin 源码放项目根 `admin/`(`admin.html`/`admin.js`/`mtg-ui.js`),入 git;assemble 时 `cp -r admin site/admin` 进部署产物(`site/` 不入 git)。确认 `.gitignore` 不误伤 `admin/`。
-- **Supabase client**:`@supabase/supabase-js`。**定打包进 `assets/` 作 self 脚本**(推荐:免 CDN + 免改 `script-src` + 无 ESM 坑),主站和 admin 都用打包版。**主站懒加载**:点「登录」按钮才动态加载打包模块(约 50KB gzip,纯看牌买家首屏零成本)。若坚持 CDN,必须用 ESM 入口 `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm`(默认 `/npm/...` 是 UMD/CJS,`import()` 运行时失败)+ `script-src` 加 CDN 域。session 存 localStorage,同域下主站登录后跳 `/admin/` 自动带 session,无需重登。
+- **源码目录**:共享层 `assets/mtg-ui.js`(主站和 admin 都引用 `/assets/mtg-ui.js`);admin 入口 `admin/index.html` + `admin/admin.js`,入 git;assemble 时 `cp -r admin site/admin` 进部署产物(`site/` 不入 git)。确认 `.gitignore` 不误伤 `admin/`。
+- **Supabase client**:`@supabase/supabase-js`。**定打包进 `assets/vendor/supabase-js.min.js` 作 self 脚本**(推荐:免 CDN + 免改 `script-src` + 无 ESM 坑,路径写死避免实现各写各的),主站和 admin 都用打包版。**主站懒加载**:点「登录」按钮才动态加载打包模块(约 50KB gzip,纯看牌买家首屏零成本)。若坚持 CDN,必须用 ESM 入口 `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm`(默认 `/npm/...` 是 UMD/CJS,`import()` 运行时失败)+ `script-src` 加 CDN 域。session 存 localStorage,同域下主站登录后跳 `/admin/` 自动带 session,无需重登。
 - **未登录访问 `/admin/`**:admin JS 检查 session,无则跳回主站登录页。
 - **CSP 变更**(关键,否则登录/admin 网络请求被浏览器拦截):
   - 现状 `index.html:14` CSP:`script-src 'self'; connect-src 'self'`(`img-src` 已含 `https://cards.scryfall.io`)
@@ -341,26 +341,29 @@ admin 列表图 URL 取 cards.json 的 `image.normal`(和主站同一份 URL) ->
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // CORS:带 Authorization 的跨域 POST 必触发 preflight,必须显式回 headers(见下方说明)
-// origin 用 env 配,支持本地 dev(http://localhost:*)和线上(https://claystan.cc)
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://claystan.cc";
-const CORS = {
-  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-  "Access-Control-Allow-Headers": "Authorization, Content-Type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// ALLOWED_ORIGIN 逗号分隔多 origin,按请求 Origin 匹配(线上 + 本地 dev)
+const ALLOWED = (Deno.env.get("ALLOWED_ORIGIN") ?? "https://claystan.cc").split(",");
+function corsHeaders(req) {
+  const origin = req.headers.get("Origin") ?? "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED.includes(origin) ? origin : ALLOWED[0],
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS });
+    return new Response(null, { status: 204, headers: corsHeaders(req) });
   }
   const auth = req.headers.get("Authorization") ?? "";
   // verify_jwt: true 时 Supabase 网关已验签,到这里的必是有效登录用户
   // 只确认带 Bearer token 即可,不自解 JWT(atob 处理 base64url 会出错且多余)
   if (!auth.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({error:"unauthorized"}),{status:401, headers: CORS});
+    return new Response(JSON.stringify({error:"unauthorized"}),{status:401, headers: corsHeaders(req)});
   }
   const ghPat = Deno.env.get("GH_PAT");
-  if (!ghPat) return new Response(JSON.stringify({error:"GH_PAT not configured"}),{status:500, headers: CORS});
+  if (!ghPat) return new Response(JSON.stringify({error:"GH_PAT not configured"}),{status:500, headers: corsHeaders(req)});
   const repo = Deno.env.get("GH_REPO") ?? "ClayStan404/mtg-showcase";
   const workflow = Deno.env.get("GH_WORKFLOW") ?? "auto-update.yml";
   const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`,{
@@ -368,12 +371,13 @@ Deno.serve(async (req) => {
     headers:{Authorization:`Bearer ${ghPat}`,Accept:"application/vnd.github+json","User-Agent":"mtg-showcase-publish"},
     body: JSON.stringify({ref:"master"}),
   });
-  if (!r.ok) return new Response(JSON.stringify({error:`github ${r.status}`}),{status:502, headers: CORS});
-  return new Response(JSON.stringify({ok:true}),{headers: CORS});
+  if (!r.ok) return new Response(JSON.stringify({error:`github ${r.status}`}),{status:502, headers: corsHeaders(req)});
+  return new Response(JSON.stringify({ok:true}),{headers: corsHeaders(req)});
 });
 ```
 
 - `verify_jwt: true`;env:`GH_PAT`(fine-grained PAT,`actions:write`)、`GH_REPO`、`GH_WORKFLOW`、`ALLOWED_ORIGIN`(线上 `https://claystan.cc`)。**本地开发**:用 `supabase functions serve` 独立 runtime,或支持逗号分隔多 origin(`https://claystan.cc,http://localhost:8000`,函数内 `includes` 判断),避免来回切忘改导致线上 CORS 拦截
+- **权限模型**:`verify_jwt: true` 保证只有 invited 登录用户能触发 workflow_dispatch;前端 profile 不全禁用发布是运营保护(防库存不展示),非安全边界
 - **不配 `SUPABASE_SERVICE_ROLE_KEY`**(不写 publish_log,不需要 bypass RLS)
 - **CORS(必须)**:主站 `claystan.cc`(GitHub Pages)调 `*.supabase.co` 是跨域,带 Authorization 的 POST 必触发 preflight(OPTIONS)。**必须在函数内显式处理 OPTIONS + 回 CORS headers**(已写进上方代码块),否则浏览器拦截响应、前端拿不到结果:
   - `Access-Control-Allow-Origin`:用 env `ALLOWED_ORIGIN` 配,线上 `https://claystan.cc`、本地 `http://localhost:*`(**具体 origin,不用 `*`** -- 带 Authorization 时 `*` 不生效)
@@ -412,6 +416,7 @@ Deno.serve(async (req) => {
 - **Sanity check**(error 比例 >20% abort)和后续 Assemble/Configure Pages/Deploy/Notify 步骤保留不动
 - runner 本机 cron **不变**(仍调 workflow_dispatch),仅 workflow 内容变
 - `heartbeat.yml` **不受影响**:它只检查 auto-update workflow 是否按时跑,和 WPS/Supabase 数据源无关,不用改
+- **paths-ignore 加 `SUPABASE_MIGRATION_PLAN.md`**:纯文档改动不应触发部署(现状会白跑 runner)
 
 ## 10. `site_config.json`
 
@@ -430,16 +435,16 @@ Deno.serve(async (req) => {
      `create unique index inventory_uniq on public.inventory (seller_id, set_code, number, lang, foil, price, note);`
      `create unique index wants_uniq on public.wants (buyer_id, set_code, number, lang, foil, must, price, note);`
    - 现有数据安全:inventory 526 行加 price=0/note='' 后,旧 unique(5 元组)比新(7 元组)更严,drop 旧建新不会因现有数据冲突;wants 0 行无冲突。无需手动核对
-   - 加 `profiles_seller_name_uniq` partial index。**不 drop `publish_log`** -- 推迟到步骤 8 deploy 新版 Edge Function 之后(旧版函数还写它,提前 drop 会让步骤 7 上线的「立即发布」按钮在步骤 8 前被点击时 INSERT 撞已 drop 表、500)
+   - 加 `profiles_seller_name_uniq` partial index(on `lower(seller_name)`);建议同时加 `check (price >= 0)`(inventory/wants)和 `note` 限长(`char_length(note) <= 200`)防异常输入。**不 drop `publish_log`** -- 推迟到步骤 8 deploy 新版 Edge Function 之后(旧版函数还写它,提前 drop 会让步骤 7 上线的「立即发布」按钮在步骤 8 前被点击时 INSERT 撞已 drop 表、500)
 2. 建用户(Dashboard > Authentication > Users > Add user),记 UID;确认 `email_confirmed_at`(否则 `update auth.users set email_confirmed_at=now()`)。admin 里填齐 seller_name/city/contact(partial unique 要求 seller_name 非空时唯一)
 3. 配 Edge Function secret `GH_PAT`(不需 service_role)
 4. **迁移 WPS 数据**:`migrate_wps_to_supabase.py`(需 mapping + service_role key)。注:inventory 已于 2026-07 迁移完毕(526 行,见附录 A),wants 当前 0 行,所以**当前状态此步可跳过**;脚本保留为模板供未来新卖家/买家迁移,如需重迁 inventory 幂等可重跑
-5. 重写解析函数(`card_line_to_fields`/`want_line_to_fields` 按第 5 节)+ `cards_to_txt`/`wants_to_txt` + build 脚本加 price/note + **合并三处按 price+note 分组** + **`card_id`/`wid` 加 price+note**(见第 5 节清单);同步更新 `tests/test_inventory_format.py`,新增 admin JS 解析的交叉测试
+5. 重写解析函数(`card_line_to_fields`/`want_line_to_fields` 按第 5 节)+ **export 脚本输出新格式**(替代 `cards_to_txt`/`wants_to_txt`,后者随 WPS 脚本删)+ build 脚本加 price/note + **合并三处按 price+note 分组** + **`card_id`/`wid` 加 price+note**(见第 5 节清单);同步更新 `tests/test_inventory_format.py`,新增 admin JS 解析的交叉测试
 6. export 脚本(inventory + wants)+ workflow 切换 + GitHub secret `SUPABASE_SERVICE_ROLE_KEY`。注意:workflow 的 `cp -r admin site/admin` 依赖步骤 7 的 `admin/` 目录,已用 `|| true` 容错(见第 9 节);建议步骤 7 先于或同步于 workflow 切换,否则切换后首次 deploy 的 site/admin 为空(主站不受影响,但 /admin/ 暂时 404)。**关键:步骤 5 的 build 解析器改动与本步骤的 workflow 切换必须在同一次 push 进 master** -- 分两次 push 的话,中间的 hourly cron 会用新解析器读旧 WPS txt(`{qty}x set number lang foil`)导致全行报错、部署失败。两步改动本地测过后一起 push(含 export 脚本 + workflow yml + build 改动 + admin 目录),下一次 cron 即走新流程;或迁移窗口内临时禁用 runner cron
 7. admin SPA(共享层 `mtg-ui.js` + CRUD + 双 tab + 登录入口,见第 7 节)
 8. deploy `publish` Edge Function(新版,不写 publish_log)。**deploy 成功后 `drop table public.publish_log`**(旧版函数已下线,drop 安全;破坏性操作放最后,回滚更干净)
 9. 主站前端改造:**重写** `index.html` 的 `<details class="guide">` 区块(删 `guide-wps-inv`/`guide-wps-want` 两个 `<a>` 元素 :56/:75 + 更新格式说明为第 5 节新格式 + 加登录按钮);删 `app.js:1187-1188` 的 `setHrefSafe($("#guide-wps-inv")/$("#guide-wps-want"))` 两行,加登录态 + 登录后管理入口;`cardHtml` 加 price 展示(note 已有)。admin 批量/导入 UI 里也放一份新格式说明
-10. 验证:**不要文本 diff** -- 新旧 txt 格式根本不同(旧 `{qty}x set number lang foil` / `set number lang foil must | note`,新 `set number lang foil qty price # note`,diff 不可能空)。改为对比解析后的结构化数据:export 后跑 `build_data --validate-only` 比对 card 元组集合(seller,set,number,lang,foil,qty)与 WPS 旧 parse 结果一致(忽略新增 price/note),或写对比脚本比解析后的 dict 列表。再 `build_data --validate-only` + `build_wants`;push 触发 workflow
+10. 验证:**不要文本 diff** -- 新旧 txt 格式根本不同(旧 `{qty}x set number lang foil` / `set number lang foil must | note`,新 `set number lang foil qty price # note`,diff 不可能空)。改为对比解析后的结构化数据:export 后跑 `build_data --validate-only` 比对 card 元组集合(seller,set,number,lang,foil,qty)与 WPS 旧 parse 结果一致(忽略新增 price/note),或写对比脚本比解析后的 dict 列表。再 `build_data --validate-only` + `build_wants`;push 触发 workflow。**购物车迁移**:`CART_KEY` 从 `mtg-wishlist-v1` 改 `v2`(id 加 price+note_hash 后旧清单全是幽灵 id),或 load 时过滤 `cardIndex` 不存在的 id -- 否则上线后"购物车坏了"
 
 **迁移窗口检查清单**(步骤 5+6+7 同一次 push 前):
 - 本地跑过新解析器 + export 脚本,数据正确
