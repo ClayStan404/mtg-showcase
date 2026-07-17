@@ -113,14 +113,14 @@ def test_load_site_config_image_cdn(tmp_path, monkeypatch):
     assert build_common.load_site_config()["image_cdn"] == "scryfall"
 
 
-def test_is_chinese_art_url():
-    assert build_common.is_chinese_art_url(
+def test_is_mtgch_zhs_url():
+    assert build_common.is_mtgch_zhs_url(
         "https://images.mtgch.com/zhs/normal/front/x.webp"
     )
-    assert not build_common.is_chinese_art_url(
+    assert not build_common.is_mtgch_zhs_url(
         "https://cards.scryfall.io/normal/front/x.jpg"
     )
-    assert not build_common.is_chinese_art_url(
+    assert not build_common.is_mtgch_zhs_url(
         "https://images.mtgch.com/sf/normal/front/x.webp"
     )
 
@@ -152,11 +152,12 @@ def test_resolve_images_zhs_prefers_mtgch_chinese_art(monkeypatch, tmp_path):
             },
         },
     )
-    imgs = client.resolve_images(
+    imgs, art = client.resolve_images(
         "pip", "717", "zhs", "scryfall", scryfall_card=en_card
     )
     assert "/zhs/" in imgs["normal"]
     assert "zh.webp" in imgs["normal"]
+    assert art == "zhs"
 
 
 def test_ensure_image_cdn_fixes_zhs_with_english_art(monkeypatch, tmp_path):
@@ -165,11 +166,14 @@ def test_ensure_image_cdn_fixes_zhs_with_english_art(monkeypatch, tmp_path):
     monkeypatch.setattr(
         client,
         "resolve_images",
-        lambda *a, **k: {
-            "normal": "https://images.mtgch.com/zhs/normal/front/x.webp",
-            "small": "https://images.mtgch.com/zhs/small/front/x.webp",
-            "large": "",
-        },
+        lambda *a, **k: (
+            {
+                "normal": "https://images.mtgch.com/zhs/normal/front/x.webp",
+                "small": "https://images.mtgch.com/zhs/small/front/x.webp",
+                "large": "",
+            },
+            "zhs",
+        ),
     )
     base = {
         "image": {
@@ -178,12 +182,14 @@ def test_ensure_image_cdn_fixes_zhs_with_english_art(monkeypatch, tmp_path):
             "large": "",
         },
         "image_cdn_attempted": "scryfall",
-        "image_lang": "zhs",
+        "image_lang": "en",
+        "zhs_art_attempted": False,
     }
     out = build_common.ensure_image_cdn(base, client, "pip", "717", "zhs", "scryfall")
     assert "/zhs/" in out["image"]["normal"]
     assert out["image_lang"] == "zhs"
-    assert out["image_cdn_attempted"] == "scryfall+zhs"
+    assert out["image_cdn_attempted"] == "scryfall"
+    assert out["zhs_art_attempted"] is True
 
 
 def test_resolve_images_mtgch_then_scryfall_fallback(monkeypatch, tmp_path):
@@ -200,7 +206,7 @@ def test_resolve_images_mtgch_then_scryfall_fallback(monkeypatch, tmp_path):
             }
         },
     )
-    imgs = client.resolve_images("neo", "1", "en", "mtgch")
+    imgs, art = client.resolve_images("neo", "1", "en", "mtgch")
     assert "scryfall.io" in imgs["normal"]
 
 
@@ -211,10 +217,11 @@ def test_resolve_images_prefers_mtgch_when_present(monkeypatch, tmp_path):
         client,
         "fetch_mtgch_card",
         lambda *a, **k: {
+            "lang": "en",
             "image_uris": {
                 "normal": "https://images.mtgch.com/n.jpg",
                 "small": "https://images.mtgch.com/s.jpg",
-            }
+            },
         },
     )
 
@@ -222,7 +229,7 @@ def test_resolve_images_prefers_mtgch_when_present(monkeypatch, tmp_path):
         raise AssertionError("should not call scryfall")
 
     monkeypatch.setattr(client, "fetch_card", fail_scry)
-    imgs = client.resolve_images("neo", "1", "en", "mtgch")
+    imgs, art = client.resolve_images("neo", "1", "en", "mtgch")
     assert "mtgch.com" in imgs["normal"]
 
 
@@ -234,11 +241,14 @@ def test_ensure_image_cdn_skips_after_best_effort(monkeypatch, tmp_path):
 
     def resolve(*a, **k):
         calls["n"] += 1
-        return {
-            "small": "https://cards.scryfall.io/s.jpg",
-            "normal": "https://cards.scryfall.io/n.jpg",
-            "large": "https://cards.scryfall.io/l.jpg",
-        }
+        return (
+            {
+                "small": "https://cards.scryfall.io/s.jpg",
+                "normal": "https://cards.scryfall.io/n.jpg",
+                "large": "https://cards.scryfall.io/l.jpg",
+            },
+            "en",
+        )
 
     monkeypatch.setattr(client, "resolve_images", resolve)
     base = {
@@ -248,6 +258,7 @@ def test_ensure_image_cdn_skips_after_best_effort(monkeypatch, tmp_path):
             "large": "",
         },
         "image_cdn_attempted": "",
+        "image_lang": "en",
     }
     once = build_common.ensure_image_cdn(base, client, "neo", "1", "en", "mtgch")
     assert once["image_cdn_attempted"] == "mtgch"
@@ -265,16 +276,20 @@ def test_ensure_image_cdn_retries_when_pref_changes(monkeypatch, tmp_path):
     def resolve(set_code, number, lang, preferred=None, scryfall_card=None):
         calls["n"] += 1
         host = "mtgch.com" if preferred == "mtgch" else "scryfall.io"
-        return {
-            "normal": f"https://images.{host}/n.jpg",
-            "small": "s",
-            "large": "",
-        }
+        return (
+            {
+                "normal": f"https://images.{host}/n.jpg",
+                "small": "s",
+                "large": "",
+            },
+            "en",
+        )
 
     monkeypatch.setattr(client, "resolve_images", resolve)
     base = {
         "image": {"normal": "https://images.mtgch.com/n.jpg", "small": "s", "large": ""},
         "image_cdn_attempted": "mtgch",
+        "image_lang": "en",
     }
     # switch preferred to scryfall → must re-resolve
     out = build_common.ensure_image_cdn(base, client, "neo", "1", "en", "scryfall")

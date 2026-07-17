@@ -794,6 +794,14 @@ main {
   border: 1px solid rgba(154, 163, 178, 0.25);
 }
 
+/* Chinese inventory with only English face art (no zhs printing in data sources) */
+.flag-no-zhs-art {
+  background: rgba(248, 180, 80, 0.15);
+  color: #e0a84a;
+  border: 1px solid rgba(224, 168, 74, 0.4);
+  font-size: 0.72rem;
+}
+
 .card-body {
   padding: 0.7rem 0.75rem 0.85rem;
 }

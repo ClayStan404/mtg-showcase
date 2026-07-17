@@ -417,6 +417,12 @@ function cardHtml(c) {
   const flex = isWant && (c.must === false || c.kind === "flex");
   const price = Number(c.price) || 0;
   const priceFlag = price > 0 ? `<span class="flag flag-price">¥${escapeHtml(price.toFixed(2))}</span>` : "";
+  // Inventory marked Chinese but only English face art available (e.g. msc 211)
+  const noZhArt =
+    c.lang === "zhs" && c.image_lang && c.image_lang !== "zhs" && c.image_lang !== "zh";
+  const noZhArtFlag = noZhArt
+    ? '<span class="flag flag-no-zhs-art" title="数据源无此印刷中文卡面，显示英文图">无中文印刷图</span>'
+    : "";
   const metaLeft = `${(c.set || "").toUpperCase()} #${c.number || ""}`;
   const metaRight = c.lang_label || c.lang || "";
   const mana = formatManaCost(c);
@@ -455,6 +461,7 @@ function cardHtml(c) {
               ${flex ? '<span class="flag flag-any">可替</span>' : ""}
               ${c.foil ? '<span class="flag flag-foil">闪</span>' : ""}
               ${c.quantity > 1 ? `<span class="flag flag-qty">×${escapeHtml(String(c.quantity))}</span>` : ""}
+              ${noZhArtFlag}
             </div>
           </div>
           ${secondaryName(c) ? `<p class="card-name-en">${escapeHtml(secondaryName(c))}</p>` : ""}

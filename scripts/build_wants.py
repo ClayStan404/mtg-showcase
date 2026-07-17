@@ -288,6 +288,7 @@ def enrich_wants(
                 "scryfall_uri": base["scryfall_uri"],
                 "image_lang": base.get("image_lang") or e["lang"],
                 "image_cdn_attempted": base.get("image_cdn_attempted") or "",
+                "zhs_art_attempted": bool(base.get("zhs_art_attempted")),
                 "source_file": e["source_file"],
             }
         )

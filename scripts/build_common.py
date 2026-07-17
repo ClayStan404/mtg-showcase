@@ -181,10 +181,13 @@ def image_dict_matches_cdn(image: dict[str, Any] | None, preferred: str) -> bool
     )
 
 
-def is_chinese_art_url(url: str) -> bool:
-    """True if URL path looks like a Chinese printing (mtgch /zhs/ or similar)."""
-    u = (url or "").lower()
-    return "/zhs/" in u
+def is_mtgch_zhs_url(url: str) -> bool:
+    """True only for mtgch Chinese CDN paths (.../zhs/...).
+
+    Scryfall URLs never encode language in the path (different face UUIDs),
+    so do not use this to detect Scryfall Chinese art — use image_lang.
+    """
+    return "/zhs/" in (url or "").lower()
 
 
 class ScryfallClient:
@@ -393,8 +396,12 @@ class ScryfallClient:
         lang: str,
         preferred: str | None = None,
         scryfall_card: dict[str, Any] | None = None,
-    ) -> dict[str, str]:
+    ) -> tuple[dict[str, str], str]:
         """Pick image URLs for snapshots (hotlinks only).
+
+        Returns (image_dict, art_lang) where art_lang is the face language of
+        the chosen art ("zhs" / "en" / ...), set from the resolution path —
+        not inferred from URL shape (Scryfall URLs have no /zhs/ segment).
 
         Order of preference:
         1. For lang=zhs: Chinese art (mtgch zhs_image_uris, or Scryfall zhs printing)
@@ -411,43 +418,83 @@ class ScryfallClient:
         def has_img(imgs: dict[str, str]) -> bool:
             return bool(imgs.get("normal") or imgs.get("small"))
 
-        def from_scry(card: dict[str, Any] | None = None, *, pick_lang: str | None = None) -> dict[str, str]:
+        def from_scry(
+            card: dict[str, Any] | None = None, *, pick_lang: str | None = None
+        ) -> tuple[dict[str, str], str]:
             c = card if card is not None else scryfall_card
             if c is None:
                 try:
                     c = self.fetch_card(set_code, number, lang)
                 except (requests.RequestException, json.JSONDecodeError, ValueError):
                     c = None
-            return pick_images(c or {}, lang=pick_lang if pick_lang is not None else lang)
+            c = c or {}
+            imgs = pick_images(c, lang=pick_lang if pick_lang is not None else lang)
+            # Scryfall card.lang is authoritative for face language when present
+            art = str(c.get("lang") or pick_lang or lang or "en")
+            if art == "zh":
+                art = "zhs"
+            return imgs, art
 
-        def from_mtgch(*, pick_lang: str | None = None) -> dict[str, str]:
+        def from_mtgch(
+            *, pick_lang: str | None = None, require_zhs_uris: bool = False
+        ) -> tuple[dict[str, str], str]:
             data = self.fetch_mtgch_card(set_code, number)
             if not data:
-                return empty
-            return pick_images(data, lang=pick_lang if pick_lang is not None else lang)
+                return empty, ""
+            pl = pick_lang if pick_lang is not None else lang
+            if require_zhs_uris:
+                zhs = _uris_to_image(data.get("zhs_image_uris"))
+                if zhs:
+                    return zhs, "zhs"
+                return empty, ""
+            imgs = pick_images(data, lang=pl)
+            # After pick_images: if we asked zhs and got zhs_image_uris path
+            if pl == "zhs" and _uris_to_image(data.get("zhs_image_uris")):
+                zhs = _uris_to_image(data.get("zhs_image_uris"))
+                if zhs and imgs == zhs:
+                    return imgs, "zhs"
+            art = "zhs" if pl == "zhs" and is_mtgch_zhs_url(
+                imgs.get("normal") or imgs.get("small") or ""
+            ) else str(data.get("lang") or pl or "en")
+            if art == "zh":
+                art = "zhs"
+            return imgs, art
 
         # --- Chinese listing: prefer Chinese face art first ---
         if lang == "zhs":
-            imgs = from_mtgch(pick_lang="zhs")
-            if has_img(imgs) and is_chinese_art_url(imgs.get("normal") or imgs.get("small") or ""):
-                return imgs
+            imgs, art = from_mtgch(pick_lang="zhs", require_zhs_uris=True)
+            if has_img(imgs):
+                return imgs, "zhs"
             # Scryfall Chinese printing only (not the en fallback card)
             if scryfall_card and scryfall_card.get("lang") in ("zhs", "zh"):
-                imgs = pick_images(scryfall_card, lang="zhs")
+                imgs, art = from_scry(scryfall_card, pick_lang="zhs")
                 if has_img(imgs):
-                    return imgs
-            # Fall through to English art via preferred CDN
-
-        # --- Preferred CDN (any language, or zhs English fallback) ---
-        if pref == IMAGE_CDN_MTGCH:
-            imgs = from_mtgch()
+                    return imgs, "zhs"
+            # English face via preferred CDN (best effort)
+            if pref == IMAGE_CDN_MTGCH:
+                imgs, art = from_mtgch(pick_lang="en")
+                if has_img(imgs):
+                    return imgs, art if art else "en"
+                imgs, art = from_scry(pick_lang="en")
+                return imgs, art if has_img(imgs) else "en"
+            imgs, art = from_scry(pick_lang="en")
             if has_img(imgs):
-                return imgs
-            return from_scry()
-        imgs = from_scry()
+                return imgs, art if art else "en"
+            imgs, art = from_mtgch(pick_lang="en")
+            return imgs, art if has_img(imgs) else "en"
+
+        # --- Non-zhs: preferred CDN first ---
+        if pref == IMAGE_CDN_MTGCH:
+            imgs, art = from_mtgch()
+            if has_img(imgs):
+                return imgs, art or lang
+            imgs, art = from_scry()
+            return imgs, art or lang
+        imgs, art = from_scry()
         if has_img(imgs):
-            return imgs
-        return from_mtgch()
+            return imgs, art or lang
+        imgs, art = from_mtgch()
+        return imgs, art or lang
 
 
 def load_previous_enrichment(
@@ -617,18 +664,10 @@ def base_from_cached(
         "number": cached.get("number") or number,
         "lang": cached.get("lang") or lang,
         "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
-        # Best-effort marker: skip re-resolve when preferred CDN had no art last time
+        # Separate sticky markers (orthogonal): CDN host vs Chinese-art attempt
         "image_cdn_attempted": cached.get("image_cdn_attempted") or "",
+        "zhs_art_attempted": bool(cached.get("zhs_art_attempted")),
     }
-
-
-def _image_art_lang(image: dict[str, Any] | None, fallback: str) -> str:
-    url = ""
-    if image:
-        url = str(image.get("normal") or image.get("small") or "")
-    if is_chinese_art_url(url):
-        return "zhs"
-    return fallback
 
 
 def base_from_card(
@@ -647,26 +686,31 @@ def base_from_card(
             name_zh = client.fetch_zh_name(set_code, number) or ""
         if not name_zh:
             name_zh = name_en
+        # printed_name only falls back to Chinese when this is a zhs listing
+        name_printed_out = name_printed or name_zh or name_en
     else:
         if client is not None and hasattr(client, "fetch_zh_name"):
             name_zh = client.fetch_zh_name(set_code, number)
         else:
             name_zh = ""
+        name_printed_out = name_printed or name_en
     text, type_line = pick_text(card)
     meta = enrich_fields_from_scryfall(card)
     preferred = image_cdn_preference()
     if client is not None and hasattr(client, "resolve_images"):
-        image = client.resolve_images(
+        image, art_lang = client.resolve_images(
             set_code, number, lang, preferred, scryfall_card=card
         )
     else:
         # Tests may pass a stub client; fall back to Scryfall-shaped card images only.
         image = pick_images(card, lang=lang)
-    art_lang = _image_art_lang(image, card.get("lang") or lang)
+        art_lang = str(card.get("lang") or lang or "en")
+        if art_lang == "zh":
+            art_lang = "zhs"
     return {
         "name_en": name_en,
         "name_zh": name_zh,
-        "name_printed": name_printed or name_zh or name_en,
+        "name_printed": name_printed_out,
         "type_line": type_line,
         "type_line_en": meta["type_line_en"],
         "types": meta["types"],
@@ -679,8 +723,9 @@ def base_from_card(
         "set_name": card.get("set_name") or set_code.upper(),
         "number": card.get("collector_number") or number,
         "lang": card.get("lang") or lang,
-        "image_lang": art_lang,
-        "image_cdn_attempted": preferred if lang != "zhs" else f"{preferred}+zhs",
+        "image_lang": art_lang or lang,
+        "image_cdn_attempted": preferred,
+        "zhs_art_attempted": lang == "zhs",
     }
 
 
@@ -694,38 +739,57 @@ def ensure_image_cdn(
 ) -> dict[str, Any]:
     """Re-resolve when CDN preference or Chinese art is wrong.
 
-    For lang=zhs, English face art is not "done" until Chinese art was attempted
-    (marker pref+zhs). Sticky best-effort still applies for preferred host.
+    State is two orthogonal flags:
+    - image_cdn_attempted: last preferred CDN host tried ("mtgch"|"scryfall")
+    - zhs_art_attempted: whether Chinese face art was already attempted
+
+    For lang=zhs with image_lang=="zhs": keep Chinese face even if image_cdn
+    flips host (language/face wins over CDN preference). Sticky: once
+    zhs_art_attempted and still English face, do not re-query every build
+    (mtgch may later gain zhs_image_uris — flip image_cdn or clear flags to force).
     """
     pref = normalize_image_cdn(preferred or image_cdn_preference())
     img = base.get("image") or {}
     url = str(img.get("normal") or img.get("small") or "")
     has_any = bool(url)
+    art_lang = str(base.get("image_lang") or "")
+    zhs_tried = bool(base.get("zhs_art_attempted"))
+    cdn_tried = str(base.get("image_cdn_attempted") or "")
 
-    # Chinese stock with English face art → re-resolve (mtgch zhs_image_uris)
-    if lang == "zhs" and has_any and not is_chinese_art_url(url):
-        if base.get("image_cdn_attempted") == f"{pref}+zhs":
+    if lang == "zhs":
+        # Already have Chinese face art → do not re-resolve for CDN host flip
+        if has_any and art_lang == "zhs":
+            return base
+        # Need Chinese art attempt, or first run
+        if not zhs_tried or not has_any:
+            base = dict(base)
+            image, art = client.resolve_images(set_code, number, lang, pref)
+            base["image"] = image
+            base["image_lang"] = art or "en"
+            base["zhs_art_attempted"] = True
+            base["image_cdn_attempted"] = pref
+            return base
+        # zhs attempted, still English face: only re-resolve on CDN preference flip
+        if cdn_tried == pref:
             return base
         base = dict(base)
-        base["image"] = client.resolve_images(set_code, number, lang, pref)
-        base["image_cdn_attempted"] = f"{pref}+zhs"
-        base["image_lang"] = _image_art_lang(base["image"], "en")
+        image, art = client.resolve_images(set_code, number, lang, pref)
+        base["image"] = image
+        base["image_lang"] = art or "en"
+        base["zhs_art_attempted"] = True
+        base["image_cdn_attempted"] = pref
         return base
 
-    if lang == "zhs" and is_chinese_art_url(url):
-        if base.get("image_lang") != "zhs":
-            base = dict(base)
-            base["image_lang"] = "zhs"
-        return base
-
+    # Non-zhs: preferred CDN sticky
     if image_dict_matches_cdn(base.get("image"), pref):
         return base
-    if has_any and base.get("image_cdn_attempted") in (pref, f"{pref}+zhs"):
+    if has_any and cdn_tried == pref:
         return base
     base = dict(base)
-    base["image"] = client.resolve_images(set_code, number, lang, pref)
+    image, art = client.resolve_images(set_code, number, lang, pref)
+    base["image"] = image
+    base["image_lang"] = art or lang
     base["image_cdn_attempted"] = pref
-    base["image_lang"] = _image_art_lang(base["image"], lang)
     return base
 
 

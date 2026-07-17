@@ -165,10 +165,15 @@
     const priceBadge = price > 0 ? `<span class="card-price">¥${escapeHtml(price.toFixed(2))}</span>` : "";
     const name = c.name_en || c.name_zh || `${(c.set || "").toUpperCase()} #${c.number}`;
     const img = (c.image && (c.image.normal || c.image.small)) || PLACEHOLDER_IMG;
+    const noZhArt =
+      c.lang === "zhs" && c.image_lang && c.image_lang !== "zhs" && c.image_lang !== "zh";
     const flags = [
       c.foil ? '<span class="flag flag-foil">闪</span>' : "",
       c.quantity > 1 ? `<span class="flag flag-qty">×${escapeHtml(String(c.quantity))}</span>` : "",
       isWant ? (c.must ? '<span class="flag flag-exact">必须</span>' : '<span class="flag flag-any">可替</span>') : "",
+      noZhArt
+        ? '<span class="flag flag-no-zhs-art" title="数据源无此印刷中文卡面，显示英文图">无中文印刷图</span>'
+        : "",
     ].join("");
     return `<div class="card" data-id="${escapeHtml(c.id)}">
       <div class="card-media">
