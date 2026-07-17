@@ -1,25 +1,28 @@
 name: Heartbeat
 
-# 独立的「站点是否还在更新」告警。GitHub 对被跳过的 cron 不发通知，
-# self-hosted runner 离线时 auto-update 会静默停更，数据逐时过期无人知晓。
-# 本 workflow 跑在 GitHub-hosted runner 上（不依赖 self-hosted），每 30min
-# 检查 auto-update 最近一次成功 run；超 2h 无成功则开/评论 issue，恢复后自动关闭。
+# Independent "is the site still updating?" alarm. GitHub does not notify on
+# skipped crons; if the self-hosted runner is offline, auto-update fails silently.
+# This workflow runs on GitHub-hosted runners (does not need self-hosted).
+#
+# Cadence: every 2h on schedule (matches THRESHOLD_H) + after each auto-update
+# completes (so a recovery run can close the stale issue promptly).
 
 on:
   schedule:
-    # 每 30 分钟（UTC）
-    - cron: '7,37 * * * *'
+    # Every 2 hours at :17 UTC (was every 30 min — too noisy vs 2h threshold)
+    - cron: '17 */2 * * *'
   workflow_dispatch:
-  # auto-update 完成后立即检查，减少对 cron 的依赖
+  # Fire after auto-update finishes so we can auto-close the issue without waiting
+  # for the next schedule tick
   workflow_run:
     workflows: ["Auto Update Inventory"]
     types: [completed]
 
 permissions:
-  issues: write   # 开/关 issue
-  actions: read   # 查 workflow runs
+  issues: write   # open/close issues
+  actions: read   # list workflow runs
 
-# schedule + workflow_run 并发时取消前一个，避免两个 run 同时判定无 existing 而重复创建 issue
+# schedule + workflow_run overlap: cancel the older run
 concurrency:
   group: heartbeat
   cancel-in-progress: true
@@ -27,7 +30,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # 防止 API 挂起导致 job 长时间运行
+    timeout-minutes: 5
     steps:
       - name: Check auto-update freshness
         env:
@@ -51,7 +54,6 @@ jobs:
               req = urllib.request.Request(url, data=body, headers=headers, method=method)
               return json.load(urllib.request.urlopen(req, timeout=15))
 
-          # auto-update workflow 最近一次成功 run
           url = (
               f"https://api.github.com/repos/{repo}/actions/workflows/"
               f"auto-update.yml/runs?status=completed&conclusion=success&per_page=1"
@@ -72,7 +74,8 @@ jobs:
           if stale:
               body = (
                   f"auto-update 已 {age} 无成功部署。可能原因：self-hosted runner 离线 / "
-                  f"WPS Cookie 过期 / WPS 不可达。请检查 runner 状态与最近的失败 run。"
+                  f"SUPABASE_SERVICE_ROLE_KEY 失效 / Scryfall/mtgch 不可达 / 构建失败。"
+                  f"请检查 runner 与最近的失败 run。"
               )
               if existing:
                   updated = datetime.fromisoformat(existing["updated_at"].replace("Z", "+00:00"))

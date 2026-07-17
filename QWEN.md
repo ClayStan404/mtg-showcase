@@ -165,7 +165,7 @@ Site-level config: `title`, `subtitle`, `supabase_url`, `supabase_anon_key` (pub
 
 - Branch `master` holds source only - **generated artifacts are never committed**; deploy via GitHub Actions (workflow mode).
 - **GitHub Actions**: `push master` / hourly cron (runner-local system cron calling `workflow_dispatch`) / `workflow_dispatch` (manual or admin "立即发布") -> export from Supabase -> generate artifacts -> assemble `site/` (incl `admin/` + `CNAME` + `robots.txt` + `og-image.png`) -> `upload-pages-artifact` -> `deploy-pages`. Setup/runbook: private `config_rc` repo (`infra/mtg-showcase/runner-cron.md`).
-- **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner checks every 30min whether auto-update has had a successful run within 2h; if stale, opens/comments on an issue; auto-closes on recovery.
+- **Heartbeat workflow** (`heartbeat.yml`): GitHub-hosted runner every **2h** (+ after each auto-update completes) checks whether auto-update has succeeded within 2h; if stale, opens/comments an issue; auto-closes on recovery.
 - **Hermes bot integration** (separate repo): deploy-alerting cron + card-query skill + daily-broadcast over TG/微信/QQ bots. See private `config_rc` repo.
 - Artifacts (git-ignored): `inventory/*.txt`, `wants/*.txt`, `data/cards.json`, `data/wants.json`, `assets/cards-data.js`, `assets/wants-data.js`.
 - Cache busting (`?v=N`): `bump_all_caches` (content hash) bumps `app.js` / `style.css` / `mtg-ui.js` / `supabase-client.js` / `vendor/supabase-js.min.js` / `admin.js` / `admin.css` / `cards-data.js` / `wants-data.js` in **both** `index.html` and `admin/index.html`; only in the deploy artifact, never written back to master.
