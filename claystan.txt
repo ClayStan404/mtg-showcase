@@ -556,7 +556,7 @@ snc 246 e 0 1
 mh2 295 z 0 1
 pip 670 z 1 1
 pip 918 z 1 1
-lrw 262 e 0 1
+bro 60 e 0 1
 ltc 356 z 1 2
 cmm 603 z 1 1
 2x2 302 e 1 1
@@ -645,7 +645,7 @@ mh3 438 z 0 1
 mkm 332 z 0 1
 mkm 268 z 1 1
 mkm 271 z 1 1
-rvr 241 z 0 1
+rtr 241 z 0 1
 unf 286 e 0 1
 rvr 288 z 0 1
 rvr 415 z 0 1
@@ -698,7 +698,7 @@ otj 269 e 0 3
 otj 303 z 0 2
 otj 303 z 1 1
 otj 267 z 0 3
-otj 267 e 0 3
+otj 267 e 0 6
 otj 301 e 0 2
 one 259 z 0 2
 one 259 e 0 2
@@ -715,7 +715,7 @@ pip 361 z 1 1
 ltc 376 z 1 1
 ltc 376 e 1 1
 mh3 301 z 1 1
-pip 1068 z 1 1
+pip 1068 z 1 2
 kld 242 z 0 3
 ltr 420 z 0 1
 ltr 341 z 1 1
@@ -724,7 +724,7 @@ big 30 e 0 4
 dmr 244 z 0 1
 csp 145 e 0 2
 dmr 454 z 1 1
-scg 143 e 1 4
+p30a 11 e 1 4
 2x2 323 e 0 2
 mh3 230 z 1 1
 eld 241 j 0 1
