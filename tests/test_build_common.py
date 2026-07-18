@@ -676,6 +676,39 @@ def test_base_from_card_en_fetches_zh_name():
     assert base["image_lang"] == "en"
 
 
+def test_ensure_zh_name_fills_english_listing(monkeypatch, tmp_path):
+    """one/370 en: cached empty name_zh must still pull mtgch Chinese name."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    monkeypatch.setattr(client, "fetch_zh_name", lambda *a, **k: "暗峰山崖")
+    base = {
+        "name_en": "Blackcleave Cliffs",
+        "name_zh": "",
+        "name_printed": "Blackcleave Cliffs",
+    }
+    out = build_common.ensure_zh_name(base, client, "one", "370", "en")
+    assert out["name_zh"] == "暗峰山崖"
+    # English stock keeps English printed name
+    assert out["name_printed"] == "Blackcleave Cliffs"
+    # Already has distinct Chinese — no re-fetch side effects
+    once = build_common.ensure_zh_name(out, client, "one", "370", "en")
+    assert once["name_zh"] == "暗峰山崖"
+
+
+def test_ensure_zh_name_zhs_repairs_printed(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    monkeypatch.setattr(client, "fetch_zh_name", lambda *a, **k: "暗峰山崖")
+    base = {
+        "name_en": "Blackcleave Cliffs",
+        "name_zh": "Blackcleave Cliffs",  # English-only placeholder
+        "name_printed": "Blackcleave Cliffs",
+    }
+    out = build_common.ensure_zh_name(base, client, "one", "370", "zhs")
+    assert out["name_zh"] == "暗峰山崖"
+    assert out["name_printed"] == "暗峰山崖"
+
+
 # ── stable_payload_bytes ────────────────────────────────────────────
 def test_stable_payload_bytes_excludes_generated_at():
     payload = {"generated_at": "2026-07-14", "cards": [1, 2], "count": 2}

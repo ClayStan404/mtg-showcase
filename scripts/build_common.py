@@ -792,9 +792,16 @@ def ensure_zh_name(
     number: str,
     lang: str,
 ) -> dict[str, Any]:
-    """For zhs inventory, fill Chinese name from mtgch when printed_name was missing."""
-    if lang != "zhs":
-        return base
+    """Fill Chinese name from mtgch when missing or still English-only.
+
+    Applies to every inventory language (en/zhs/ja/…): main-site displayName
+    prefers name_zh whenever it differs from name_en, so English listings still
+    need a Chinese name (e.g. one/370 en → 暗峰山崖). Cached rows that were
+    first built without mtgch would otherwise keep empty name_zh forever.
+
+    For lang=zhs only: also repair name_printed when it was missing / English.
+    Non-zhs listings keep English name_printed (face language of the stock).
+    """
     name_zh = (base.get("name_zh") or "").strip()
     name_en = (base.get("name_en") or "").strip()
     if name_zh and name_zh != name_en:
@@ -802,11 +809,12 @@ def ensure_zh_name(
     if client is None or not hasattr(client, "fetch_zh_name"):
         return base
     zh = (client.fetch_zh_name(set_code, number) or "").strip()
-    if not zh:
+    if not zh or zh == name_en:
         return base
     base = dict(base)
     base["name_zh"] = zh
-    printed = (base.get("name_printed") or "").strip()
-    if not printed or printed == name_en:
-        base["name_printed"] = zh
+    if lang == "zhs":
+        printed = (base.get("name_printed") or "").strip()
+        if not printed or printed == name_en:
+            base["name_printed"] = zh
     return base
