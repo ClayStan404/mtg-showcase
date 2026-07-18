@@ -740,6 +740,25 @@ def test_ensure_zh_name_sticky_skips_when_no_chinese(monkeypatch, tmp_path):
     assert len(calls) == 1
 
 
+def test_ensure_zh_name_clears_latin_placeholder_when_sticky(monkeypatch, tmp_path):
+    """Old snapshots with English name_zh + attempted flag: strip the junk."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls: list[int] = []
+    monkeypatch.setattr(
+        client, "fetch_zh_name", lambda *a, **k: calls.append(1) or "ignored"
+    )
+    base = {
+        "name_en": "Blackcleave Cliffs",
+        "name_zh": "Blackcleave Cliffs",
+        "name_printed": "Blackcleave Cliffs",
+        "zh_name_attempted": True,
+    }
+    out = build_common.ensure_zh_name(base, client, "one", "370", "en")
+    assert out["name_zh"] == ""
+    assert len(calls) == 0
+
+
 def test_ensure_zh_name_rejects_latin_near_miss(monkeypatch, tmp_path):
     """Do not store Latin mtgch fallbacks that differ only by punctuation."""
     monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)

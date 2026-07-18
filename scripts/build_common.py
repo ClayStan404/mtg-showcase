@@ -643,10 +643,13 @@ def looks_like_chinese_name(value: str | None) -> bool:
 
     Rejects Latin-only mtgch fallbacks (e.g. atomic_official_name == English)
     so we never store English in name_zh and confuse displayName.
+
+    Covers CJK Unified Ideographs (U+4E00–9FFF) + Extension A (U+3400–4DBF).
+    Extension B+ (U+20000+, rare in MTG Chinese names) is not covered — add
+    if a real card name ever needs it.
     """
     for ch in value or "":
         o = ord(ch)
-        # CJK Unified Ideographs + Extension A (common in card names)
         if 0x4E00 <= o <= 0x9FFF or 0x3400 <= o <= 0x4DBF:
             return True
     return False
@@ -840,7 +843,12 @@ def ensure_zh_name(
             base = dict(base)
             base["zh_name_attempted"] = True
         return base
-    if bool(base.get("zh_name_attempted")):
+    # Non-CJK placeholder (often English) — clear when sticking or after a failed fetch
+    # so old snapshots do not keep Latin junk in name_zh.
+    if base.get("zh_name_attempted"):
+        if name_zh:
+            base = dict(base)
+            base["name_zh"] = ""
         return base
     if client is None or not hasattr(client, "fetch_zh_name"):
         return base
@@ -848,6 +856,7 @@ def ensure_zh_name(
     base = dict(base)
     base["zh_name_attempted"] = True
     if not looks_like_chinese_name(zh):
+        base["name_zh"] = ""
         return base
     base["name_zh"] = zh
     if lang == "zhs":
