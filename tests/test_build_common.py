@@ -676,23 +676,84 @@ def test_base_from_card_en_fetches_zh_name():
     assert base["image_lang"] == "en"
 
 
+def test_looks_like_chinese_name():
+    assert build_common.looks_like_chinese_name("暗峰山崖")
+    assert build_common.looks_like_chinese_name("阳光戒")
+    assert not build_common.looks_like_chinese_name("Blackcleave Cliffs")
+    assert not build_common.looks_like_chinese_name("Jötun Grunt")
+    assert not build_common.looks_like_chinese_name("")
+    assert not build_common.looks_like_chinese_name(None)
+
+
 def test_ensure_zh_name_fills_english_listing(monkeypatch, tmp_path):
     """one/370 en: cached empty name_zh must still pull mtgch Chinese name."""
     monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
     client = build_common.ScryfallClient(use_disk_cache=True)
-    monkeypatch.setattr(client, "fetch_zh_name", lambda *a, **k: "暗峰山崖")
+    calls: list[tuple] = []
+
+    def fetch(*a, **k):
+        calls.append((a, k))
+        return "暗峰山崖"
+
+    monkeypatch.setattr(client, "fetch_zh_name", fetch)
     base = {
         "name_en": "Blackcleave Cliffs",
         "name_zh": "",
         "name_printed": "Blackcleave Cliffs",
+        "zh_name_attempted": False,
     }
     out = build_common.ensure_zh_name(base, client, "one", "370", "en")
     assert out["name_zh"] == "暗峰山崖"
+    assert out["zh_name_attempted"] is True
     # English stock keeps English printed name
     assert out["name_printed"] == "Blackcleave Cliffs"
-    # Already has distinct Chinese — no re-fetch side effects
+    assert len(calls) == 1
+    # Sticky: already has CJK name — no second fetch
     once = build_common.ensure_zh_name(out, client, "one", "370", "en")
     assert once["name_zh"] == "暗峰山崖"
+    assert len(calls) == 1
+
+
+def test_ensure_zh_name_sticky_skips_when_no_chinese(monkeypatch, tmp_path):
+    """After a failed attempt, do not re-query every build."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls: list[int] = []
+
+    def fetch(*a, **k):
+        calls.append(1)
+        return "Blackcleave Cliffs"  # Latin-only mtgch fallback
+
+    monkeypatch.setattr(client, "fetch_zh_name", fetch)
+    base = {
+        "name_en": "Blackcleave Cliffs",
+        "name_zh": "",
+        "name_printed": "Blackcleave Cliffs",
+        "zh_name_attempted": False,
+    }
+    out = build_common.ensure_zh_name(base, client, "one", "370", "en")
+    assert out["name_zh"] == ""
+    assert out["zh_name_attempted"] is True
+    assert len(calls) == 1
+    twice = build_common.ensure_zh_name(out, client, "one", "370", "en")
+    assert twice["name_zh"] == ""
+    assert len(calls) == 1
+
+
+def test_ensure_zh_name_rejects_latin_near_miss(monkeypatch, tmp_path):
+    """Do not store Latin mtgch fallbacks that differ only by punctuation."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    monkeypatch.setattr(client, "fetch_zh_name", lambda *a, **k: "Jötun Grunt")
+    base = {
+        "name_en": "Jotun Grunt",
+        "name_zh": "",
+        "name_printed": "Jotun Grunt",
+        "zh_name_attempted": False,
+    }
+    out = build_common.ensure_zh_name(base, client, "cst", "1", "en")
+    assert out["name_zh"] == ""
+    assert out["zh_name_attempted"] is True
 
 
 def test_ensure_zh_name_zhs_repairs_printed(monkeypatch, tmp_path):
@@ -703,10 +764,12 @@ def test_ensure_zh_name_zhs_repairs_printed(monkeypatch, tmp_path):
         "name_en": "Blackcleave Cliffs",
         "name_zh": "Blackcleave Cliffs",  # English-only placeholder
         "name_printed": "Blackcleave Cliffs",
+        "zh_name_attempted": False,
     }
     out = build_common.ensure_zh_name(base, client, "one", "370", "zhs")
     assert out["name_zh"] == "暗峰山崖"
     assert out["name_printed"] == "暗峰山崖"
+    assert out["zh_name_attempted"] is True
 
 
 # ── stable_payload_bytes ────────────────────────────────────────────

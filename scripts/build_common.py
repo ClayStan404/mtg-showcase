@@ -638,6 +638,20 @@ def enrich_fields_from_scryfall(card: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def looks_like_chinese_name(value: str | None) -> bool:
+    """True if value contains CJK ideographs (usable as a Chinese card name).
+
+    Rejects Latin-only mtgch fallbacks (e.g. atomic_official_name == English)
+    so we never store English in name_zh and confuse displayName.
+    """
+    for ch in value or "":
+        o = ord(ch)
+        # CJK Unified Ideographs + Extension A (common in card names)
+        if 0x4E00 <= o <= 0x9FFF or 0x3400 <= o <= 0x4DBF:
+            return True
+    return False
+
+
 def base_from_cached(
     cached: dict[str, Any], set_code: str, number: str, lang: str
 ) -> dict[str, Any]:
@@ -659,9 +673,10 @@ def base_from_cached(
         "number": cached.get("number") or number,
         "lang": cached.get("lang") or lang,
         "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
-        # Separate sticky markers (orthogonal): CDN host vs Chinese-art attempt
+        # Sticky markers (orthogonal): CDN host, Chinese-art attempt, zh name attempt
         "image_cdn_attempted": cached.get("image_cdn_attempted") or "",
         "zhs_art_attempted": bool(cached.get("zhs_art_attempted")),
+        "zh_name_attempted": bool(cached.get("zh_name_attempted")),
     }
 
 
@@ -675,19 +690,28 @@ def base_from_card(
         name_printed = card["card_faces"][0].get("printed_name") or ""
     # zhs inventory: Scryfall may 404 Chinese printing and fall back to en card
     # (no printed_name) — still pull Chinese name from mtgch (e.g. pip/717).
+    zh_name_attempted = False
     if lang == "zhs":
         name_zh = name_printed or ""
-        if not name_zh and client is not None and hasattr(client, "fetch_zh_name"):
-            name_zh = client.fetch_zh_name(set_code, number) or ""
-        if not name_zh:
-            name_zh = name_en
+        if looks_like_chinese_name(name_zh):
+            zh_name_attempted = True
+        else:
+            if client is not None and hasattr(client, "fetch_zh_name"):
+                fetched = (client.fetch_zh_name(set_code, number) or "").strip()
+                zh_name_attempted = True
+                if looks_like_chinese_name(fetched):
+                    name_zh = fetched
+            if not looks_like_chinese_name(name_zh):
+                name_zh = name_en
         # printed_name only falls back to Chinese when this is a zhs listing
         name_printed_out = name_printed or name_zh or name_en
     else:
+        name_zh = ""
         if client is not None and hasattr(client, "fetch_zh_name"):
-            name_zh = client.fetch_zh_name(set_code, number)
-        else:
-            name_zh = ""
+            fetched = (client.fetch_zh_name(set_code, number) or "").strip()
+            zh_name_attempted = True
+            if looks_like_chinese_name(fetched):
+                name_zh = fetched
         name_printed_out = name_printed or name_en
     text, type_line = pick_text(card)
     meta = enrich_fields_from_scryfall(card)
@@ -721,6 +745,7 @@ def base_from_card(
         "image_lang": art_lang or lang,
         "image_cdn_attempted": preferred,
         "zhs_art_attempted": lang == "zhs",
+        "zh_name_attempted": zh_name_attempted,
     }
 
 
@@ -792,29 +817,41 @@ def ensure_zh_name(
     number: str,
     lang: str,
 ) -> dict[str, Any]:
-    """Fill Chinese name from mtgch when missing or still English-only.
+    """Fill Chinese name from mtgch when missing or still non-CJK.
 
     Applies to every inventory language (en/zhs/ja/…): main-site displayName
     prefers name_zh whenever it differs from name_en, so English listings still
-    need a Chinese name (e.g. one/370 en → 暗峰山崖). Cached rows that were
-    first built without mtgch would otherwise keep empty name_zh forever.
+    need a Chinese name (e.g. one/370 en → 暗峰山崖).
 
-    For lang=zhs only: also repair name_printed when it was missing / English.
+    Sticky: zh_name_attempted (bool). Once True, do not re-query mtgch on later
+    builds when still without a CJK name — mirrors image_cdn_attempted. Rows
+    that lack the flag (old snapshots) get one repair pass, then stick.
+
+    Only CJK names are accepted (looks_like_chinese_name); Latin-only mtgch
+    fallbacks are ignored so displayName never treats English as Chinese.
+
+    For lang=zhs only: also repair name_printed when it was missing / non-CJK.
     Non-zhs listings keep English name_printed (face language of the stock).
     """
     name_zh = (base.get("name_zh") or "").strip()
     name_en = (base.get("name_en") or "").strip()
-    if name_zh and name_zh != name_en:
+    if looks_like_chinese_name(name_zh):
+        if not base.get("zh_name_attempted"):
+            base = dict(base)
+            base["zh_name_attempted"] = True
+        return base
+    if bool(base.get("zh_name_attempted")):
         return base
     if client is None or not hasattr(client, "fetch_zh_name"):
         return base
     zh = (client.fetch_zh_name(set_code, number) or "").strip()
-    if not zh or zh == name_en:
-        return base
     base = dict(base)
+    base["zh_name_attempted"] = True
+    if not looks_like_chinese_name(zh):
+        return base
     base["name_zh"] = zh
     if lang == "zhs":
         printed = (base.get("name_printed") or "").strip()
-        if not printed or printed == name_en:
+        if not printed or printed == name_en or not looks_like_chinese_name(printed):
             base["name_printed"] = zh
     return base

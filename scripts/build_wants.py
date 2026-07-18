@@ -289,6 +289,7 @@ def enrich_wants(
                 "image_lang": base.get("image_lang") or e["lang"],
                 "image_cdn_attempted": base.get("image_cdn_attempted") or "",
                 "zhs_art_attempted": bool(base.get("zhs_art_attempted")),
+                "zh_name_attempted": bool(base.get("zh_name_attempted")),
                 "source_file": e["source_file"],
             }
         )
