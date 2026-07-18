@@ -14,13 +14,13 @@
   const LANG_LABEL = { en: "英文", zhs: "简中", ja: "日文", other: "其他" };
   const SCRYFALL_LANG = { en: "en", zhs: "zhs", ja: "ja", other: "en" };
   const INVENTORY_FMT =
-    "inventory:  set number lang foil [qty] [price] [# note]\n" +
+    "set number lang foil [qty] [price] [# note]\n" +
     "  sta 124 j 0              1张 市价\n" +
     "  sta 124 j 0 2 50         2张 50/张\n" +
     "  sta 124 j 0 2 50 # 签名  2张 50 签名\n" +
     "  ❌ sta 124 j 0 50  ≠ 1张50元（50 会被当成 qty）→ 写 sta 124 j 0 1 50";
   const WANTS_FMT =
-    "wants:  set number lang foil [qty] [must] [price] [# note]\n" +
+    "set number lang foil [qty] [must] [price] [# note]\n" +
     "  sta 124 j 0 2            2张 市价 可替\n" +
     "  sta 124 j 0 2 1 50       2张 50 必须此版\n" +
     "  sta 124 j 0 2 0 50       2张 50 可替（must 显式 0）";

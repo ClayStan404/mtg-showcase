@@ -4,12 +4,8 @@
 
 - **站点**：https://claystan.cc/
 - **管理后台**：https://claystan.cc/admin/（邀请制登录）
-- **仓库**：https://github.com/ClayStan404/mtg-showcase
-- **分支**：`master`（只存源码；构建产物不入库）
 
 **不做站内下单/支付。** 库存/求购在 admin 写入 **Supabase**；公开展示读的是 **构建后的 JSON 快照**（不是访客直查数据库）。
-
-> 若将来改为「自建服务器 + 分页实时查库」，见设计文档：[`docs/SELF_HOSTED_REALTIME_DESIGN.md`](docs/SELF_HOSTED_REALTIME_DESIGN.md)（尚未实现）。
 
 卖家/买家使用说明见网站首页「使用说明」折叠面板。
 
@@ -30,74 +26,6 @@
    Supabase Storage（site-data/）      GitHub Pages（HTML/CSS/JS 壳）
    主站优先读这份快照                  push 或 mode=full 时才整站部署
 ```
-
-| 角色 | 数据怎么走 |
-|------|------------|
-| 卖家改库存 | 实时写 Supabase |
-| 主站访客看列表 | 读 Storage 上的 `cards.json`（热链卡图 CDN）；失败才回退内联数据 |
-| 立即同步 / 自动同步 | 全量 export + 重建快照并上传 Storage（**不是**只更新一张卡；Scryfall 磁盘缓存会加速） |
-| 改前端代码 | `push master` → 整站 Pages 部署 |
-
-监控：`heartbeat.yml` **每小时**检查（仅 schedule）：auto-update 超过约 **2h** 无成功、或 db-backup 超过约 **36h** 无成功时各开独立 issue；恢复后关 issue 最多延迟约 1 小时。云端约 720 分钟/月，一般在私有库免费额度内。
-
----
-
-## 本地开发
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# 从 Supabase 导出并构建（需 service_role）
-SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/export_inventory_to_txt.py
-SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/export_wants_to_txt.py
-python3 scripts/build_data.py
-python3 scripts/build_wants.py
-SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/upload_site_data.py
-
-# 测试 / lint
-pip install -r requirements-dev.txt
-python3 -m pytest tests/ -q
-ruff check scripts/ tests/
-```
-
-手动触发 Actions：
-
-```bash
-gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase -f mode=data   # 只刷 Storage 快照
-gh workflow run auto-update.yml --repo ClayStan404/mtg-showcase -f mode=full   # 快照 + Pages
-```
-
-个人库存手记（可选）：根目录 `claystan.txt`（卖家自用记录，非运行时必读）。
-
-### 数据库备份
-
-Free 档 Supabase **没有**官方每日备份。本仓库提供**逻辑备份**（不是整库 `pg_dump`）：
-
-```bash
-# 导出 profiles / inventory / wants + Auth 用户列表（无密码）
-# 本地 backups/*.tar.gz，并上传到私有 Storage 桶 db-backups
-SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py
-
-# 仅本地
-SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/backup_supabase.py --no-upload
-```
-
-- 定时：GitHub Actions `db-backup.yml`（每天一次，**self-hosted**，不占云端分钟）
-- 监控：`heartbeat.yml` 除 auto-update 外，还会检查 **db-backup** 最近成功是否超过约 **36h**（独立 issue）
-- 恢复表数据：`scripts/restore_supabase_backup.py`（**默认 dry-run**，需 `--apply` 才写入；按 PK upsert，**不删除**备份里没有的行；**不会**自动重建登录密码）
-- 更省事的平台备份：升 Supabase Pro（每日备份 / 可选 PITR）
-
----
-
-## 配置要点（`site_config.json`）
-
-| 字段 | 含义 |
-|------|------|
-| `supabase_url` / `supabase_anon_key` | 公开；写入前端 `site` 字段 |
-| `image_cdn` | `"scryfall"`（当前生产）或 `"mtgch"`：快照里卡图热链优先哪个 CDN；改完需重新 build |
-
-中文库存（`lang=zhs`）会优先中文卡面；若数据源无该印刷中文图，保留英文图并显示 **「无中文印刷图」** 角标。
 
 ---
 

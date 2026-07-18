@@ -68,6 +68,8 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
   resize: vertical;
+  min-height: 12rem;
+  box-sizing: border-box;
 }
 .format-help {
   background: var(--bg-input, #1a1f29);
@@ -81,6 +83,76 @@
   margin: 0.5rem 0;
   overflow-x: auto;
 }
+
+/* 批量弹窗：左输入 / 右字段规则（覆盖详情弹窗「左图右文」两列） */
+#batch-modal .batch-panel {
+  grid-template-columns: 1fr minmax(240px, 320px);
+  width: min(960px, 100%);
+}
+#batch-modal .modal-content {
+  min-width: 0;
+}
+#batch-modal .batch-side {
+  padding: 1.25rem 1.1rem 1.5rem;
+  border-left: 1px solid var(--border, #2a3140);
+  background: #0a0d12;
+  overflow: auto;
+  min-width: 0;
+}
+#batch-modal .batch-side-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text, #e6e9f0);
+}
+#batch-modal .batch-side-title + .format-help {
+  margin-top: 0.25rem;
+}
+#batch-modal .batch-side-title:not(:first-child) {
+  margin-top: 0.85rem;
+}
+#batch-modal .batch-field-table {
+  margin: 0.2rem 0 0.4rem;
+}
+#batch-modal .batch-side-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+#batch-modal .batch-side .format-help {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+#batch-modal .batch-side .guide-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--accent-soft, rgba(100, 160, 255, 0.12));
+  color: var(--accent, #7eb6ff);
+  padding: 0.05rem 0.28rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+@media (max-width: 720px) {
+  #batch-modal .batch-panel {
+    grid-template-columns: 1fr;
+  }
+  #batch-modal .batch-side {
+    border-left: 0;
+    border-top: 1px solid var(--border, #2a3140);
+    padding: 0.85rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+  #batch-modal .batch-text {
+    min-height: 9rem;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+  #batch-modal .batch-panel {
+    grid-template-columns: 1fr minmax(200px, 280px);
+  }
+}
+
 .modal-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 
 /* profile 警告条 */

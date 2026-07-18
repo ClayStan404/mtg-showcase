@@ -149,19 +149,35 @@
     <!-- 批量 -->
     <div class="modal" id="batch-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="batch-title">
       <div class="modal-backdrop" id="batch-backdrop"></div>
-      <div class="modal-panel">
+      <div class="modal-panel batch-panel">
         <div class="modal-handle" aria-hidden="true"></div>
         <button type="button" class="modal-close" id="batch-close" aria-label="关闭">×</button>
         <div class="modal-content">
           <h2 id="batch-title">批量添加</h2>
-          <p class="form-hint">每行一条，格式见下方说明。owner 强制为当前登录用户。</p>
-          <textarea id="batch-text" class="batch-text" rows="10" placeholder="sta 124 j 0 2 50 # 签名&#10;neo 111 e 1 1 0"></textarea>
-          <pre class="format-help" id="batch-help"></pre>
+          <p class="form-hint">每行一条，字段规则与示例见侧栏。owner 强制为当前登录用户。</p>
+          <textarea id="batch-text" class="batch-text" rows="12" placeholder="sta 124 j 0 2 50 # 签名&#10;neo 111 e 1 1 0"></textarea>
           <div class="modal-actions">
             <button type="button" class="btn btn-primary" id="batch-submit">导入</button>
             <button type="button" class="btn btn-ghost" id="batch-cancel">取消</button>
           </div>
         </div>
+        <aside class="batch-side" aria-label="字段规则与格式说明">
+          <h3 class="batch-side-title">字段规则</h3>
+          <table class="guide-table batch-field-table">
+            <thead><tr><th>字段</th><th>规则</th></tr></thead>
+            <tbody>
+              <tr><td>语言</td><td><code>e</code>=英文 · <code>z</code>=中文 · <code>j</code>=日文 · <code>o</code>=其他（空默认 <code>e</code>）</td></tr>
+              <tr><td>闪</td><td><code>0</code>=非闪 · <code>1</code>=闪</td></tr>
+              <tr><td>数量</td><td>空=<code>1</code></td></tr>
+              <tr><td>价格</td><td>空或 <code>0</code>=市价/私聊 · <code>&gt;0</code>=每张固定价</td></tr>
+              <tr><td>必须此版（求购）</td><td><code>0</code>=可替其他版 · <code>1</code>=必须此印刷</td></tr>
+              <tr><td>备注</td><td>行尾 <code># 备注内容</code></td></tr>
+            </tbody>
+          </table>
+          <p class="guide-note batch-side-note">卖光请删除该条（不要写 0）。中间字段不可跳过；同卡不同价/备注算独立条目。</p>
+          <h3 class="batch-side-title">行格式示例</h3>
+          <pre class="format-help" id="batch-help"></pre>
+        </aside>
       </div>
     </div>
 
