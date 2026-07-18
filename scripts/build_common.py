@@ -739,34 +739,26 @@ def ensure_image_cdn(
     - zhs_art_attempted: whether Chinese face art was already attempted
 
     For lang=zhs with image_lang=="zhs": keep Chinese face even if image_cdn
-    flips host (language/face wins over CDN preference). Sticky: once
-    zhs_art_attempted and still English face, do not re-query every build
-    (mtgch may later gain zhs_image_uris — flip image_cdn or clear flags to force).
+    flips host (language/face wins over CDN preference).
+
+    For lang=zhs still on English (or empty) art: always re-resolve so we pick
+    up mtgch zhs_image_uris when Scryfall has no Chinese printing (e.g. pip/671).
+    Disk cache makes this cheap; sticky skip would leave badges permanently wrong
+    after mtgch gains Chinese faces later.
     """
     pref = normalize_image_cdn(preferred or image_cdn_preference())
     img = base.get("image") or {}
     url = str(img.get("normal") or img.get("small") or "")
     has_any = bool(url)
     art_lang = str(base.get("image_lang") or "")
-    zhs_tried = bool(base.get("zhs_art_attempted"))
     cdn_tried = str(base.get("image_cdn_attempted") or "")
 
     if lang == "zhs":
         # Already have Chinese face art → do not re-resolve for CDN host flip
         if has_any and art_lang == "zhs":
             return base
-        # Need Chinese art attempt, or first run
-        if not zhs_tried or not has_any:
-            base = dict(base)
-            image, art = client.resolve_images(set_code, number, lang, pref)
-            base["image"] = image
-            base["image_lang"] = art or "en"
-            base["zhs_art_attempted"] = True
-            base["image_cdn_attempted"] = pref
-            return base
-        # zhs attempted, still English face: only re-resolve on CDN preference flip
-        if cdn_tried == pref:
-            return base
+        # Missing Chinese face (first run, empty image, or prior English fallback):
+        # re-attempt every build — Scryfall may 404 zhs while mtgch has art.
         base = dict(base)
         image, art = client.resolve_images(set_code, number, lang, pref)
         base["image"] = image

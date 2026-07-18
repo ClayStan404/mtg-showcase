@@ -163,7 +163,15 @@
     const isWant = state.view === "want";
     const price = Number(c.price) || 0;
     const priceBadge = price > 0 ? `<span class="card-price">¥${escapeHtml(price.toFixed(2))}</span>` : "";
-    const name = c.name_en || c.name_zh || `${(c.set || "").toUpperCase()} #${c.number}`;
+    // Same name rules as main site (mtg-ui displayName / secondaryName):
+    // prefer Chinese when name_zh differs from name_en; English as secondary line.
+    const name =
+      (typeof displayName === "function" && displayName(c)) ||
+      c.name_zh ||
+      c.name_en ||
+      `${(c.set || "").toUpperCase()} #${c.number}`;
+    const nameEn =
+      (typeof secondaryName === "function" && secondaryName(c)) || "";
     const img = (c.image && (c.image.normal || c.image.small)) || PLACEHOLDER_IMG;
     const noZhArt =
       c.lang === "zhs" && c.image_lang && c.image_lang !== "zhs" && c.image_lang !== "zh";
@@ -182,6 +190,7 @@
       </div>
       <div class="card-body">
         <p class="card-name">${escapeHtml(name)}</p>
+        ${nameEn ? `<p class="card-name-en">${escapeHtml(nameEn)}</p>` : ""}
         <div class="card-meta"><span>${escapeHtml((c.set || "").toUpperCase())} #${escapeHtml(c.number)}</span><span>${escapeHtml(c.lang_label || "")}</span></div>
         ${flags ? `<div class="card-flags">${flags}</div>` : ""}
         ${c.note ? `<p class="card-note">${escapeHtml(c.note)}</p>` : ""}
@@ -399,13 +408,30 @@
           card.image = d.image;
           card._needsImage = false;
         }
-        const name = d.name_zh || d.name_en || "";
+        if (d.name_en) card.name_en = d.name_en;
+        if (d.name_zh) card.name_zh = d.name_zh;
+        const name =
+          (typeof displayName === "function" && displayName(card)) ||
+          d.name_zh ||
+          d.name_en ||
+          "";
         if (name) {
           img.alt = name;
-          if (d.name_en) card.name_en = d.name_en;
-          if (d.name_zh) card.name_zh = d.name_zh;
           const nameEl = el.querySelector(".card-name");
           if (nameEl) nameEl.textContent = name;
+          const sec =
+            (typeof secondaryName === "function" && secondaryName(card)) || "";
+          let enEl = el.querySelector(".card-name-en");
+          if (sec) {
+            if (!enEl) {
+              enEl = document.createElement("p");
+              enEl.className = "card-name-en";
+              nameEl?.after(enEl);
+            }
+            enEl.textContent = sec;
+          } else if (enEl) {
+            enEl.remove();
+          }
         }
       })
       .catch(() => {});
@@ -706,7 +732,12 @@
       // Reuse full enrichment path (mtgch → Scryfall)
       const d = await ensureDisplayEnrichment(set, number, lang);
       const img = d && d.image && (d.image.normal || d.image.small);
-      const name = (d && (d.name_zh || d.name_en)) || "";
+      const name =
+        (d &&
+          ((typeof displayName === "function" && displayName(d)) ||
+            d.name_zh ||
+            d.name_en)) ||
+        "";
       if (img) {
         $("#form-preview-img").src = img;
         $("#form-preview-name").textContent = name;

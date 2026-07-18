@@ -192,6 +192,47 @@ def test_ensure_image_cdn_fixes_zhs_with_english_art(monkeypatch, tmp_path):
     assert out["zhs_art_attempted"] is True
 
 
+def test_ensure_image_cdn_retries_zhs_after_sticky_english_attempt(monkeypatch, tmp_path):
+    """pip/671: earlier build marked zhs_art_attempted with English art; mtgch later has zhs."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls: list[tuple] = []
+
+    def resolve(*a, **k):
+        calls.append((a, k))
+        return (
+            {
+                "normal": "https://images.mtgch.com/zhs/normal/front/pip671.webp",
+                "small": "https://images.mtgch.com/zhs/small/front/pip671.webp",
+                "large": "",
+            },
+            "zhs",
+        )
+
+    monkeypatch.setattr(client, "resolve_images", resolve)
+    # Production-stuck shape: attempted + English face + preferred CDN unchanged
+    base = {
+        "image": {
+            "normal": "https://cards.scryfall.io/normal/front/2/7/271424ac.jpg",
+            "small": "s",
+            "large": "",
+        },
+        "image_cdn_attempted": "scryfall",
+        "image_lang": "en",
+        "zhs_art_attempted": True,
+    }
+    out = build_common.ensure_image_cdn(base, client, "pip", "671", "zhs", "scryfall")
+    assert len(calls) == 1
+    assert "/zhs/" in out["image"]["normal"]
+    assert "pip671" in out["image"]["normal"]
+    assert out["image_lang"] == "zhs"
+    assert out["zhs_art_attempted"] is True
+    # Already Chinese: no second resolve (CDN host flip must not clobber zhs face)
+    twice = build_common.ensure_image_cdn(out, client, "pip", "671", "zhs", "mtgch")
+    assert len(calls) == 1
+    assert twice["image_lang"] == "zhs"
+
+
 def test_resolve_images_mtgch_then_scryfall_fallback(monkeypatch, tmp_path):
     monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
     client = build_common.ScryfallClient(use_disk_cache=True)
