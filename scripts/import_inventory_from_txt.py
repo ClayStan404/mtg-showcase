@@ -24,8 +24,6 @@ env: SUPABASE_SERVICE_ROLE_KEY。默认 --dry-run，加 --apply 才真写。
 from __future__ import annotations
 
 import argparse
-import json
-import os
 import sys
 from collections import defaultdict
 from pathlib import Path
