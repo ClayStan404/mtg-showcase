@@ -227,7 +227,7 @@ def test_ensure_image_cdn_retries_zhs_after_sticky_english_attempt(monkeypatch, 
     assert "pip671" in out["image"]["normal"]
     assert out["image_lang"] == "zhs"
     assert out["zhs_art_attempted"] is True
-    # Already Chinese: no second resolve (CDN host flip must not clobber zhs face)
+    # zhs face already present: short-circuit (art_lang==zhs), no re-resolve even on CDN flip
     twice = build_common.ensure_image_cdn(out, client, "pip", "671", "zhs", "mtgch")
     assert len(calls) == 1
     assert twice["image_lang"] == "zhs"

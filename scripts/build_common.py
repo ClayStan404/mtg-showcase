@@ -734,17 +734,22 @@ def ensure_image_cdn(
 ) -> dict[str, Any]:
     """Re-resolve when CDN preference or Chinese art is wrong.
 
-    State is two orthogonal flags:
-    - image_cdn_attempted: last preferred CDN host tried ("mtgch"|"scryfall")
-    - zhs_art_attempted: whether Chinese face art was already attempted
+    Control flag:
+    - image_cdn_attempted: last preferred CDN host tried ("mtgch"|"scryfall");
+      used for non-zhs sticky host preference (skip re-resolve when unchanged).
+
+    Diagnostic only (not used for branching in this function):
+    - zhs_art_attempted: still written True after a zhs resolve so snapshots /
+      tooling can see that Chinese art was attempted; kept for historical rows
+      already on disk. Do not treat as a control flag here.
 
     For lang=zhs with image_lang=="zhs": keep Chinese face even if image_cdn
     flips host (language/face wins over CDN preference).
 
     For lang=zhs still on English (or empty) art: always re-resolve so we pick
     up mtgch zhs_image_uris when Scryfall has no Chinese printing (e.g. pip/671).
-    Disk cache makes this cheap; sticky skip would leave badges permanently wrong
-    after mtgch gains Chinese faces later.
+    Disk cache makes this cheap for typical inventory sizes; if zhs-English
+    volume grows large enough to slow builds, consider a re-resolve TTL first.
     """
     pref = normalize_image_cdn(preferred or image_cdn_preference())
     img = base.get("image") or {}
@@ -763,7 +768,7 @@ def ensure_image_cdn(
         image, art = client.resolve_images(set_code, number, lang, pref)
         base["image"] = image
         base["image_lang"] = art or "en"
-        base["zhs_art_attempted"] = True
+        base["zhs_art_attempted"] = True  # diagnostic only; see docstring
         base["image_cdn_attempted"] = pref
         return base
 
