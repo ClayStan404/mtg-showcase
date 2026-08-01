@@ -36,7 +36,7 @@ npm ci
 ## Coding Style & Naming Conventions
 
 Use four spaces and `snake_case` for Python functions, modules, and variables;
-use `PascalCase` for classes. Ruff targets Python 3.9, sorts imports, and checks
+use `PascalCase` for classes. Ruff targets Python 3.10, sorts imports, and checks
 `E`, `F`, `W`, `I`, and `UP`; its configured line length is 100. Follow existing
 frontend style: two-space indentation, double-quoted JavaScript strings,
 semicolons, and kebab-case CSS classes. Keep comments focused on non-obvious
