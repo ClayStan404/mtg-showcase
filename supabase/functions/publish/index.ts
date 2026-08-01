@@ -10,6 +10,8 @@ const ALLOWED = (Deno.env.get("ALLOWED_ORIGIN") ?? "https://claystan.cc")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+const COOLDOWN_MS = 60_000;
+const lastDispatchByUser = new Map<string, number>();
 
 /**
  * Build CORS headers. Unauthorized browser Origin → null (caller returns 403).
@@ -23,7 +25,9 @@ function resolveCors(
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Cache-Control": "no-store",
     "Content-Type": "application/json",
+    "Vary": "Origin",
   };
   if (!origin) {
     return { ok: true, headers };
@@ -36,6 +40,20 @@ function resolveCors(
 }
 
 type Body = { mode?: string };
+
+function jwtSubject(auth: string): string | null {
+  try {
+    const token = auth.slice("Bearer ".length);
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(padded)) as { sub?: unknown };
+    return typeof payload.sub === "string" && payload.sub ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
 
 Deno.serve(async (req: Request) => {
   const cors = resolveCors(req);
@@ -50,9 +68,16 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers });
   }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method not allowed" }), {
+      status: 405,
+      headers: { ...headers, Allow: "POST, OPTIONS" },
+    });
+  }
   // verify_jwt=true: gateway already validated JWT; only require Bearer present.
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) {
+  const subject = auth.startsWith("Bearer ") ? jwtSubject(auth) : null;
+  if (!subject) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
       headers,
@@ -66,14 +91,37 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let mode = "data";
-  try {
-    if (req.headers.get("Content-Type")?.includes("application/json")) {
+  if (req.headers.get("Content-Type")?.includes("application/json")) {
+    try {
       const body = (await req.json()) as Body;
-      if (body?.mode === "full" || body?.mode === "data") mode = body.mode;
+      if (body?.mode && body.mode !== "data") {
+        return new Response(JSON.stringify({ error: "only data mode is allowed" }), {
+          status: 400,
+          headers,
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid JSON body" }), {
+        status: 400,
+        headers,
+      });
     }
-  } catch {
-    // empty body is fine → default data
+  }
+
+  const now = Date.now();
+  const lastDispatch = lastDispatchByUser.get(subject) ?? 0;
+  if (now - lastDispatch < COOLDOWN_MS) {
+    const retryAfter = Math.ceil((COOLDOWN_MS - (now - lastDispatch)) / 1000);
+    return new Response(JSON.stringify({ error: "publish cooldown", retry_after: retryAfter }), {
+      status: 429,
+      headers: { ...headers, "Retry-After": String(retryAfter) },
+    });
+  }
+  // Best-effort per-isolate protection; GitHub workflow concurrency remains the
+  // cross-isolate guard. Reserve the slot before the first await to avoid races.
+  lastDispatchByUser.set(subject, now);
+  for (const [user, timestamp] of lastDispatchByUser) {
+    if (now - timestamp > COOLDOWN_MS * 10) lastDispatchByUser.delete(user);
   }
 
   const repo = Deno.env.get("GH_REPO") ?? "ClayStan404/mtg-showcase";
@@ -89,17 +137,18 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         ref: "master",
-        inputs: { mode },
+        inputs: { mode: "data" },
       }),
     },
   );
   if (!r.ok) {
+    lastDispatchByUser.delete(subject);
     return new Response(JSON.stringify({ error: `github ${r.status}` }), {
       status: 502,
       headers,
     });
   }
-  return new Response(JSON.stringify({ ok: true, mode }), {
+  return new Response(JSON.stringify({ ok: true, mode: "data" }), {
     headers,
   });
 });

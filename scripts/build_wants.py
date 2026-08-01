@@ -30,13 +30,18 @@ from build_common import (  # noqa: E402
     base_from_cached,
     base_from_card,
     bump_all_caches,
+    enrichment_cache_path,
     ensure_image_cdn,
     ensure_zh_name,
     image_cdn_preference,
     load_previous_enrichment,
     load_site_config,
     payload_unchanged,
+    public_snapshot_payload,
     stable_payload_bytes,
+    write_enrichment_cache,
+    write_json_atomic,
+    write_site_config_js,
 )
 from inventory_format import (  # noqa: E402
     ParseError,
@@ -312,7 +317,7 @@ def main() -> int:
         return 0
     if not entries:
         print("无求购条目，写入空数据")
-        payload = {
+        internal_payload = {
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "site": load_site_config(),
             "count": 0,
@@ -323,10 +328,14 @@ def main() -> int:
         }
     else:
         print(f"合计 {len(entries)} 条")
-        prev = load_previous_enrichment(OUT_JSON, list_key="wants")
+        private_cache = enrichment_cache_path("wants")
+        prev = load_previous_enrichment(
+            private_cache if private_cache.exists() else OUT_JSON,
+            list_key="wants",
+        )
         client = ScryfallClient(use_disk_cache=not args.no_cache)
         wants = enrich_wants(entries, client, prev)
-        payload = {
+        internal_payload = {
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "site": load_site_config(),
             "count": len(wants),
@@ -335,8 +344,11 @@ def main() -> int:
             "cities": sorted({w["city"] for w in wants if w.get("city")}),
             "wants": wants,
         }
+    write_enrichment_cache(internal_payload, "wants")
+    payload = public_snapshot_payload(internal_payload, "wants")
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    write_site_config_js()
 
     # 先写前端内嵌 JS（即使 JSON 无变化也写，防 JS 被误删后不重建）
     OUT_JS.parent.mkdir(parents=True, exist_ok=True)
@@ -351,7 +363,7 @@ def main() -> int:
     if payload_unchanged(OUT_JSON, payload):
         print(f"数据无变化，跳过写入 {OUT_JSON}")
         return 0
-    OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(OUT_JSON, payload)
     print(f"已写入 {OUT_JSON} 与 {OUT_JS} （{payload['count']} 条）")
     return 0
 

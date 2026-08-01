@@ -10,9 +10,11 @@
   "use strict";
 
   // $ 由 mtg-ui.js 全局提供（admin.html 先于本文件加载 mtg-ui.js），不在此重复定义。
-  const LANG_TOK = { e: "en", z: "zhs", j: "ja", o: "other" };
   const LANG_LABEL = { en: "英文", zhs: "简中", ja: "日文", other: "其他" };
   const SCRYFALL_LANG = { en: "en", zhs: "zhs", ja: "ja", other: "en" };
+  const parser = window.MTGInventoryParser;
+  if (!parser) throw new Error("MTGInventoryParser 未加载");
+  const { parseInventoryLine, parseWantLine, parseText } = parser;
   const INVENTORY_FMT =
     "set number lang foil [qty] [price] [# note]\n" +
     "  sta 124 j 0              1张 市价\n" +
@@ -29,73 +31,6 @@
   let profile = null;
   let displayIndex = new Map(); // `${set}|${number}|${lang}` -> cards.json 显示数据
   let previewTimer = null;
-
-  // ---------- txt 解析（镜像 Python card_line_to_fields / want_line_to_fields）----------
-  function normQty(s) {
-    if (s == null || s === "") return 1;
-    const n = parseInt(s, 10);
-    if (!Number.isFinite(n) || n < 1) throw new Error("数量无效「" + s + "」");
-    return n;
-  }
-  function normPrice(s) {
-    if (s == null || s === "") return 0;
-    const p = parseFloat(s);
-    if (!Number.isFinite(p) || p < 0) throw new Error("价格无效「" + s + "」");
-    return p;
-  }
-  function tokToLang(tok) {
-    const v = LANG_TOK[(tok || "").toLowerCase()];
-    if (!v) throw new Error("语言无效「" + tok + "」（仅 e/z/j/o）");
-    return v;
-  }
-
-  function parseInventoryLine(line) {
-    let note = "";
-    let raw = line.trim();
-    if (!raw || raw.startsWith("#")) return null;
-    const hi = raw.indexOf("#");
-    if (hi >= 0) { note = raw.slice(hi + 1).trim(); raw = raw.slice(0, hi); }
-    const parts = raw.split(/\s+/).filter(Boolean);
-    if (parts.length < 4) throw new Error("至少需要 set number lang foil：" + line);
-    if (parts.length > 6) throw new Error("字段过多：" + line);
-    return {
-      set_code: parts[0].toLowerCase(), number: parts[1], lang: tokToLang(parts[2]),
-      foil: parts[3] === "1", quantity: parts.length > 4 ? normQty(parts[4]) : 1,
-      price: parts.length > 5 ? normPrice(parts[5]) : 0, note,
-    };
-  }
-
-  function parseWantLine(line) {
-    let note = "";
-    let raw = line.trim();
-    if (!raw || raw.startsWith("#")) return null;
-    const hi = raw.indexOf("#");
-    if (hi >= 0) { note = raw.slice(hi + 1).trim(); raw = raw.slice(0, hi); }
-    const parts = raw.split(/\s+/).filter(Boolean);
-    if (parts.length < 4) throw new Error("至少需要 set number lang foil：" + line);
-    if (parts.length > 7) throw new Error("字段过多：" + line);
-    return {
-      set_code: parts[0].toLowerCase(), number: parts[1], lang: tokToLang(parts[2]),
-      foil: parts[3] === "1", quantity: parts.length > 4 ? normQty(parts[4]) : 1,
-      must: parts.length > 5 ? parts[5] === "1" : false,
-      price: parts.length > 6 ? normPrice(parts[6]) : 0, note,
-    };
-  }
-
-  function parseText(text, view) {
-    const fn = view === "want" ? parseWantLine : parseInventoryLine;
-    const rows = [];
-    const errors = [];
-    text.split(/\r?\n/).forEach((line, i) => {
-      try {
-        const r = fn(line);
-        if (r) rows.push(r);
-      } catch (e) {
-        errors.push(`第 ${i + 1} 行：${e.message}`);
-      }
-    });
-    return { rows, errors };
-  }
 
   // ---------- 显示 join（cards.json / Storage 快照提供 name/image/type）----------
   function indexFromCards(cards) {
@@ -115,19 +50,27 @@
 
   /** Prefer live Storage snapshot for richer join after scheme-C publishes. */
   async function refreshDisplayIndexFromLive() {
+    let data = null;
     try {
       const base =
         (window.MTGSupabase && typeof MTGSupabase.dataBaseUrl === "function" && MTGSupabase.dataBaseUrl()) ||
         "";
-      if (!base) return;
-      const r = await fetch(`${base}/cards.json?v=${Date.now()}`, { cache: "no-store" });
-      if (!r.ok) return;
-      const data = await r.json();
-      if (data && Array.isArray(data.cards) && data.cards.length) {
-        displayIndex = indexFromCards(data.cards);
+      if (base) {
+        const r = await fetch(`${base}/cards.json?v=${Date.now()}`, { cache: "no-store" });
+        if (r.ok) data = await r.json();
       }
     } catch {
-      /* keep inlined index */
+      data = null;
+    }
+    if (!data || !Array.isArray(data.cards)) {
+      try {
+        data = await MTGSupabase.loadCatalogFallback("sell");
+      } catch {
+        data = null;
+      }
+    }
+    if (data && Array.isArray(data.cards)) {
+      displayIndex = indexFromCards(data.cards);
     }
   }
 
@@ -567,6 +510,10 @@
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
+        if (r.status === 429) {
+          const retryAfter = Number(j.retry_after || r.headers.get("Retry-After"));
+          if (Number.isFinite(retryAfter) && retryAfter > 0) setPublishCooldown(retryAfter);
+        }
         throw new Error(j.error || `HTTP ${r.status}`);
       }
       showToast(

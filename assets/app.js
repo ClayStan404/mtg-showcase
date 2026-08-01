@@ -463,7 +463,7 @@ function renderSiteMeta() {
   if (lastUpd) {
     if (state.generatedAt) {
       const d = new Date(state.generatedAt);
-      lastUpd.textContent = `最后更新：${d.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`;
+      lastUpd.textContent = `内容更新：${d.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}`;
       lastUpd.hidden = false;
     } else {
       lastUpd.hidden = true;
@@ -753,7 +753,7 @@ async function loadJsonFallback(urls, check) {
 
 /**
  * Prefer live Storage snapshot (updated without full Pages deploy).
- * Fall back to inlined cards-data.js / local data/*.json if Storage is empty or fails.
+ * Fall back to local JSON, then lazily load the Pages snapshot script.
  */
 async function loadCatalog(kind) {
   const isSell = kind === "sell";
@@ -771,14 +771,16 @@ async function loadCatalog(kind) {
   try {
     return await loadJsonFallback(urls, check);
   } catch (liveErr) {
-    const inline = isSell ? window.__MTG_DATA__ : window.__MTG_WANTS__;
-    if (inline && Array.isArray(inline[listKey])) return inline;
+    if (window.MTGSupabase && typeof MTGSupabase.loadCatalogFallback === "function") {
+      const fallback = await MTGSupabase.loadCatalogFallback(kind);
+      if (check(fallback)) return fallback;
+    }
     throw liveErr;
   }
 }
 
 async function loadData() {
-  // 在售：Storage 快照优先，内联/本地兜底
+  // 在售：Storage 快照优先，本地 JSON / 延迟脚本兜底
   const sell = await loadCatalog("sell");
 
   // 求购（可选，失败则空列表）
@@ -908,4 +910,3 @@ main().catch((err) => {
   const detail = err && err.message ? err.message : String(err);
   showLoadError(`加载失败：${detail}。请检查网络后刷新页面，或稍后重试。`);
 });
-

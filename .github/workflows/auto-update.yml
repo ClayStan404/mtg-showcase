@@ -74,13 +74,18 @@ jobs:
         run: python3 -c "import requests; print('deps ok')"
 
       - name: Lint & test
-        # 代码变更时跑 ruff + pytest（数据更新 cron 不跑，省时）
+        # 代码变更时跑 Python + browser JS checks（数据更新 cron 不跑，省时）
         if: github.event_name == 'push'
         run: |
           python3 -m venv /tmp/lint-venv
           /tmp/lint-venv/bin/pip install -q -r requirements-dev.txt
           /tmp/lint-venv/bin/ruff check scripts/ tests/
+          /tmp/lint-venv/bin/python -m compileall -q scripts tests
           /tmp/lint-venv/bin/pytest tests/ -q
+          npm ci --ignore-scripts
+          for file in assets/*.js admin/*.js; do node --check "$file"; done
+          npm run test:js
+          npm run check:edge
 
       - name: Export inventory from Supabase
         # 从 Supabase 读 profiles + inventory（service_role bypass RLS），按 seller 写 inventory/{uid}.txt
@@ -129,6 +134,10 @@ jobs:
               print(f'{label}: {errs}/{len(items)} error ({ratio:.0%})')
               if ratio > 0.2:
                   raise SystemExit(f'{label} error ratio {ratio:.0%} > 20%, aborting deploy')
+              private = {'source_file', 'image_cdn_attempted', 'zhs_art_attempted', 'zh_name_attempted'}
+              leaked = private.intersection(set().union(*(set(c) for c in items)))
+              if leaked:
+                  raise SystemExit(f'{label} leaked private fields: {sorted(leaked)}')
           print('sanity check passed')
           PYEOF
 

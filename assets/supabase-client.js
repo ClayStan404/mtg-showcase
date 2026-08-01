@@ -1,24 +1,26 @@
 /* supabase-client.js -- 主站 + admin 共享的 Supabase 客户端 + auth 辅助。
  *
- * 配置来源：window.__MTG_DATA__.site（build 时从 site_config.json 下发，见 build_common.load_site_config）。
+ * 配置来源：window.__MTG_SITE__（由 site_config.json 生成）。
  *   - supabase_url / supabase_anon_key 都是公开值（anon key 受 RLS 约束，可嵌前端）。
  *
  * 主站：不预加载 vendor（212KB），点「登录」时 MTGSupabase.getClient() 首次调用动态注入
  *   /assets/vendor/supabase-js.min.js，纯看牌买家首屏零成本。
  * admin：admin.html 直接 <script> include vendor，getClient() 命中 window.supabase 立即返回。
  *
- * 暴露 window.MTGSupabase = { site, dataBaseUrl, getClient, getSession, requireUser, signOut, hasLocalSession }。
+ * Catalog fallback scripts are loaded only after live/local JSON requests fail.
  */
 (function () {
   "use strict";
 
   const SITE =
+    window.__MTG_SITE__ ||
     (window.__MTG_DATA__ && window.__MTG_DATA__.site) ||
     (window.__MTG_WANTS__ && window.__MTG_WANTS__.site) ||
     {};
 
   let _client = null;
   let _vendorPromise = null;
+  const _catalogPromises = {};
 
   /**
    * Public Storage snapshot base (scheme C).
@@ -48,6 +50,38 @@
       document.head.appendChild(s);
     });
     return _vendorPromise;
+  }
+
+  function inlineCatalog(kind) {
+    return kind === "sell" ? window.__MTG_DATA__ : window.__MTG_WANTS__;
+  }
+
+  function loadCatalogFallback(kind) {
+    const normalized = kind === "want" ? "want" : "sell";
+    const existing = inlineCatalog(normalized);
+    const key = normalized === "sell" ? "cards" : "wants";
+    if (existing && Array.isArray(existing[key])) return Promise.resolve(existing);
+    if (_catalogPromises[normalized]) return _catalogPromises[normalized];
+
+    const file = normalized === "sell" ? "cards-data.js" : "wants-data.js";
+    _catalogPromises[normalized] = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `/assets/${file}?v=${Date.now()}`;
+      script.onload = () => {
+        const loaded = inlineCatalog(normalized);
+        if (loaded && Array.isArray(loaded[key])) resolve(loaded);
+        else {
+          delete _catalogPromises[normalized];
+          reject(new Error(`${file} 格式无效`));
+        }
+      };
+      script.onerror = () => {
+        delete _catalogPromises[normalized];
+        reject(new Error(`${file} 加载失败`));
+      };
+      document.head.appendChild(script);
+    });
+    return _catalogPromises[normalized];
   }
 
   async function getClient() {
@@ -102,5 +136,6 @@
     requireUser,
     signOut,
     hasLocalSession,
+    loadCatalogFallback,
   };
 })();

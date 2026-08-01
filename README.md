@@ -29,6 +29,28 @@
 
 ---
 
+## 本地开发
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+npm ci
+
+ruff check scripts/ tests/
+python3 -m pytest tests/ -q
+npm run test:js
+npm run check:edge
+python3 -m http.server 8000
+```
+
+访问 `http://localhost:8000/` 预览站点。前端优先读取 Supabase Storage
+快照；仅在请求失败时才延迟加载生成的 `assets/*-data.js`。数据库结构、
+RLS 策略和 Edge Function 本地配置位于 `supabase/`，详见
+[`supabase/README.md`](supabase/README.md)。
+
+---
+
 ## 致谢
 
 ### Scryfall

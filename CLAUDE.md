@@ -10,7 +10,7 @@ Static **MTG buylist + sell list** website (GitHub Pages shell + Supabase Storag
 
 `master` holds source only; **generated artifacts are never committed**.
 
-**Scheme C (near-live lists, not DB-direct reads):** admin save → ~45s debounced auto-sync (or **立即同步**) → Edge Function `publish` → `workflow_dispatch` `mode=data` → export → enrich → **`upload_site_data.py`** → public Storage bucket `site-data` (`cards.json` / `wants.json`). Main site **fetches Storage first** (fallback: inlined `cards-data.js` / `data/*.json`). Full Pages deploy only on `push master` or `mode=full`.
+**Scheme C (near-live lists, not DB-direct reads):** admin save → ~45s debounced auto-sync (or **立即同步**) → Edge Function `publish` → `workflow_dispatch` `mode=data` → export → enrich → **`upload_site_data.py`** → public Storage bucket `site-data` (`cards.json` / `wants.json`). Main site **fetches Storage first** and lazily loads generated `assets/*-data.js` only on failure. Full Pages deploy only on `push master` or `mode=full`.
 
 ## Data flow
 
@@ -31,7 +31,7 @@ sellers/buyers (write)  admin SPA ──> Supabase (profiles + inventory + wants
 
 Shared code: `build_common.py` (ScryfallClient, image CDN resolve, payload/cache tools), `export_common.py`, `inventory_format.py` (line parsers + field conventions).
 
-Frontend: Storage snapshot preferred; inline JS is resilience fallback. Shared UI in `assets/mtg-ui.js`; shell `assets/app.js`; admin overrides `cardHtml` + CRUD/batch/import/sync. Supabase: vendored `assets/vendor/supabase-js.min.js` + `assets/supabase-client.js` (`dataBaseUrl()`, lazy load on main site).
+Frontend: Storage snapshot preferred; generated JS is a lazy resilience fallback. Shared UI in `assets/mtg-ui.js`; shell `assets/app.js`; strict import parsing in `assets/inventory-parser.js`; admin overrides `cardHtml` + CRUD/batch/import/sync. Supabase: generated `assets/site-config.js`, vendored `assets/vendor/supabase-js.min.js`, and `assets/supabase-client.js`.
 
 ## Key constraints
 
@@ -90,13 +90,17 @@ SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/restore_supabase_backup.py backu
 SUPABASE_SERVICE_ROLE_KEY=<key> python3 scripts/restore_supabase_backup.py backups/supabase-XXXX.tar.gz --apply
 
 pip install -r requirements-dev.txt
+npm ci
 python3 -m pytest tests/ -q
 ruff check scripts/ tests/
+npm run test:js
+npm run check:edge
+npm run build:vendor
 ```
 
 ## External dependencies
 
-- **Supabase** (Tokyo): project `rkvtizboyikrjowfogoc`. Tables `profiles` / `inventory` / `wants` + RLS. Secrets: `SUPABASE_SERVICE_ROLE_KEY` (Actions + local export/upload/backup). Public anon key in `site_config.json`. Edge Function `publish` (`verify_jwt=true`) → GitHub `workflow_dispatch` with `{mode}`. Storage: `site-data` (public list snapshots); `db-backups` (private logical archives, service_role only). Free plan has **no** platform daily DB backups — use `scripts/backup_supabase.py` / `db-backup.yml` or upgrade to Pro.
+- **Supabase** (Tokyo): project `rkvtizboyikrjowfogoc`. Tables `profiles` / `inventory` / `wants` + RLS. Secrets: `SUPABASE_SERVICE_ROLE_KEY` (Actions + local export/upload/backup). Public anon key in `site_config.json`. Edge Function `publish` (`verify_jwt=true`) dispatches data-only rebuilds. Storage: `site-data` (public list snapshots); `db-backups` (private logical archives, service_role only). Source-controlled config and migrations are in `supabase/`. Free plan has **no** platform daily DB backups — use `scripts/backup_supabase.py` / `db-backup.yml` or upgrade to Pro.
 - **Scryfall**: `https://api.scryfall.com/cards/{set}/{number}/{lang}` — rate limit `REQUEST_GAP=0.12s`, disk cache `.cache/scryfall/`, TTL 30d, 404 `.notfound` sentinel, 429 `Retry-After`. CDN `cards.scryfall.io`.
 - **mtgch**: `https://mtgch.com/api/v1/card/{set}/{number}/` — zh names + optional `zhs_image_uris` / `images.mtgch.com`. Disk-cached. Docs: https://mtgch.com/api/v1/docs
 
@@ -108,6 +112,6 @@ ruff check scripts/ tests/
 - Heartbeat: `heartbeat.yml` **hourly** schedule only (GitHub-hosted; no `workflow_run`); opens issue if **auto-update** last success >2h or **db-backup** last success >36h (separate issue titles); recovery close may lag up to ~1h. ~720 min/mo hosted, under free private 2000.
 - Hermes bots (private `config_rc`): deploy alerts + card query + broadcasts.
 - Cache bust `?v=` via `bump_all_caches` in deploy artifact only.
-- `.gitignore`: `site/`, `inventory/`, `wants/`, `backups/`, `data/cards.json`, `data/wants.json`, `assets/*-data.js`, `.cache/`, `.venv/`, etc.
+- `.gitignore`: `site/`, `inventory/`, `wants/`, `backups/`, `data/cards.json`, `data/wants.json`, `assets/*-data.js`, `.cache/`, `.venv/`, `node_modules/`, etc.
 - Daily backup: `db-backup.yml` (self-hosted) → local `backups/` + private Storage `db-backups/`.
 - Commit/PR messages in English. Do not commit/push unless the user asks.

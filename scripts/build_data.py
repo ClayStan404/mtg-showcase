@@ -20,6 +20,7 @@ from build_common import (  # noqa: E402
     base_from_cached,
     base_from_card,
     bump_all_caches,
+    enrichment_cache_path,
     ensure_image_cdn,
     ensure_zh_name,
     image_cdn_preference,
@@ -27,7 +28,11 @@ from build_common import (  # noqa: E402
     load_site_config,
     payload_unchanged,
     pick_images,
+    public_snapshot_payload,
     stable_payload_bytes,
+    write_enrichment_cache,
+    write_json_atomic,
+    write_site_config_js,
 )
 from inventory_format import (  # noqa: E402
     META_RE,
@@ -343,14 +348,15 @@ def main() -> int:
         print(f"校验通过 · 出售人 {len(sellers)} · 城市 {len(cities)}")
         return 0
 
-    prev = load_previous_enrichment(args.output)
+    private_cache = enrichment_cache_path("cards")
+    prev = load_previous_enrichment(private_cache if private_cache.exists() else args.output)
     client = ScryfallClient(use_disk_cache=not args.no_cache)
     cards = enrich(entries, client, prev)
 
     sellers = sorted({c["seller"] for c in cards if c.get("seller")})
     cities = sorted({c["city"] for c in cards if c.get("city")})
 
-    payload = {
+    internal_payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "site": load_site_config(),
         "count": len(cards),
@@ -359,8 +365,11 @@ def main() -> int:
         "cities": cities,
         "cards": cards,
     }
+    write_enrichment_cache(internal_payload, "cards")
+    payload = public_snapshot_payload(internal_payload, "cards")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    write_site_config_js()
 
     # 先写前端内嵌 JS（即使 JSON 无变化也写，防 JS 被误删后不重建）
     js_path = ROOT / "assets" / "cards-data.js"
@@ -377,7 +386,7 @@ def main() -> int:
     if payload_unchanged(args.output, payload):
         print(f"数据无变化，跳过写入 {args.output}")
         return 0
-    args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(args.output, payload)
     print(
         f"已写入 {args.output} （{payload['count']} 种 / 共 {payload['total_quantity']} 张 · "
         f"{len(sellers)} 位出售人 · {len(cities)} 个城市）"

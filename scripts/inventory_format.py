@@ -189,6 +189,8 @@ def normalize_price(raw: Any) -> float:
         p = float(s)
     except ValueError as e:
         raise ParseError(f"价格无效「{raw}」（空=0 市价，>0 固定价）") from e
+    if not math.isfinite(p):
+        raise ParseError(f"价格须为有限数字，得到「{raw}」")
     if p < 0:
         raise ParseError(f"价格须 ≥ 0，得到「{raw}」")
     return p

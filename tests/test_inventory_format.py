@@ -153,6 +153,12 @@ def test_price_invalid_raises():
         normalize_price("abc")
 
 
+@pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
+def test_price_non_finite_raises(value):
+    with pytest.raises(ParseError):
+        normalize_price(value)
+
+
 # note_hash
 def test_note_hash_stable_and_8chars():
     assert note_hash("签名") == note_hash("签名")

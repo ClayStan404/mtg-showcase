@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import sys
 import time
 from pathlib import Path
@@ -13,9 +14,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from backup_supabase import (  # noqa: E402
     auth_users_page_batch,
     local_archives_newest_first,
+    make_tarball,
     prune_local,
     remote_archives_newest_first,
     slim_auth_user,
+    write_json,
 )
 
 
@@ -67,6 +70,19 @@ def test_slim_auth_user_drops_noise() -> None:
     assert "identities" not in slim
     assert slim["app_metadata"] == {"provider": "email"}
     assert slim["user_metadata"] == {"name": "n"}
+
+
+def test_backup_files_are_owner_only(tmp_path: Path) -> None:
+    source = tmp_path / "snapshot"
+    source.mkdir()
+    json_path = source / "profiles.json"
+    archive = tmp_path / "snapshot.tar.gz"
+
+    write_json(json_path, [{"id": "u1"}])
+    make_tarball(source, archive)
+
+    assert stat.S_IMODE(json_path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(archive.stat().st_mode) == 0o600
 
 
 def test_local_archives_newest_first(tmp_path: Path) -> None:

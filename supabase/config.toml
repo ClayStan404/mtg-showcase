@@ -1,0 +1,16 @@
+project_id = "mtg-showcase"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+shadow_port = 54320
+
+[studio]
+port = 54323
+
+[functions.publish]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/publish/index.ts"

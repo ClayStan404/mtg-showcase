@@ -1,0 +1,13 @@
+{
+  "name": "mtg-showcase",
+  "private": true,
+  "scripts": {
+    "build:vendor": "esbuild scripts/vendor-supabase-entry.js --bundle --format=iife --global-name=supabase --minify --outfile=assets/vendor/supabase-js.min.js",
+    "check:edge": "esbuild supabase/functions/publish/index.ts --bundle --platform=neutral --external:jsr:* --outfile=/tmp/mtg-showcase-publish-check.js",
+    "test:js": "node --test tests-js/*.test.js"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.110.7",
+    "esbuild": "0.28.1"
+  }
+}

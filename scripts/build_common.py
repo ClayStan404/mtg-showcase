@@ -21,7 +21,20 @@ from inventory_format import scryfall_lang  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = ROOT / ".cache" / "scryfall"
+ENRICHMENT_CACHE_DIR = ROOT / ".cache" / "enrichment"
 SITE_CONFIG = ROOT / "site_config.json"
+SITE_CONFIG_JS = ROOT / "assets" / "site-config.js"
+
+# These fields are useful while enriching subsequent builds but must not be
+# published. In particular, source_file is the exported profile UUID filename.
+PRIVATE_SNAPSHOT_FIELDS = frozenset(
+    {
+        "source_file",
+        "image_cdn_attempted",
+        "zhs_art_attempted",
+        "zh_name_attempted",
+    }
+)
 
 # Scryfall 建议最小 0.1s/请求；0.12 含安全余量
 REQUEST_GAP = 0.12
@@ -54,7 +67,9 @@ _STATIC_CACHE_ASSETS = [
     ("app.js", "assets/app.js"),
     ("style.css", "assets/style.css"),
     ("mtg-ui.js", "assets/mtg-ui.js"),
+    ("site-config.js", "assets/site-config.js"),
     ("supabase-client.js", "assets/supabase-client.js"),
+    ("inventory-parser.js", "assets/inventory-parser.js"),
     ("supabase-js.min.js", "assets/vendor/supabase-js.min.js"),
     ("admin.js", "admin/admin.js"),
     ("admin.css", "admin/admin.css"),
@@ -106,6 +121,41 @@ def payload_unchanged(output_path: Path, new_payload: dict[str, Any]) -> bool:
     return old_wo_ts == new_wo_ts
 
 
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Write JSON through a sibling temporary file, then atomically replace."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def public_snapshot_payload(payload: dict[str, Any], list_key: str) -> dict[str, Any]:
+    """Return a public snapshot with internal enrichment fields removed."""
+    public = dict(payload)
+    items = payload.get(list_key)
+    if not isinstance(items, list):
+        raise ValueError(f"payload {list_key!r} must be a list")
+    if not all(isinstance(item, dict) for item in items):
+        raise ValueError(f"payload {list_key!r} items must be objects")
+    public[list_key] = [
+        {key: value for key, value in item.items() if key not in PRIVATE_SNAPSHOT_FIELDS}
+        for item in items
+    ]
+    return public
+
+
+def enrichment_cache_path(list_key: str) -> Path:
+    return ENRICHMENT_CACHE_DIR / f"{list_key}.json"
+
+
+def write_enrichment_cache(payload: dict[str, Any], list_key: str) -> Path:
+    """Persist the non-public payload used to accelerate the next build."""
+    path = enrichment_cache_path(list_key)
+    write_json_atomic(path, payload)
+    path.chmod(0o600)
+    return path
+
+
 def data_base_url_from_supabase(supabase_url: str, bucket: str = "site-data") -> str:
     """Public Storage URL prefix for scheme-C snapshots (cards.json / wants.json)."""
     base = (supabase_url or "").strip().rstrip("/")
@@ -142,6 +192,17 @@ def load_site_config() -> dict[str, Any]:
     # Image CDN preference for built snapshots (mtgch | scryfall). Easy rollback.
     cfg["image_cdn"] = normalize_image_cdn(str(cfg.get("image_cdn") or ""))
     return cfg
+
+
+def write_site_config_js() -> bytes:
+    """Generate the small runtime config loaded before catalog snapshots."""
+    compact = json.dumps(load_site_config(), ensure_ascii=False, separators=(",", ":"))
+    content = f"window.__MTG_SITE__={compact};\n".encode()
+    SITE_CONFIG_JS.parent.mkdir(parents=True, exist_ok=True)
+    tmp = SITE_CONFIG_JS.with_name(f".{SITE_CONFIG_JS.name}.tmp")
+    tmp.write_bytes(content)
+    tmp.replace(SITE_CONFIG_JS)
+    return content
 
 
 # Preferred image host written into cards.json / wants.json.

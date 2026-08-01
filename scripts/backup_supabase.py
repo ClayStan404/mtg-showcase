@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import tarfile
 import time
@@ -139,12 +140,14 @@ def write_json(path: Path, obj: Any) -> None:
         json.dumps(obj, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",
     )
+    path.chmod(0o600)
 
 
 def make_tarball(src_dir: Path, dest_gz: Path) -> None:
     dest_gz.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(dest_gz, "w:gz") as tar:
         tar.add(src_dir, arcname=src_dir.name)
+    dest_gz.chmod(0o600)
 
 
 def upload_file(
@@ -268,6 +271,7 @@ def run_backup(
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out_dir = BACKUP_ROOT / f"supabase-{ts}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    os.chmod(out_dir, 0o700)
 
     tables_meta: dict[str, int] = {}
     for table, select in TABLES:

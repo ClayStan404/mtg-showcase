@@ -2,26 +2,41 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please **do not** open a public issue.
+Do not open a public issue for a suspected vulnerability. Contact the
+repository owner through the email listed on the
+[GitHub profile](https://github.com/ClayStan404). Include the affected
+component, reproduction steps, and likely impact. A response is expected
+within 48 hours.
 
-Instead, email the repository owner directly. You can find the contact information on the [GitHub profile](https://github.com/ClayStan404).
+## Security Scope
 
-Please include:
-- A description of the vulnerability
-- Steps to reproduce
-- Potential impact
+The system consists of:
 
-You should receive a response within 48 hours.
+- a public static storefront hosted on GitHub Pages;
+- an authenticated Supabase admin application;
+- Postgres tables protected by row-level security;
+- public, generated inventory snapshots in Supabase Storage;
+- a JWT-protected Edge Function that queues GitHub Actions;
+- self-hosted build and logical-backup workflows.
 
-## Scope
+Database schema, constraints, triggers, and RLS policies are versioned under
+`supabase/migrations/`. The browser uses the public Supabase anon key; the
+`SUPABASE_SERVICE_ROLE_KEY` and `GH_PAT` are server-side secrets only.
 
-This is a static website (GitHub Pages) with no backend, database, or user authentication. The attack surface is limited to:
+## Public Data and Privacy
 
-- **CI/CD pipeline**: GitHub Actions workflows that fetch data from WPS and deploy to Pages
-- **Frontend**: Vanilla JS/HTML/CSS, no build step, no user input processing beyond localStorage
-- **Data scripts**: Python scripts that parse Excel files and fetch from Scryfall API
+Published snapshots intentionally expose seller or buyer names, cities, contact
+details, prices, notes, and card metadata. Admin users must only enter contact
+information they consent to publish. Source filenames, profile UUIDs,
+enrichment diagnostics, backups, and Auth metadata must not appear in public
+snapshots.
 
-## Dependencies
+## Operational Safeguards
 
-- Python dependencies are monitored via Dependabot (pip ecosystem, weekly checks)
-- GitHub Actions versions are monitored via Dependabot (github-actions ecosystem, weekly checks)
+- Import and restore commands default to dry-run and require `--apply` to write.
+- Logical backups are stored in a private bucket and do not include passwords,
+  a full Postgres dump, or point-in-time recovery.
+- Python, npm, and GitHub Actions dependencies are monitored by Dependabot.
+- Pull requests run Python lint/tests and JavaScript syntax/unit checks.
+
+Report exposed secrets immediately so they can be revoked and rotated.
