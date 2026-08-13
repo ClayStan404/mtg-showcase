@@ -58,6 +58,7 @@ jobs:
                   "threshold_h": 2,
                   "body": (
                       "auto-update 已 {age} 无成功部署。可能原因：self-hosted runner 离线 / "
+                      "environment 或 concurrency 卡住 / "
                       "SUPABASE_SERVICE_ROLE_KEY 失效 / Scryfall/mtgch 不可达 / 构建失败。"
                       "请检查 runner 与最近的失败 run。"
                   ),
@@ -82,9 +83,13 @@ jobs:
           def last_success_age(workflow: str):
               url = (
                   f"https://api.github.com/repos/{repo}/actions/workflows/"
-                  f"{workflow}/runs?status=completed&conclusion=success&per_page=1"
+                  f"{workflow}/runs?status=success&per_page=1"
               )
               runs = api("GET", url).get("workflow_runs", [])
+              # The workflow-runs endpoint filters status and conclusion through the
+              # single `status` parameter. Keep this defensive check so a cancelled
+              # completed run can never refresh the monitor accidentally.
+              runs = [run for run in runs if run.get("conclusion") == "success"]
               now = datetime.now(timezone.utc)
               if not runs:
                   return True, "无成功记录", now

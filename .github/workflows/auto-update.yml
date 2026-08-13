@@ -40,20 +40,18 @@ permissions:
   id-token: write     # deploy-pages 需要签名
   issues: write       # 失败时创建/评论 issue 通知
 
-# 防止 push / cron / 手动触发重叠，避免 self-hosted runner 工作区并发污染
-concurrency:
-  group: deploy
-  cancel-in-progress: false
-
 jobs:
   build-deploy:
     runs-on: self-hosted
     timeout-minutes: 30  # 防止挂起进程锁死 runner（默认 360min 太长）
-    # Scheme C: push / mode=full → Pages deploy; dispatch default mode=data → Storage only.
-    # Keep github-pages env always (deploy step is conditional; page_url empty on data-only).
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    # Serialize only the self-hosted data build. A Pages environment wait in the
+    # downstream job must not hold the data-publish concurrency lease.
+    concurrency:
+      group: data-publish
+      cancel-in-progress: false
+    # Scheme C: always refresh Storage; push / mode=full also prepares a Pages artifact.
+    # Do not attach github-pages environment here: data-only jobs must not be blocked by
+    # a stale Pages deployment gate. The separate deploy-pages job owns that environment.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -178,11 +176,6 @@ jobs:
         with:
           path: site
 
-      - name: Deploy to GitHub Pages
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full')
-        id: deploy
-        uses: actions/deploy-pages@v5
-
       - name: Notify on failure
         # 默认无通知会导致站点静默展示过期数据数天
         # 复用同一 open issue 评论，避免刷屏
@@ -264,3 +257,32 @@ jobs:
           else:
               print("无 open 的 Auto-update failed issue，无需关闭")
           PYEOF
+
+  deploy-pages:
+    needs: build-deploy
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          issue_title="Auto-update failed"
+          issue_body="GitHub Pages 部署失败，请检查：${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          issue_number="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --json number,title \
+            --jq 'map(select(.title == "Auto-update failed")) | .[0].number // empty')"
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" --repo "$GITHUB_REPOSITORY" --body "$issue_body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$issue_title" --body "$issue_body"
+          fi
