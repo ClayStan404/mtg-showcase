@@ -1,8 +1,8 @@
 /* admin/admin.js -- admin SPA：Supabase CRUD + 双 tab + 批量/导入 + 立即发布。
  *
  * 复用 mtg-ui.js 的展示/筛选/分页（state / filters / matches / renderGrid / loadMore /
- * mountFilters / populateFilters / $ / escapeHtml / bindImgErrors / PLACEHOLDER_IMG /
- * PAGE_SIZE / closeAllDropdowns / setFiltersOpen / updateFilterToggle / syncScrim 等）。
+ * mountFilters / bindSharedChrome / populateFilters / $ / escapeHtml / bindImgErrors /
+ * PLACEHOLDER_IMG / PAGE_SIZE / closeAllDropdowns / setFiltersOpen / syncOverlayChrome 等）。
  * override 全局 cardHtml（admin 版：price 展示 + 编辑/删除按钮，无购物车）。
  * 不加载 app.js；自实现 setView / renderAdminMeta / main / CRUD / 批量 / 导入。
  */
@@ -56,7 +56,11 @@
         (window.MTGSupabase && typeof MTGSupabase.dataBaseUrl === "function" && MTGSupabase.dataBaseUrl()) ||
         "";
       if (base) {
-        const r = await fetch(`${base}/cards.json?v=${Date.now()}`, { cache: "no-store" });
+        const opts = { cache: "reload" };
+        if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+          opts.signal = AbortSignal.timeout(8000);
+        }
+        const r = await fetch(`${base}/cards.json`, opts);
         if (r.ok) data = await r.json();
       }
     } catch {
@@ -102,7 +106,7 @@
   }
 
   // ---------- admin cardHtml（override 全局）----------
-  function adminCardHtml(c) {
+  function adminCardHtml(c, opts) {
     const isWant = state.view === "want";
     const price = Number(c.price) || 0;
     const priceBadge = price > 0 ? `<span class="card-price">¥${escapeHtml(price.toFixed(2))}</span>` : "";
@@ -123,7 +127,7 @@
     ].join("");
     return `<div class="card" data-id="${escapeHtml(c.id)}">
       <div class="card-media">
-        <div class="card-img-wrap"><img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" loading="lazy" decoding="async" /></div>
+        <div class="card-img-wrap"><img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" ${imgLoadingAttrs(opts && opts.eager)} /></div>
         ${priceBadge}
       </div>
       <div class="card-body">
@@ -348,6 +352,7 @@
         }
         if (d.name_en) card.name_en = d.name_en;
         if (d.name_zh) card.name_zh = d.name_zh;
+        if (d.name_en || d.name_zh) delete card._hay;
         const name = displayName(card) || "";
         if (name) {
           img.alt = name;
@@ -511,8 +516,11 @@
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         if (r.status === 429) {
+          if (!auto) showToast("同步进行中，请稍后再试");
+          else scheduleAutoSync();
           const retryAfter = Number(j.retry_after || r.headers.get("Retry-After"));
           if (Number.isFinite(retryAfter) && retryAfter > 0) setPublishCooldown(retryAfter);
+          return false;
         }
         throw new Error(j.error || `HTTP ${r.status}`);
       }
@@ -525,8 +533,10 @@
       return true;
     } catch (e) {
       if (!auto) showToast("同步失败：" + e.message);
-      updatePublishGuard();
       return false;
+    } finally {
+      // 429 从 try 直接 return，不会进 catch；手动同步必须在此恢复按钮
+      if (!auto) updatePublishGuard();
     }
   }
 
@@ -650,24 +660,30 @@
     }
   }
 
+  let previewGen = 0;
   function schedulePreview() {
     clearTimeout(previewTimer);
     previewTimer = setTimeout(previewCard, 400);
   }
   async function previewCard() {
+    const gen = ++previewGen;
     const set = $("#f-set").value.trim().toLowerCase();
     const number = $("#f-number").value.trim();
     let lang;
     try {
       lang = tokToLang($("#f-lang").value);
     } catch {
-      $("#form-preview").hidden = true;
+      if (gen === previewGen) $("#form-preview").hidden = true;
       return;
     }
-    if (!set || !number) { $("#form-preview").hidden = true; return; }
+    if (!set || !number) {
+      if (gen === previewGen) $("#form-preview").hidden = true;
+      return;
+    }
     try {
       // Reuse full enrichment path (mtgch → Scryfall)
       const d = await ensureDisplayEnrichment(set, number, lang);
+      if (gen !== previewGen) return;
       const img = d && d.image && (d.image.normal || d.image.small);
       const name = (d && displayName(d)) || "";
       if (img) {
@@ -678,7 +694,7 @@
         $("#form-preview").hidden = true;
       }
     } catch {
-      $("#form-preview").hidden = true;
+      if (gen === previewGen) $("#form-preview").hidden = true;
     }
   }
 
@@ -721,25 +737,30 @@
   // ---------- 模态/提示（复用 mtg-ui 的 showToast / setScrollLock / syncInert）----------
   function showModal(id) {
     const m = $("#" + id);
-    m.classList.add("open"); m.setAttribute("aria-hidden", "false");
-    if (typeof setScrollLock === "function") setScrollLock(true);
-    if (typeof syncInert === "function") syncInert();
+    if (!m) return;
+    _lastFocus = document.activeElement;
+    m.classList.add("open");
+    m.setAttribute("aria-hidden", "false");
+    if (typeof syncOverlayChrome === "function") syncOverlayChrome();
+    const focusEl = m.querySelector(
+      "input:not([type=hidden]), select, textarea, button:not(.modal-close)"
+    );
+    (focusEl || m.querySelector(".modal-close"))?.focus?.({ preventScroll: true });
   }
   function hideModal(id) {
     const m = $("#" + id);
-    m.classList.remove("open"); m.setAttribute("aria-hidden", "true");
-    if (typeof setScrollLock === "function") setScrollLock(false);
-    if (typeof syncInert === "function") syncInert();
-  }
-  function anyModalOpen() {
-    return !!document.querySelector(".modal.open");
+    if (!m || !m.classList.contains("open")) return;
+    m.classList.remove("open");
+    m.setAttribute("aria-hidden", "true");
+    if (typeof syncOverlayChrome === "function") syncOverlayChrome();
+    if (typeof anyOverlayOpen === "function" && !anyOverlayOpen()) {
+      _lastFocus?.focus?.({ preventScroll: true });
+      _lastFocus = null;
+    }
   }
 
   // ---------- 事件 ----------
   function bindEvents() {
-    $("#view-tabs")?.addEventListener("click", (e) => {
-      const t = e.target.closest(".view-tab"); if (t) setView(t.dataset.view);
-    });
     let searchTimer = null;
     $("#search")?.addEventListener("input", (e) => {
       state.query = e.target.value; state.visibleCount = PAGE_SIZE;
@@ -806,11 +827,6 @@
       await MTGSupabase.signOut(); window.location.href = "/";
     });
 
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && anyModalOpen()) {
-        document.querySelectorAll(".modal.open").forEach((m) => hideModal(m.id));
-      }
-    });
   }
 
   // ---------- 个人资料 ----------
@@ -912,6 +928,15 @@
     window.decorateCard = adminDecorateCard;
 
     if (typeof mountFilters === "function") mountFilters();
+    if (typeof bindSharedChrome === "function") {
+      bindSharedChrome({
+        setView,
+        onEscapeOverlay() {
+          const open = [...document.querySelectorAll(".modal.open")];
+          if (open.length) hideModal(open[open.length - 1].id);
+        },
+      });
+    }
     bindEvents();
     await setView("sell");
   }

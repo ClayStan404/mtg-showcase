@@ -15,6 +15,7 @@ on:
       - 'requirements-dev.txt'
       - 'tests/**'
       - '.github/dependabot.yml'
+      - '.github/workflows/ci.yml'
       - 'SECURITY.md'
       - 'docs/**'
       - 'SUPABASE_MIGRATION_PLAN.md'
@@ -90,16 +91,12 @@ jobs:
         # 失败（0 seller / 全 profile 不全 / 请求失败）exit 非零，让 step 失败、不部署空站点
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          rm -f inventory/*.txt
-          python3 scripts/export_inventory_to_txt.py
+        run: python3 scripts/export_inventory_to_txt.py
 
       - name: Export wants from Supabase
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          rm -f wants/*.txt
-          python3 scripts/export_wants_to_txt.py
+        run: python3 scripts/export_wants_to_txt.py
 
       - name: Clean stale Scryfall cache
         # 删除 60 天未访问的缓存文件，避免已售卡数据长期堆积

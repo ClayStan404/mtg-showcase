@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,8 @@ SITE_CONFIG = ROOT / "site_config.json"
 
 PAGE_SIZE = 1000  # Supabase REST 默认上限 1000，分页拉全量
 REQUEST_TIMEOUT = 30
+FETCH_RETRIES = 3
+RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 
 
 def require_service_role_key() -> str:
@@ -49,22 +52,69 @@ def load_supabase_url() -> str:
     return url
 
 
-def fetch_all(url: str, key: str, table: str, select: str) -> list[dict[str, Any]]:
-    """service_role 分页拉取整张表（bypass RLS）。请求失败抛 RequestException。"""
+def _retry_wait(response: requests.Response | None, attempt: int) -> float:
+    """Honor Retry-After when present; otherwise exponential backoff (capped)."""
+    if response is not None:
+        raw = response.headers.get("Retry-After")
+        if raw:
+            try:
+                return min(float(raw), 30.0)
+            except ValueError:
+                pass
+    return min(0.4 * (2**attempt), 4.0)
+
+
+def _get_page(url: str, headers: dict[str, str], params: dict[str, Any]) -> Any:
+    """GET one PostgREST page; retry transient 5xx/429/timeouts."""
+    last_error: Exception | None = None
+    r: requests.Response | None = None
+    for attempt in range(FETCH_RETRIES):
+        try:
+            r = requests.get(url, headers=headers, params=params, timeout=REQUEST_TIMEOUT)
+        except (requests.Timeout, requests.ConnectionError) as e:
+            last_error = e
+            if attempt + 1 >= FETCH_RETRIES:
+                raise
+            time.sleep(_retry_wait(None, attempt))
+            continue
+        if r.status_code in RETRY_STATUSES and attempt + 1 < FETCH_RETRIES:
+            time.sleep(_retry_wait(r, attempt))
+            continue
+        r.raise_for_status()
+        return r.json()
+    if last_error:
+        raise last_error
+    assert r is not None
+    r.raise_for_status()
+    return r.json()
+
+
+def fetch_all(
+    url: str,
+    key: str,
+    table: str,
+    select: str,
+    *,
+    order: str = "id.asc",
+) -> list[dict[str, Any]]:
+    """service_role 分页拉取整张表（bypass RLS）。请求失败抛 RequestException。
+
+    必须带稳定 order，否则并发写入时 offset 分页会漏行/重复。
+    """
     headers = {"apikey": key, "Authorization": f"Bearer {key}", "Accept": "application/json"}
     rows: list[dict[str, Any]] = []
     offset = 0
+    endpoint = f"{url}/rest/v1/{table}"
     while True:
-        r = requests.get(
-            f"{url}/rest/v1/{table}",
-            headers=headers,
-            params={"select": select, "limit": PAGE_SIZE, "offset": offset},
-            timeout=REQUEST_TIMEOUT,
+        batch = _get_page(
+            endpoint,
+            headers,
+            {"select": select, "limit": PAGE_SIZE, "offset": offset, "order": order},
         )
-        r.raise_for_status()
-        batch = r.json()
         if not batch:
             break
+        if not isinstance(batch, list):
+            raise ValueError(f"{table}: expected list, got {type(batch).__name__}")
         rows.extend(batch)
         if len(batch) < PAGE_SIZE:
             break

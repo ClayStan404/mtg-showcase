@@ -45,7 +45,7 @@
   color: var(--text, #e6e9f0);
   border-radius: 6px;
   padding: 0.45rem 0.55rem;
-  font-size: 0.95rem;
+  font-size: 1rem; /* ≥16px avoids iOS zoom on focus */
 }
 .form-preview {
   display: flex;

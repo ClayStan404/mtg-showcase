@@ -31,6 +31,11 @@ information they consent to publish. Source filenames, profile UUIDs,
 enrichment diagnostics, backups, and Auth metadata must not appear in public
 snapshots.
 
+## Out of scope
+
+- In-site checkout or payment (there is none)
+- Card image hosting (hotlinks to Scryfall / mtgch CDNs)
+
 ## Operational Safeguards
 
 - Import and restore commands default to dry-run and require `--apply` to write.

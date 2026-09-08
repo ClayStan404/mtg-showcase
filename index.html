@@ -11,7 +11,7 @@
     <meta name="description" content="万智牌云牌本" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io https://images.mtgch.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://rkvtizboyikrjowfogoc.supabase.co; frame-ancestors 'none'"
+      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io https://images.mtgch.com; script-src 'self'; style-src 'self'; connect-src 'self' https://rkvtizboyikrjowfogoc.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://images.mtgch.com" crossorigin />
@@ -33,7 +33,7 @@
     <link rel="stylesheet" href="assets/style.css?v=21598412" />
   </head>
   <body>
-    <noscript><p style="text-align:center;padding:2rem">本站需要 JavaScript 才能运行，请启用后刷新。</p></noscript>
+    <noscript><p class="noscript-msg">本站需要 JavaScript 才能运行，请启用后刷新。</p></noscript>
     <a href="#grid" class="skip-link">跳到卡牌列表</a>
     <header class="site-header wrap">
       <div class="header-top">
@@ -150,7 +150,10 @@
             <h2 id="cart-title">意向清单</h2>
             <p class="cart-sub">方便截图或复制后发给卖家 · 非在线交易</p>
           </div>
-          <button type="button" class="modal-close" id="cart-close" aria-label="关闭清单">×</button>
+          <div class="cart-header-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="cart-shot-exit" hidden>退出截图</button>
+            <button type="button" class="modal-close" id="cart-close" aria-label="关闭清单">×</button>
+          </div>
         </header>
 
         <div class="cart-toolbar">
@@ -201,7 +204,7 @@
         <div class="modal-handle" aria-hidden="true"></div>
         <button type="button" class="modal-close" id="modal-close" aria-label="关闭">×</button>
         <div class="modal-art">
-          <img id="modal-img" src="" alt="" decoding="async" />
+          <img id="modal-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" decoding="async" />
         </div>
         <div class="modal-content">
           <h2 id="modal-title"></h2>

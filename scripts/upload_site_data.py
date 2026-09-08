@@ -22,7 +22,7 @@ from export_common import load_supabase_url  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BUCKET = "site-data"
-# Short cache so list updates show quickly after rebuild; bust query still used by clients.
+# Short cache so list updates show quickly; clients revalidate with cache: "reload".
 CACHE_CONTROL = "public, max-age=30, must-revalidate"
 REQUEST_TIMEOUT = 60
 

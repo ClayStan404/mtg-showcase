@@ -80,7 +80,7 @@ function showToast(msg) {
 
 function trapFocus(container, e) {
   const focusable = container.querySelectorAll(
-    'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
   );
   if (!focusable.length) return;
   const first = focusable[0];
@@ -107,11 +107,28 @@ function setBackgroundInert(inert) {
 }
 
 function anyOverlayOpen() {
-  return state.cartOpen || state.modalCardId !== null;
+  return Boolean(document.querySelector(".cart.open, .modal.open"));
+}
+
+function overlayFocusRoot() {
+  if (document.getElementById("cart")?.classList.contains("open")) {
+    return document.getElementById("cart-panel");
+  }
+  const open = document.querySelectorAll(".modal.open");
+  const top = open[open.length - 1];
+  return top ? top.querySelector(".modal-panel") : null;
 }
 
 function syncInert() {
   setBackgroundInert(anyOverlayOpen());
+}
+
+/** 锁滚动 + inert：弹层优先，窄屏下拉其次。主站/后台共用。 */
+function syncOverlayChrome() {
+  const overlay = anyOverlayOpen();
+  const dropdownLock = isNarrow() && Boolean(document.querySelector(".dd.open"));
+  setScrollLock(overlay || dropdownLock);
+  syncInert();
 }
 
 /** 只允许 http(s) 的 href 赋值，防 javascript: 等 scheme 注入 */
@@ -392,10 +409,7 @@ function syncScrim() {
     scrim.hidden = !narrowOpen;
   }
 
-  // 窄屏打开下拉时锁滚动；详情弹层另算
-  if (!$("#modal")?.classList.contains("open")) {
-    setScrollLock(narrowOpen);
-  }
+  syncOverlayChrome();
 }
 
 // 1x1 透明占位图，避免 src="" 触发对当前页 URL 的多余请求
@@ -408,7 +422,15 @@ function cardImageSrc(card) {
   return card.image?.normal || card.image?.small || PLACEHOLDER_IMG;
 }
 
-function cardHtml(c) {
+const EAGER_FIRST = 6;
+
+function imgLoadingAttrs(eager) {
+  return eager
+    ? 'loading="eager" fetchpriority="high" decoding="async"'
+    : 'loading="lazy" decoding="async"';
+}
+
+function cardHtml(c, opts) {
   const isWant = state.view === "want";
   // inCart 由主站 app.js 定义（意向清单）；admin override cardHtml 不走这里。
   // 防御 typeof 以防加载顺序被重构后 inCart 缺失（主站正常情况下 app.js 已先加载并定义）。
@@ -435,8 +457,7 @@ function cardHtml(c) {
             <img
               src="${escapeHtml(cardImageSrc(c))}"
               alt="${escapeHtml(displayName(c))}"
-              loading="lazy"
-              decoding="async"
+              ${imgLoadingAttrs(opts && opts.eager)}
             />
           </div>
         </button>
@@ -504,7 +525,7 @@ function renderGrid() {
 
   // 分页：只渲染前 visibleCount 张，避免上千卡全量重建 DOM 卡顿
   const shown = filtered.slice(0, state.visibleCount);
-  let html = shown.map(cardHtml).join("");
+  let html = shown.map((c, i) => cardHtml(c, { eager: i < EAGER_FIRST })).join("");
   if (filtered.length > shown.length) {
     html += `<button type="button" class="load-more" id="load-more">加载更多（还有 ${filtered.length - shown.length} 张）</button>`;
   }
@@ -765,6 +786,99 @@ function setFiltersOpen(open) {
   } else {
     closeAllDropdowns();
   }
+}
+
+let _sharedChromeBound = false;
+
+/**
+ * 主站 / 后台共用的筛选条、下拉、Tab、焦点陷阱。
+ * hooks.setView(view) — 切 tab；hooks.onEscapeOverlay() — Escape 且无下拉时关弹层。
+ */
+function bindSharedChrome(hooks) {
+  if (_sharedChromeBound) return;
+  _sharedChromeBound = true;
+  hooks = hooks || {};
+  const changeView = typeof hooks.setView === "function" ? hooks.setView : null;
+  const onEscapeOverlay =
+    typeof hooks.onEscapeOverlay === "function" ? hooks.onEscapeOverlay : null;
+
+  $("#filter-toggle")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setFiltersOpen(!state.filtersOpen);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".dd") || e.target.closest("#dd-scrim") || e.target.closest(".dd-menu")) {
+      return;
+    }
+    closeAllDropdowns();
+    if (
+      isNarrow() &&
+      state.filtersOpen &&
+      !e.target.closest("#filters") &&
+      !e.target.closest("#filter-toggle")
+    ) {
+      setFiltersOpen(false);
+    }
+  });
+
+  $("#dd-scrim")?.addEventListener("click", () => closeAllDropdowns());
+
+  if (changeView) {
+    $("#view-tabs")?.addEventListener("click", (e) => {
+      const tab = e.target.closest(".view-tab");
+      if (tab) changeView(tab.dataset.view);
+    });
+    $("#view-tabs")?.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const tabs = [...document.querySelectorAll(".view-tab")];
+      const cur = tabs.findIndex((t) => t.getAttribute("tabindex") === "0");
+      const next =
+        e.key === "ArrowRight"
+          ? (cur + 1) % tabs.length
+          : (cur - 1 + tabs.length) % tabs.length;
+      if (!tabs[next]) return;
+      tabs[next].focus();
+      changeView(tabs[next].dataset.view);
+      e.preventDefault();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Tab") {
+      const root = overlayFocusRoot();
+      if (root) trapFocus(root, e);
+      return;
+    }
+    if (e.key === "Escape") {
+      const hadDropdown = Boolean(
+        document.querySelector(".dd.open") || document.querySelector(".dd-menu.is-portal")
+      );
+      closeAllDropdowns();
+      if (hadDropdown) return;
+      if (isNarrow() && state.filtersOpen && !anyOverlayOpen()) {
+        setFiltersOpen(false);
+        return;
+      }
+      if (onEscapeOverlay) onEscapeOverlay();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      const openMenu =
+        document.querySelector(".dd-menu.is-portal") ||
+        document.querySelector(".dd.open .dd-menu");
+      if (!openMenu) return;
+      e.preventDefault();
+      const opts = [...openMenu.querySelectorAll('[role="option"]')];
+      if (!opts.length) return;
+      const curIdx = opts.findIndex(
+        (o) => o === document.activeElement || o.contains(document.activeElement)
+      );
+      const nextIdx =
+        curIdx < 0 ? 0 : (curIdx + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
+      opts[nextIdx]?.focus();
+    }
+  });
 }
 
 function escapeHtml(str) {

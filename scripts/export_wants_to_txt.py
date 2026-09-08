@@ -10,14 +10,19 @@ env: SUPABASE_SERVICE_ROLE_KEY。失败 exit 非零。
 
 from __future__ import annotations
 
-import os
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from export_common import fetch_all, load_supabase_url, profile_complete, write_txt  # noqa: E402
+from export_common import (  # noqa: E402
+    fetch_all,
+    load_supabase_url,
+    profile_complete,
+    require_service_role_key,
+    write_txt,
+)
 from inventory_format import LANG_TOKEN  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,10 +50,7 @@ def format_want_line(row: dict[str, Any]) -> str:
 
 def main() -> int:
     url = load_supabase_url()
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    if not key:
-        print("FATAL: SUPABASE_SERVICE_ROLE_KEY 未设置", file=sys.stderr)
-        return 1
+    key = require_service_role_key()
 
     try:
         profiles = fetch_all(url, key, "profiles", PROFILE_SELECT)

@@ -129,8 +129,7 @@ function openCart() {
   cart.classList.add("open");
   cart.setAttribute("aria-hidden", "false");
   state.cartOpen = true;
-  setScrollLock(true);
-  syncInert();
+  syncOverlayChrome();
   renderCartList();
   updateCartChrome();
   $("#cart-close")?.focus();
@@ -145,13 +144,12 @@ function closeCart() {
   state.shotMode = false;
   const btn = $("#cart-shot-mode");
   if (btn) btn.textContent = "截图模式";
+  const exitBtn = $("#cart-shot-exit");
+  if (exitBtn) exitBtn.hidden = true;
+  syncOverlayChrome();
   if (!anyOverlayOpen()) {
-    setScrollLock(false);
-    syncInert();
     _lastFocus?.focus?.({ preventScroll: true });
     _lastFocus = null;
-  } else {
-    syncInert();
   }
 }
 
@@ -160,6 +158,8 @@ function toggleShotMode() {
   $("#cart").classList.toggle("shot-mode", state.shotMode);
   const btn = $("#cart-shot-mode");
   if (btn) btn.textContent = state.shotMode ? "退出截图模式" : "截图模式";
+  const exitBtn = $("#cart-shot-exit");
+  if (exitBtn) exitBtn.hidden = !state.shotMode;
   if (state.shotMode) showToast("可直接截取清单区域发给卖家");
 }
 
@@ -302,7 +302,7 @@ function openModal(card) {
     modalImg.style.visibility = "";
     modalImg.parentElement?.classList.remove("img-failed");
     modalImg.alt = displayName(card);
-    const realSrc = card.image?.normal || card.image?.large || "";
+    const realSrc = card.image?.large || card.image?.normal || "";
     // 先用透明占位替换旧图，预加载新图完成后再设 src，
     // 避免切换卡牌时短暂显示上一张卡图
     modalImg.src = PLACEHOLDER_IMG;
@@ -407,8 +407,7 @@ function openModal(card) {
   _lastFocus = document.activeElement;
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
-  setScrollLock(true);
-  syncInert();
+  syncOverlayChrome();
   const panel = modal.querySelector(".modal-panel");
   if (panel) panel.scrollTop = 0;
   $("#modal-close").focus({ preventScroll: true });
@@ -420,13 +419,10 @@ function closeModal() {
   modal.classList.remove("open");
   modal.setAttribute("aria-hidden", "true");
   state.modalCardId = null;
+  syncOverlayChrome();
   if (!anyOverlayOpen()) {
-    setScrollLock(false);
-    syncInert();
     _lastFocus?.focus?.({ preventScroll: true });
     _lastFocus = null;
-  } else {
-    syncInert();
   }
   syncScrim();
 }
@@ -506,26 +502,6 @@ function setView(view) {
 function bindEvents() {
   state.cart = loadCart();
 
-  $("#view-tabs")?.addEventListener("click", (e) => {
-    const tab = e.target.closest(".view-tab");
-    if (!tab) return;
-    setView(tab.dataset.view);
-  });
-
-  $("#view-tabs")?.addEventListener("keydown", (e) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    const tabs = [...document.querySelectorAll(".view-tab")];
-    const cur = tabs.findIndex((t) => t.getAttribute("tabindex") === "0");
-    const next =
-      e.key === "ArrowRight"
-        ? (cur + 1) % tabs.length
-        : (cur - 1 + tabs.length) % tabs.length;
-    if (!tabs[next]) return;
-    tabs[next].focus();
-    setView(tabs[next].dataset.view);
-    e.preventDefault();
-  });
-
   let searchTimer = null;
   $("#search")?.addEventListener("input", (e) => {
     state.query = e.target.value;
@@ -535,66 +511,6 @@ function bindEvents() {
   });
   $("#search")?.addEventListener("focus", () => {
     $("#toolbar")?.classList.remove("is-collapsed");
-  });
-
-  $("#filter-toggle")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    setFiltersOpen(!state.filtersOpen);
-  });
-
-  document.addEventListener("click", (e) => {
-    if (e.target.closest(".dd") || e.target.closest("#dd-scrim") || e.target.closest(".dd-menu")) {
-      return;
-    }
-    closeAllDropdowns();
-    // 点筛选区外收起手机端筛选条（搜索框除外）
-    if (
-      isNarrow() &&
-      state.filtersOpen &&
-      !e.target.closest("#filters") &&
-      !e.target.closest("#filter-toggle")
-    ) {
-      setFiltersOpen(false);
-    }
-  });
-
-  const scrim = $("#dd-scrim");
-  if (scrim) {
-    scrim.addEventListener("click", () => closeAllDropdowns());
-  }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeAllDropdowns();
-      if (state.cartOpen) closeCart();
-      else closeModal();
-      return;
-    }
-    if (e.key === "Tab") {
-      const container = state.cartOpen
-        ? $("#cart-panel")
-        : state.modalCardId
-        ? document.querySelector(".modal-panel")
-        : null;
-      if (container) trapFocus(container, e);
-      return;
-    }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      const openMenu =
-        document.querySelector(".dd-menu.is-portal") ||
-        document.querySelector(".dd.open .dd-menu");
-      if (openMenu) {
-        e.preventDefault();
-        const opts = [...openMenu.querySelectorAll('[role="option"]')];
-        if (!opts.length) return;
-        const curIdx = opts.findIndex(
-          (o) => o === document.activeElement || o.contains(document.activeElement)
-        );
-        const nextIdx =
-          curIdx < 0 ? 0 : (curIdx + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
-        opts[nextIdx]?.focus();
-      }
-    }
   });
 
   $("#grid")?.addEventListener("click", (e) => {
@@ -638,6 +554,7 @@ function bindEvents() {
     if (confirm("确定清空意向清单？")) clearCart();
   });
   $("#cart-shot-mode")?.addEventListener("click", toggleShotMode);
+  $("#cart-shot-exit")?.addEventListener("click", toggleShotMode);
 
   $("#cart-list")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-act]");
@@ -685,7 +602,7 @@ function bindEvents() {
         if (!inMenu) closeAllDropdowns();
       }
 
-      if (!isNarrow() || state.cartOpen || $("#modal")?.classList.contains("open")) return;
+      if (!isNarrow() || anyOverlayOpen()) return;
       if (scrollTicking) return;
       scrollTicking = true;
       requestAnimationFrame(() => {
@@ -729,54 +646,85 @@ function showLoadError(msg) {
   el.textContent = msg;
 }
 
-async function loadJsonFallback(urls, check) {
-  let lastErr = null;
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) {
-        lastErr = new Error(`HTTP ${res.status} loading ${url}`);
-        continue;
-      }
-      const data = await res.json();
-      if (!check(data)) {
-        lastErr = new Error(`${url} 格式无效`);
-        continue;
-      }
-      return data;
-    } catch (e) {
-      lastErr = e;
-    }
+const CATALOG_TIMEOUT_MS = 8000;
+
+function catalogFetchOpts(cacheMode) {
+  const opts = {};
+  if (cacheMode) opts.cache = cacheMode;
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    opts.signal = AbortSignal.timeout(CATALOG_TIMEOUT_MS);
   }
-  throw lastErr || new Error("无法加载数据");
+  return opts;
+}
+
+function isCatalogTimeout(err) {
+  const name = err && err.name;
+  return name === "TimeoutError" || name === "AbortError";
+}
+
+async function fetchCatalogJson(url, check, cacheMode) {
+  const res = await fetch(url, catalogFetchOpts(cacheMode));
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status} loading ${url}`);
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  if (!check(data)) throw new Error(`${url} 格式无效`);
+  return data;
+}
+
+async function fetchStorageCatalog(url, check) {
+  try {
+    return await fetchCatalogJson(url, check, "reload");
+  } catch (e) {
+    if (!isCatalogTimeout(e)) throw e;
+    return await fetchCatalogJson(url, check, "reload");
+  }
+}
+
+function inlineCatalog(isSell, listKey) {
+  const inline = isSell ? window.__MTG_DATA__ : window.__MTG_WANTS__;
+  return inline && Array.isArray(inline[listKey]) ? inline : null;
+}
+
+/** Pages / inline shells — only when Storage is missing or broken, not merely slow. */
+async function loadCatalogFallback(file, check, isSell, listKey, liveErr) {
+  try {
+    return await fetchCatalogJson(`data/${file}`, check);
+  } catch {
+    const inline = inlineCatalog(isSell, listKey);
+    if (inline) return inline;
+    if (window.MTGSupabase && typeof MTGSupabase.loadCatalogFallback === "function") {
+      const fallback = await MTGSupabase.loadCatalogFallback(isSell ? "sell" : "want");
+      if (check(fallback)) return fallback;
+    }
+    throw liveErr;
+  }
 }
 
 /**
  * Prefer live Storage snapshot (updated without full Pages deploy).
- * Fall back to local JSON, then lazily load the Pages snapshot script.
+ * Timeout on Storage must not fall through to a stale Pages/inline catalog.
  */
 async function loadCatalog(kind) {
   const isSell = kind === "sell";
   const file = isSell ? "cards.json" : "wants.json";
   const listKey = isSell ? "cards" : "wants";
   const check = (d) => d && Array.isArray(d[listKey]);
-  const bust = Date.now();
   const base =
     (window.MTGSupabase && typeof MTGSupabase.dataBaseUrl === "function" && MTGSupabase.dataBaseUrl()) ||
     "";
-  const urls = [];
-  if (base) urls.push(`${base}/${file}?v=${bust}`);
-  urls.push(`data/${file}?v=${bust}`, `data/${file}`);
 
-  try {
-    return await loadJsonFallback(urls, check);
-  } catch (liveErr) {
-    if (window.MTGSupabase && typeof MTGSupabase.loadCatalogFallback === "function") {
-      const fallback = await MTGSupabase.loadCatalogFallback(kind);
-      if (check(fallback)) return fallback;
+  if (base) {
+    try {
+      return await fetchStorageCatalog(`${base}/${file}`, check);
+    } catch (e) {
+      if (isCatalogTimeout(e)) throw e;
+      return loadCatalogFallback(file, check, isSell, listKey, e);
     }
-    throw liveErr;
   }
+  return loadCatalogFallback(file, check, isSell, listKey, new Error("无法加载数据"));
 }
 
 async function loadData() {
@@ -819,11 +767,11 @@ function showAuthArea(loggedIn, email) {
 function openLoginModal() {
   const m = $("#login-modal");
   if (!m) return;
+  _lastFocus = document.activeElement;
   $("#login-hint").textContent = "邀请制，无账号请联系管理员。";
   m.classList.add("open");
   m.setAttribute("aria-hidden", "false");
-  setScrollLock(true);
-  syncInert();
+  syncOverlayChrome();
   $("#login-email")?.focus();
 }
 
@@ -832,9 +780,10 @@ function closeLoginModal() {
   if (!m || !m.classList.contains("open")) return;
   m.classList.remove("open");
   m.setAttribute("aria-hidden", "true");
+  syncOverlayChrome();
   if (!anyOverlayOpen()) {
-    setScrollLock(false);
-    syncInert();
+    _lastFocus?.focus?.({ preventScroll: true });
+    _lastFocus = null;
   }
 }
 
@@ -872,13 +821,18 @@ function initAuth() {
     showAuthArea(false, "");
     showToast("已登出");
   });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && $("#login-modal")?.classList.contains("open")) closeLoginModal();
-  });
 }
 
 async function main() {
   mountFilters();
+  bindSharedChrome({
+    setView,
+    onEscapeOverlay() {
+      if (document.getElementById("cart")?.classList.contains("open")) closeCart();
+      else if ($("#login-modal")?.classList.contains("open")) closeLoginModal();
+      else closeModal();
+    },
+  });
   bindEvents();
   initAuth();
   const empty = $("#empty");

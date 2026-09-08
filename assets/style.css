@@ -12,6 +12,11 @@
   color: var(--text);
 }
 
+.noscript-msg {
+  text-align: center;
+  padding: 2rem;
+}
+
 :root {
   --bg: #0f1218;
   --bg-elevated: #171b24;
@@ -715,7 +720,8 @@ main {
 }
 
 .card-hit:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (hover: none) {
@@ -894,6 +900,11 @@ main {
   grid-template-columns: minmax(220px, 320px) 1fr;
   gap: 0;
   -webkit-overflow-scrolling: touch;
+}
+
+.modal-panel:not(:has(.modal-art)) {
+  grid-template-columns: 1fr;
+  width: min(440px, 100%);
 }
 
 .modal-handle {
@@ -1176,6 +1187,13 @@ main {
   font-size: 0.82rem;
 }
 
+.cart-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
 .cart-header .modal-close {
   position: static;
   flex-shrink: 0;
@@ -1404,6 +1422,13 @@ main {
 .cart.shot-mode .cart-tip,
 .cart.shot-mode .modal-close {
   display: none;
+}
+
+@media (max-width: 720px) {
+  /* 满屏截图时遮罩点不到，保留关闭和「退出截图」 */
+  .cart.shot-mode .modal-close {
+    display: revert;
+  }
 }
 
 .cart.shot-mode .btn {
@@ -1766,6 +1791,11 @@ footer {
     max-height: 94dvh;
     border-radius: 14px;
     width: min(920px, 100%);
+  }
+
+  .modal-panel:not(:has(.modal-art)) {
+    grid-template-columns: 1fr;
+    width: min(440px, 100%);
   }
 
   .modal-handle {

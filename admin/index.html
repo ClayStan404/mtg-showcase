@@ -10,7 +10,7 @@
     <meta name="description" content="MTG Showcase 管理" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io https://images.mtgch.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://rkvtizboyikrjowfogoc.supabase.co https://mtgch.com https://api.scryfall.com https://api.scryfall.io; frame-ancestors 'none'"
+      content="default-src 'self'; img-src 'self' data: https://cards.scryfall.io https://images.mtgch.com; script-src 'self'; style-src 'self'; connect-src 'self' https://rkvtizboyikrjowfogoc.supabase.co https://mtgch.com https://api.scryfall.com https://api.scryfall.io; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     />
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://images.mtgch.com" crossorigin />
@@ -134,7 +134,7 @@
             </div>
             <label class="form-full">备注<input id="f-note" type="text" placeholder="右下角破损 / 急收…" maxlength="200" /></label>
             <div class="form-preview" id="form-preview" hidden>
-              <img id="form-preview-img" src="" alt="" />
+              <img id="form-preview-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" />
               <p id="form-preview-name"></p>
             </div>
             <div class="modal-actions">

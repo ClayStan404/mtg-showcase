@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...headers, Allow: "POST, OPTIONS" },
     });
   }
-  // verify_jwt=true: gateway already validated JWT; only require Bearer present.
+  // verify_jwt=true (pin in supabase/config.toml): gateway already validated JWT.
   const auth = req.headers.get("Authorization") ?? "";
   const subject = auth.startsWith("Bearer ") ? jwtSubject(auth) : null;
   if (!subject) {
@@ -126,15 +126,50 @@ Deno.serve(async (req: Request) => {
 
   const repo = Deno.env.get("GH_REPO") ?? "ClayStan404/mtg-showcase";
   const workflow = Deno.env.get("GH_WORKFLOW") ?? "auto-update.yml";
+  const ghHeaders = {
+    Authorization: `Bearer ${ghPat}`,
+    Accept: "application/vnd.github+json",
+    "User-Agent": "mtg-showcase-publish",
+  };
+
+  // Fail-closed: unknown run state must not stampede workflow_dispatch.
+  try {
+    const runs = await fetch(
+      `https://api.github.com/repos/${repo}/actions/workflows/${workflow}/runs?per_page=5`,
+      { headers: ghHeaders },
+    );
+    if (!runs.ok) {
+      return new Response(JSON.stringify({ error: `github list ${runs.status}` }), {
+        status: 502,
+        headers,
+      });
+    }
+    const data = (await runs.json()) as {
+      workflow_runs?: { status?: string }[];
+    };
+    const busy = (data.workflow_runs ?? []).some((run) =>
+      ["queued", "in_progress", "waiting", "pending", "requested"].includes(
+        run.status ?? "",
+      )
+    );
+    if (busy) {
+      return new Response(JSON.stringify({ error: "sync already running" }), {
+        status: 429,
+        headers,
+      });
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: "github list failed" }), {
+      status: 502,
+      headers,
+    });
+  }
+
   const r = await fetch(
     `https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${ghPat}`,
-        Accept: "application/vnd.github+json",
-        "User-Agent": "mtg-showcase-publish",
-      },
+      headers: ghHeaders,
       body: JSON.stringify({
         ref: "master",
         inputs: { mode: "data" },
