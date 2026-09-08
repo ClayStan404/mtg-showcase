@@ -133,12 +133,15 @@ Deno.serve(async (req: Request) => {
   };
 
   // Fail-closed: unknown run state must not stampede workflow_dispatch.
+  // Release the reserved cooldown on busy/list failure — those are not a
+  // successful dispatch; keeping the slot forced a false "publish cooldown".
   try {
     const runs = await fetch(
       `https://api.github.com/repos/${repo}/actions/workflows/${workflow}/runs?per_page=5`,
       { headers: ghHeaders },
     );
     if (!runs.ok) {
+      lastDispatchByUser.delete(subject);
       return new Response(JSON.stringify({ error: `github list ${runs.status}` }), {
         status: 502,
         headers,
@@ -153,12 +156,19 @@ Deno.serve(async (req: Request) => {
       )
     );
     if (busy) {
-      return new Response(JSON.stringify({ error: "sync already running" }), {
-        status: 429,
-        headers,
-      });
+      lastDispatchByUser.delete(subject);
+      // Hint clients to wait while the in-flight run finishes (not a dispatch).
+      const retryAfter = 30;
+      return new Response(
+        JSON.stringify({ error: "sync already running", retry_after: retryAfter }),
+        {
+          status: 429,
+          headers: { ...headers, "Retry-After": String(retryAfter) },
+        },
+      );
     }
   } catch {
+    lastDispatchByUser.delete(subject);
     return new Response(JSON.stringify({ error: "github list failed" }), {
       status: 502,
       headers,

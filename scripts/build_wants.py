@@ -30,6 +30,8 @@ from build_common import (  # noqa: E402
     base_from_cached,
     base_from_card,
     bump_all_caches,
+    clear_sticky_markers,
+    count_sticky_empty_zh_names,
     enrichment_cache_path,
     ensure_image_cdn,
     ensure_zh_name,
@@ -179,6 +181,8 @@ def enrich_wants(
     entries: list[dict[str, Any]],
     client: ScryfallClient,
     prev: dict[str, dict[str, Any]],
+    *,
+    repair_sticky: bool = False,
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     total = len(entries)
@@ -202,6 +206,8 @@ def enrich_wants(
         # 复用上一份 wants.json 的富化结果（加速重建，对齐 build_data 的两层增量）
         base: dict[str, Any] | None = None
         cached = prev.get(prev_key)
+        if repair_sticky and cached:
+            cached = clear_sticky_markers(cached)
         if (
             cached
             and not cached.get("error")
@@ -293,8 +299,10 @@ def enrich_wants(
                 "scryfall_uri": base["scryfall_uri"],
                 "image_lang": base.get("image_lang") or e["lang"],
                 "image_cdn_attempted": base.get("image_cdn_attempted") or "",
+                "image_cdn_attempted_at": int(base.get("image_cdn_attempted_at") or 0),
                 "zhs_art_attempted": bool(base.get("zhs_art_attempted")),
                 "zh_name_attempted": bool(base.get("zh_name_attempted")),
+                "zh_name_attempted_at": int(base.get("zh_name_attempted_at") or 0),
                 "source_file": e["source_file"],
             }
         )
@@ -307,6 +315,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="生成求购 wants 数据")
     parser.add_argument("-i", "--wants-dir", type=Path, default=WANTS_DIR)
     parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument(
+        "--repair-sticky",
+        action="store_true",
+        help="清除 sticky 标记并重新探测中文名/首选 CDN（忽略 TTL）",
+    )
     parser.add_argument("--validate-only", action="store_true")
     args = parser.parse_args()
 
@@ -334,7 +347,16 @@ def main() -> int:
             list_key="wants",
         )
         client = ScryfallClient(use_disk_cache=not args.no_cache)
-        wants = enrich_wants(entries, client, prev)
+        wants = enrich_wants(
+            entries, client, prev, repair_sticky=args.repair_sticky
+        )
+        sticky_empty = count_sticky_empty_zh_names(wants)
+        if sticky_empty:
+            print(
+                f"[warn] {sticky_empty} 条求购 sticky 后仍无中文名"
+                f"（TTL 到期或 --repair-sticky 可重试）",
+                file=sys.stderr,
+            )
         internal_payload = {
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "site": load_site_config(),

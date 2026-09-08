@@ -62,10 +62,11 @@ Frontend: Storage snapshot preferred; generated JS is a lazy resilience fallback
 - Admin live enrich (preview/new cards): **mtgch first**, Scryfall fallback.
 - `lang=zhs`: prefer Chinese face art (`zhs_image_uris` / true Scryfall zhs printing) over English; inventory language wins over CDN host flip.
 - Sticky fields (avoid re-resolve every incremental build):
-  - `image_cdn_attempted` — preferred host last tried
+  - `image_cdn_attempted` (+ `_at`) — preferred host last tried; TTL 30d then re-probe
   - `zhs_art_attempted` — Chinese face already attempted
   - `image_lang` — face language of chosen art (from resolve path, not URL guessing)
-- Sticky cost: if preferred CDN later gains art, no auto switch until config flip or markers cleared.
+  - `zh_name_attempted` (+ `_at`) — Chinese name probe; TTL 30d / `--repair-sticky`
+- Sticky cost: within TTL, if preferred CDN later gains art, no auto switch until flip, expiry, or `--repair-sticky`.
 - UI badge **无中文印刷图** when `lang=zhs` but `image_lang` is not Chinese (e.g. `msc 211` — no zhs face in data sources).
 
 ## Common commands

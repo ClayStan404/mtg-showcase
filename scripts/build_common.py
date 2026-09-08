@@ -31,8 +31,10 @@ PRIVATE_SNAPSHOT_FIELDS = frozenset(
     {
         "source_file",
         "image_cdn_attempted",
+        "image_cdn_attempted_at",
         "zhs_art_attempted",
         "zh_name_attempted",
+        "zh_name_attempted_at",
     }
 )
 
@@ -40,7 +42,83 @@ PRIVATE_SNAPSHOT_FIELDS = frozenset(
 REQUEST_GAP = 0.12
 # Scryfall/mtgch 磁盘缓存 TTL（秒），超期则重拉，让 Oracle 文本/规则面更新后自动刷新
 CACHE_TTL = 30 * 24 * 3600
+# Sticky enrichment markers expire so late-arriving mtgch/Scryfall art/names can repair.
+STICKY_REPAIR_TTL_SEC = CACHE_TTL
 USER_AGENT = "MTGShowcase/1.0 (personal inventory; github pages)"
+
+
+def _parse_attempt_ts(value: Any) -> float | None:
+    """Unix seconds from int/float/digit-string; None if missing or unusable."""
+    if value is None or value is False:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value) if value > 0 else None
+    if isinstance(value, str) and value.strip().isdigit():
+        return float(value.strip())
+    return None
+
+
+def sticky_attempt_is_fresh(
+    attempted: Any,
+    attempted_at: Any,
+    *,
+    now: float | None = None,
+    ttl_sec: int = STICKY_REPAIR_TTL_SEC,
+) -> bool:
+    """True when a sticky skip should still apply.
+
+    Legacy rows with attempted=True but no timestamp are treated as expired so
+    they get one repair pass, then stick until TTL.
+    """
+    if not attempted:
+        return False
+    ts = _parse_attempt_ts(attempted_at)
+    if ts is None:
+        return False
+    t = time.time() if now is None else now
+    return (t - ts) < ttl_sec
+
+
+def mark_zh_name_attempted(base: dict[str, Any], *, now: float | None = None) -> dict[str, Any]:
+    out = dict(base)
+    out["zh_name_attempted"] = True
+    out["zh_name_attempted_at"] = int(time.time() if now is None else now)
+    return out
+
+
+def mark_image_cdn_attempted(
+    base: dict[str, Any], pref: str, *, now: float | None = None
+) -> dict[str, Any]:
+    out = dict(base)
+    out["image_cdn_attempted"] = pref
+    out["image_cdn_attempted_at"] = int(time.time() if now is None else now)
+    return out
+
+
+def clear_sticky_markers(row: dict[str, Any]) -> dict[str, Any]:
+    """Force the next ensure_* pass to re-probe (CLI --repair-sticky)."""
+    out = dict(row)
+    out["zh_name_attempted"] = False
+    out.pop("zh_name_attempted_at", None)
+    out["image_cdn_attempted"] = ""
+    out.pop("image_cdn_attempted_at", None)
+    return out
+
+
+def count_sticky_empty_zh_names(rows: list[dict[str, Any]]) -> int:
+    """Rows that stuck after a zh-name attempt but still lack a CJK name."""
+    n = 0
+    for row in rows:
+        if row.get("error"):
+            continue
+        if not row.get("zh_name_attempted"):
+            continue
+        if looks_like_chinese_name(row.get("name_zh") or ""):
+            continue
+        n += 1
+    return n
 
 
 def bump_cache_buster(html_path: Path, asset_filename: str, content: bytes) -> None:
@@ -68,6 +146,7 @@ _STATIC_CACHE_ASSETS = [
     ("style.css", "assets/style.css"),
     ("mtg-ui.js", "assets/mtg-ui.js"),
     ("site-config.js", "assets/site-config.js"),
+    ("catalog-load.js", "assets/catalog-load.js"),
     ("supabase-client.js", "assets/supabase-client.js"),
     ("inventory-parser.js", "assets/inventory-parser.js"),
     ("supabase-js.min.js", "assets/vendor/supabase-js.min.js"),
@@ -739,8 +818,10 @@ def base_from_cached(
         "image_lang": cached.get("image_lang") or cached.get("lang") or lang,
         # Sticky markers (orthogonal): CDN host, Chinese-art attempt, zh name attempt
         "image_cdn_attempted": cached.get("image_cdn_attempted") or "",
+        "image_cdn_attempted_at": cached.get("image_cdn_attempted_at") or 0,
         "zhs_art_attempted": bool(cached.get("zhs_art_attempted")),
         "zh_name_attempted": bool(cached.get("zh_name_attempted")),
+        "zh_name_attempted_at": cached.get("zh_name_attempted_at") or 0,
     }
 
 
@@ -755,14 +836,18 @@ def base_from_card(
     # zhs inventory: Scryfall may 404 Chinese printing and fall back to en card
     # (no printed_name) — still pull Chinese name from mtgch (e.g. pip/717).
     zh_name_attempted = False
+    zh_name_attempted_at = 0
+    now_ts = int(time.time())
     if lang == "zhs":
         name_zh = name_printed or ""
         if looks_like_chinese_name(name_zh):
             zh_name_attempted = True
+            zh_name_attempted_at = now_ts
         else:
             if client is not None and hasattr(client, "fetch_zh_name"):
                 fetched = (client.fetch_zh_name(set_code, number) or "").strip()
                 zh_name_attempted = True
+                zh_name_attempted_at = now_ts
                 if looks_like_chinese_name(fetched):
                     name_zh = fetched
             if not looks_like_chinese_name(name_zh):
@@ -774,6 +859,7 @@ def base_from_card(
         if client is not None and hasattr(client, "fetch_zh_name"):
             fetched = (client.fetch_zh_name(set_code, number) or "").strip()
             zh_name_attempted = True
+            zh_name_attempted_at = now_ts
             if looks_like_chinese_name(fetched):
                 name_zh = fetched
         name_printed_out = name_printed or name_en
@@ -808,8 +894,10 @@ def base_from_card(
         "lang": card.get("lang") or lang,
         "image_lang": art_lang or lang,
         "image_cdn_attempted": preferred,
+        "image_cdn_attempted_at": now_ts,
         "zhs_art_attempted": lang == "zhs",
         "zh_name_attempted": zh_name_attempted,
+        "zh_name_attempted_at": zh_name_attempted_at,
     }
 
 
@@ -820,12 +908,16 @@ def ensure_image_cdn(
     number: str,
     lang: str,
     preferred: str | None = None,
+    *,
+    now: float | None = None,
 ) -> dict[str, Any]:
     """Re-resolve when CDN preference or Chinese art is wrong.
 
     Control flag:
     - image_cdn_attempted: last preferred CDN host tried ("mtgch"|"scryfall");
       used for non-zhs sticky host preference (skip re-resolve when unchanged).
+    - image_cdn_attempted_at: unix seconds; sticky expires after STICKY_REPAIR_TTL_SEC
+      so a later-available preferred-CDN face can be picked up.
 
     Diagnostic only (not used for branching in this function):
     - zhs_art_attempted: still written True after a zhs resolve so snapshots /
@@ -858,20 +950,22 @@ def ensure_image_cdn(
         base["image"] = image
         base["image_lang"] = art or "en"
         base["zhs_art_attempted"] = True  # diagnostic only; see docstring
-        base["image_cdn_attempted"] = pref
-        return base
+        return mark_image_cdn_attempted(base, pref, now=now)
 
     # Non-zhs: preferred CDN sticky
     if image_dict_matches_cdn(base.get("image"), pref):
         return base
-    if has_any and cdn_tried == pref:
+    if (
+        has_any
+        and cdn_tried == pref
+        and sticky_attempt_is_fresh(True, base.get("image_cdn_attempted_at"), now=now)
+    ):
         return base
     base = dict(base)
     image, art = client.resolve_images(set_code, number, lang, pref)
     base["image"] = image
     base["image_lang"] = art or lang
-    base["image_cdn_attempted"] = pref
-    return base
+    return mark_image_cdn_attempted(base, pref, now=now)
 
 
 def ensure_zh_name(
@@ -880,6 +974,8 @@ def ensure_zh_name(
     set_code: str,
     number: str,
     lang: str,
+    *,
+    now: float | None = None,
 ) -> dict[str, Any]:
     """Fill Chinese name from mtgch when missing or still non-CJK.
 
@@ -887,9 +983,9 @@ def ensure_zh_name(
     prefers name_zh whenever it differs from name_en, so English listings still
     need a Chinese name (e.g. one/370 en → 暗峰山崖).
 
-    Sticky: zh_name_attempted (bool). Once True, do not re-query mtgch on later
-    builds when still without a CJK name — mirrors image_cdn_attempted. Rows
-    that lack the flag (old snapshots) get one repair pass, then stick.
+    Sticky: zh_name_attempted + zh_name_attempted_at. While fresh (TTL), do not
+    re-query mtgch when still without a CJK name — mirrors image_cdn sticky.
+    Expired or legacy (bool only, no timestamp) rows get a repair pass.
 
     Only CJK names are accepted (looks_like_chinese_name); Latin-only mtgch
     fallbacks are ignored so displayName never treats English as Chinese.
@@ -900,13 +996,16 @@ def ensure_zh_name(
     name_zh = (base.get("name_zh") or "").strip()
     name_en = (base.get("name_en") or "").strip()
     if looks_like_chinese_name(name_zh):
-        if not base.get("zh_name_attempted"):
-            base = dict(base)
-            base["zh_name_attempted"] = True
+        if not base.get("zh_name_attempted") or not _parse_attempt_ts(
+            base.get("zh_name_attempted_at")
+        ):
+            return mark_zh_name_attempted(base, now=now)
         return base
     # Non-CJK placeholder (often English) — clear when sticking or after a failed fetch
     # so old snapshots do not keep Latin junk in name_zh.
-    if base.get("zh_name_attempted"):
+    if sticky_attempt_is_fresh(
+        base.get("zh_name_attempted"), base.get("zh_name_attempted_at"), now=now
+    ):
         if name_zh:
             base = dict(base)
             base["name_zh"] = ""
@@ -914,8 +1013,7 @@ def ensure_zh_name(
     if client is None or not hasattr(client, "fetch_zh_name"):
         return base
     zh = (client.fetch_zh_name(set_code, number) or "").strip()
-    base = dict(base)
-    base["zh_name_attempted"] = True
+    base = mark_zh_name_attempted(base, now=now)
     if not looks_like_chinese_name(zh):
         base["name_zh"] = ""
         return base

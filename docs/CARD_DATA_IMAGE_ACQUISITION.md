@@ -38,7 +38,7 @@ Input tokens `e/z/j/o` → internal `en/zhs/ja/other`. The critical helper is `s
 
 - `fetch_zh_name()` → `fetch_mtgch_card()`, reading `zhs_name` → `atomic_official_name` → `atomic_translated_name`.
 - **CJK gate** `looks_like_chinese_name()` (`build_common.py:641-655`): the value must contain a CJK ideograph (U+4E00–9FFF + Ext A U+3400–4DBF). Latin-only mtgch fallbacks are rejected so an English name never lands in `name_zh` and confuses `displayName`.
-- **Sticky `zh_name_attempted`** — once `True`, mtgch is never re-queried on later builds even if still no CJK name (`ensure_zh_name`). Rows lacking the flag (old snapshots) get one repair pass, then stick.
+- **Sticky `zh_name_attempted` + `zh_name_attempted_at`** — while TTL-fresh, mtgch is not re-queried even if still no CJK name (`ensure_zh_name`). Expired / legacy (bool only) rows get a repair pass; `--repair-sticky` clears markers.
 - **zhs stock**: `printed_name` first; if non-CJK, query mtgch; if still none, fall back to `name_en`. Also repairs `name_printed` when it was missing/non-CJK.
 
 ## 5. Build-Time: Image Resolution — Core Precedence (`build_common.py:392-492`)
@@ -57,7 +57,7 @@ Example: `pip/717` has no Scryfall zhs printing (404) but mtgch has `zhs_image_u
 
 ### Non-zhs — preferred CDN first, other CDN fallback
 
-`site_config.image_cdn` (default `mtgch`) is tried first; on miss the other CDN is tried (`build_common.py:458-476`). The preferred host is sticky for non-zhs rows.
+`site_config.image_cdn` is tried first; on miss the other CDN is tried (`build_common.py` preferred_cdn_chain). **Code fallback when config omits the key:** `mtgch`. **Production `site_config.json`:** `"scryfall"`. The preferred host is sticky for non-zhs rows (with TTL — see §6).
 
 ### `pick_images()` (`build_common.py:528-561`)
 
@@ -69,9 +69,11 @@ Extracts small/normal/large from Scryfall- or mtgch-shaped JSON: when `lang=zhs`
 
 | Marker | Purpose |
 |--------|---------|
-| `image_cdn_attempted` | For non-zhs: if the preferred CDN host is unchanged, skip re-resolve |
+| `image_cdn_attempted` (+ `_at`) | For non-zhs: if preferred CDN host unchanged and attempt is fresh (TTL = 30d), skip re-resolve |
 | `zhs_art_attempted` | Diagnostic — zhs with Chinese face art is not re-resolved even on CDN flip |
-| `zh_name_attempted` | Chinese name queried once, then never re-queried |
+| `zh_name_attempted` (+ `_at`) | Chinese name queried once; while TTL-fresh, never re-queried even if still empty |
+
+Legacy rows with `*_attempted=True` but no `*_at` timestamp are treated as **expired** once (one repair pass), then stick with a new timestamp. Manual force: `build_data.py` / `build_wants.py --repair-sticky`. Builds log a count of sticky-empty `name_zh` rows.
 
 `ensure_image_cdn` key rules:
 
@@ -95,13 +97,13 @@ Scheme C main path is the Storage snapshot. Pages `data/*.json` and inlined `car
 - `displayName()` (`mtg-ui.js:215-220`): if `name_zh` differs from `name_en`, use `name_zh`; else `name_printed || name_zh || name_en`.
 - **"无中文印刷图" badge** (`mtg-ui.js:421-425`): when `lang==="zhs"` but `image_lang` is not `zhs`/`zh`, a `无中文印刷图` flag is shown (e.g. `msc 211` has no Chinese face in any source, so English art is shown with a notice).
 
-## 9. Admin Live Enrichment (`admin/admin.js:349-387`)
+## 9. Admin Live Enrichment (`admin/admin.js` `ensureDisplayEnrichment` / `fetchScryfallJson`)
 
 Preview path for newly added cards not yet in the Storage snapshot — **order reversed vs build time**:
 
 - `ensureDisplayEnrichment()`: **mtgch first** (CN-friendly: one call yields both Chinese name and CN-CDN image), fall back to Scryfall only if image or name is still missing.
-- `fetchScryfallJson()` (`admin.js:286-311`) dual-host fallback: `api.scryfall.com` + `api.scryfall.io`; for non-en, dual path (`/{lang}` + no-lang).
-- `mergeKeepExisting()` (`admin.js:314-328`): override only with non-empty values; never clobber existing fields with `""`/`null`. For `image`, requires a usable URL.
+- `fetchScryfallJson()` dual-host fallback: `api.scryfall.com` + `api.scryfall.io`; for non-en, dual path (`/{lang}` + no-lang).
+- `mergeKeepExisting()`: override only with non-empty values; never clobber existing fields with `""`/`null`. For `image`, requires a usable URL.
 - `_enrichInflight` Map dedupes concurrent requests for the same key (prefetch + decorate coalesce).
 - `pickImageBundle` / `pickNames` mirror the build-side `pick_images` / `fetch_zh_name` logic.
 

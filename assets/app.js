@@ -658,8 +658,18 @@ function catalogFetchOpts(cacheMode) {
 }
 
 function isCatalogTimeout(err) {
+  if (window.MTGCatalogLoad && typeof MTGCatalogLoad.isCatalogTimeout === "function") {
+    return MTGCatalogLoad.isCatalogTimeout(err);
+  }
   const name = err && err.name;
   return name === "TimeoutError" || name === "AbortError";
+}
+
+function shouldUseStorageFallback(err) {
+  if (window.MTGCatalogLoad && typeof MTGCatalogLoad.shouldUseStorageFallback === "function") {
+    return MTGCatalogLoad.shouldUseStorageFallback(err);
+  }
+  return !isCatalogTimeout(err);
 }
 
 async function fetchCatalogJson(url, check, cacheMode) {
@@ -720,7 +730,7 @@ async function loadCatalog(kind) {
     try {
       return await fetchStorageCatalog(`${base}/${file}`, check);
     } catch (e) {
-      if (isCatalogTimeout(e)) throw e;
+      if (!shouldUseStorageFallback(e)) throw e;
       return loadCatalogFallback(file, check, isSell, listKey, e);
     }
   }

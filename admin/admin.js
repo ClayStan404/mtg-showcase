@@ -516,8 +516,14 @@
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         if (r.status === 429) {
-          if (!auto) showToast("同步进行中，请稍后再试");
-          else scheduleAutoSync();
+          const busy = /already running/i.test(String(j.error || ""));
+          if (!auto) {
+            showToast(
+              busy
+                ? "已有同步在跑，约半分钟后再试"
+                : "同步冷却中，请稍后再试"
+            );
+          } else scheduleAutoSync();
           const retryAfter = Number(j.retry_after || r.headers.get("Retry-After"));
           if (Number.isFinite(retryAfter) && retryAfter > 0) setPublishCooldown(retryAfter);
           return false;
@@ -853,7 +859,7 @@
           (f) => !((profile && profile[f]) || "").trim()
         );
         warn.hidden = false;
-        warn.textContent = `⚠ 资料缺 ${missing.join(" / ")}，同步被禁用（同步后库存会被 export 跳过、站点变空）。点右上「资料」补全。`;
+        warn.textContent = `资料缺 ${missing.join(" / ")}：同步已禁用。export 会跳过你的库存，主站列表会变空。点右上「资料」补全昵称/城市/联系后再同步。`;
       }
     }
   }
@@ -862,7 +868,8 @@
     $("#p-seller_name").value = (profile && profile.seller_name) || "";
     $("#p-city").value = (profile && profile.city) || "";
     $("#p-contact").value = (profile && profile.contact) || "";
-    $("#p-hint").textContent = "三项都必填，否则发布的库存/求购会被 export 整批跳过。";
+    $("#p-hint").textContent =
+      "三项都必填，否则同步后库存/求购会被 export 整批跳过。联系方式会公开显示在主站快照里，请只填写你同意公开的内容。";
     showModal("profile-modal");
   }
 

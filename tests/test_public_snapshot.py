@@ -24,8 +24,10 @@ def test_public_snapshot_removes_internal_fields_without_mutating_source() -> No
                 "name_en": "Test Card",
                 "source_file": "00000000-0000-4000-8000-000000000000.txt",
                 "image_cdn_attempted": "scryfall",
+                "image_cdn_attempted_at": 1700000000,
                 "zhs_art_attempted": True,
                 "zh_name_attempted": True,
+                "zh_name_attempted_at": 1700000000,
             }
         ],
     }

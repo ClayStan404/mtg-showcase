@@ -741,20 +741,22 @@ def test_ensure_zh_name_sticky_skips_when_no_chinese(monkeypatch, tmp_path):
 
 
 def test_ensure_zh_name_clears_latin_placeholder_when_sticky(monkeypatch, tmp_path):
-    """Old snapshots with English name_zh + attempted flag: strip the junk."""
+    """Old snapshots with English name_zh + fresh attempted flag: strip the junk."""
     monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
     client = build_common.ScryfallClient(use_disk_cache=True)
     calls: list[int] = []
     monkeypatch.setattr(
         client, "fetch_zh_name", lambda *a, **k: calls.append(1) or "ignored"
     )
+    now = 1_700_000_000.0
     base = {
         "name_en": "Blackcleave Cliffs",
         "name_zh": "Blackcleave Cliffs",
         "name_printed": "Blackcleave Cliffs",
         "zh_name_attempted": True,
+        "zh_name_attempted_at": int(now),
     }
-    out = build_common.ensure_zh_name(base, client, "one", "370", "en")
+    out = build_common.ensure_zh_name(base, client, "one", "370", "en", now=now)
     assert out["name_zh"] == ""
     assert len(calls) == 0
 
@@ -789,6 +791,110 @@ def test_ensure_zh_name_zhs_repairs_printed(monkeypatch, tmp_path):
     assert out["name_zh"] == "暗峰山崖"
     assert out["name_printed"] == "暗峰山崖"
     assert out["zh_name_attempted"] is True
+
+
+def test_ensure_zh_name_repairs_when_sticky_ttl_expired(monkeypatch, tmp_path):
+    """Expired sticky empty name must re-query mtgch."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls: list[int] = []
+
+    def fetch(*a, **k):
+        calls.append(1)
+        return "暗峰山崖"
+
+    monkeypatch.setattr(client, "fetch_zh_name", fetch)
+    now = 1_700_000_000.0
+    base = {
+        "name_en": "Blackcleave Cliffs",
+        "name_zh": "",
+        "name_printed": "Blackcleave Cliffs",
+        "zh_name_attempted": True,
+        "zh_name_attempted_at": int(now - build_common.STICKY_REPAIR_TTL_SEC - 10),
+    }
+    out = build_common.ensure_zh_name(base, client, "one", "370", "en", now=now)
+    assert out["name_zh"] == "暗峰山崖"
+    assert len(calls) == 1
+    assert out["zh_name_attempted_at"] == int(now)
+
+
+def test_ensure_zh_name_legacy_attempted_without_ts_repairs_once(
+    monkeypatch, tmp_path
+):
+    """Bool-only sticky (no timestamp) is treated as expired for one repair pass."""
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls: list[int] = []
+    monkeypatch.setattr(
+        client, "fetch_zh_name", lambda *a, **k: calls.append(1) or "暗峰山崖"
+    )
+    base = {
+        "name_en": "Blackcleave Cliffs",
+        "name_zh": "",
+        "name_printed": "Blackcleave Cliffs",
+        "zh_name_attempted": True,
+    }
+    out = build_common.ensure_zh_name(base, client, "one", "370", "en")
+    assert out["name_zh"] == "暗峰山崖"
+    assert len(calls) == 1
+    assert out["zh_name_attempted_at"] > 0
+
+
+def test_ensure_image_cdn_repairs_when_sticky_ttl_expired(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_common, "CACHE_DIR", tmp_path)
+    client = build_common.ScryfallClient(use_disk_cache=True)
+    calls = {"n": 0}
+
+    def resolve(*a, **k):
+        calls["n"] += 1
+        return (
+            {
+                "small": "https://images.mtgch.com/s.jpg",
+                "normal": "https://images.mtgch.com/n.jpg",
+                "large": "",
+            },
+            "en",
+        )
+
+    monkeypatch.setattr(client, "resolve_images", resolve)
+    now = 1_700_000_000.0
+    base = {
+        "image": {
+            "small": "https://cards.scryfall.io/s.jpg",
+            "normal": "https://cards.scryfall.io/n.jpg",
+            "large": "",
+        },
+        "image_cdn_attempted": "mtgch",
+        "image_cdn_attempted_at": int(now - build_common.STICKY_REPAIR_TTL_SEC - 1),
+        "image_lang": "en",
+    }
+    out = build_common.ensure_image_cdn(
+        base, client, "neo", "1", "en", "mtgch", now=now
+    )
+    assert calls["n"] == 1
+    assert "mtgch.com" in out["image"]["normal"]
+    assert out["image_cdn_attempted_at"] == int(now)
+
+
+def test_clear_sticky_markers_and_count_empty():
+    cleared = build_common.clear_sticky_markers(
+        {
+            "zh_name_attempted": True,
+            "zh_name_attempted_at": 99,
+            "image_cdn_attempted": "scryfall",
+            "image_cdn_attempted_at": 99,
+        }
+    )
+    assert cleared["zh_name_attempted"] is False
+    assert "zh_name_attempted_at" not in cleared
+    assert cleared["image_cdn_attempted"] == ""
+    assert build_common.count_sticky_empty_zh_names(
+        [
+            {"zh_name_attempted": True, "name_zh": ""},
+            {"zh_name_attempted": True, "name_zh": "暗峰山崖"},
+            {"error": "not_found", "zh_name_attempted": True, "name_zh": ""},
+        ]
+    ) == 1
 
 
 # ── stable_payload_bytes ────────────────────────────────────────────
