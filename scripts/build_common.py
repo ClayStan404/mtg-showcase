@@ -172,12 +172,12 @@ def load_site_config() -> dict[str, Any]:
             # site_config.json 损坏时回退默认配置，避免直接崩掉整轮 build
             print(f"⚠ site_config.json 解析失败，使用默认配置: {e}", file=sys.stderr)
             cfg = {
-                "title": "万智牌 Sales List",
+                "title": "万智牌云牌本",
                 "subtitle": "实体卡展示 · 站外联系成交",
             }
     else:
         cfg = {
-            "title": "万智牌 Sales List",
+            "title": "万智牌云牌本",
             "subtitle": "实体卡展示 · 站外联系成交",
         }
     # Scheme C: always expose public snapshot base URL for the frontend.

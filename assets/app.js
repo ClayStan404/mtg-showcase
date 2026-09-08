@@ -434,7 +434,7 @@ function closeModal() {
 function renderSiteMeta() {
   const site = state.site || {};
   const isWant = state.view === "want";
-  const baseTitle = site.title || "万智牌 Sales List";
+  const baseTitle = site.title || "万智牌云牌本";
   document.title = isWant ? `${baseTitle} · 求购` : baseTitle;
   $("#site-title").textContent = baseTitle;
   $("#site-subtitle").textContent = isWant
